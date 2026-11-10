@@ -6,8 +6,12 @@ Jeden z partnerů napíše vzkaz, druhému přijde jen diskrétní upozornění 
 
 ## Co umí první verze
 
-- Registrace a přihlášení (e-mail + heslo)
+- Registrace a přihlášení (e-mail + heslo), pohlaví (muž / žena / nechci uvést)
 - Párování dvou uživatelů tajným kódem
+- Chat: nepřečtený vzkaz přijde jako zalepená obálka, otevře se klepnutím
+- Odpovědi na vzkazy (klepni na bublinu → Odpovědět)
+- Šifrované fotky (zmenšené na 1600 px, šifrované v telefonu, uložené v Supabase Storage)
+- Samolepky Hushki (pánská a dámská sada, vlastní sada se nabízí první)
 - Šifrované vzkazy (AES-GCM 256, Web Crypto) a zámek PINem (6 číslic), automatické zamčení po 30 s mimo aplikaci
 - Nápady na vzkazy (šablony) z databáze, doplňují se bez aktualizace aplikace
 - Tichá push upozornění bez obsahu (iOS 16.4+ po přidání na plochu)
@@ -37,7 +41,7 @@ npm run build
 ## Nastavení Supabase (účet klienta)
 
 1. Na [supabase.com](https://supabase.com) založit účet a projekt (region EU, např. Frankfurt). Vývojáře pozvat do organizace.
-2. **SQL Editor**: spustit `supabase/migrations/0001_init.sql` a pak `supabase/seed.sql`.
+2. **SQL Editor**: spustit postupně `supabase/migrations/0001_init.sql`, `0002_chat_photos.sql` a pak `supabase/seed.sql`.
 3. **Authentication → Providers → Email**: zapnuto. Pro testování lze vypnout „Confirm email“.
 4. **Authentication → URL Configuration**: Site URL nastavit na adresu aplikace.
 5. **Project Settings → API**: zkopírovat Project URL a `anon` klíč.
@@ -48,6 +52,10 @@ npm run build
    supabase secrets set VAPID_PUBLIC_KEY=... VAPID_PRIVATE_KEY=... VAPID_SUBJECT=mailto:info@hushki.cz
    supabase functions deploy notify
    ```
+
+### Samolepky
+
+Obrázky patří do `public/stickers/` jako `m01.png` až `m15.png` (pánská sada) a `f01.png` až `f15.png` (dámská sada), ideálně 256 × 256 s průhledným pozadím. Názvy a pořadí jsou v `src/data/stickers.ts`. Dokud obrázek chybí, zobrazí se náhradní emoji. Obsah vzkazu (text, fotka, samolepka i odpověď) se šifruje jako celek, takže server nepozná ani typ zprávy.
 
 ### Šablony nápadů
 
@@ -87,4 +95,4 @@ supabase/functions/    gentleman (Claude API), notify (Web Push)
 
 ## Ikona
 
-`public/icons/` je zatím vygenerovaná z návrhu kreslené obálky se srdíčkem. Pro výměnu stačí nahradit PNG soubory (180, 192, 512 a maskable 512).
+`public/icons/` je vygenerovaná z kresleného psa Hushki. Pro výměnu stačí nahradit PNG soubory (180, 192, 512 a maskable 512).

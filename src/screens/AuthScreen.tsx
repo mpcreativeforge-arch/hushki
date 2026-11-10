@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { backend, BackendError } from '../lib/backend';
+import { backend, BackendError, type Gender } from '../lib/backend';
+import { GenderPicker } from '../components/GenderPicker';
 import { Envelope } from '../components/Envelope';
 
 export function AuthScreen() {
@@ -7,16 +8,18 @@ export function AuthScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
+  const [gender, setGender] = useState<Gender | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [info, setInfo] = useState('');
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (mode === 'signup' && !gender) { setError('Vyber prosím, kdo jsi.'); return; }
     setError(''); setInfo(''); setBusy(true);
     try {
       if (mode === 'signup') {
-        const { needsConfirm } = await backend.signUp(email.trim(), password, name.trim());
+        const { needsConfirm } = await backend.signUp(email.trim(), password, name.trim(), gender!);
         if (needsConfirm) setInfo('Poslali jsme ti e-mail. Potvrď ho a pak se tady přihlas.');
       } else {
         await backend.signIn(email.trim(), password);
@@ -42,6 +45,7 @@ export function AuthScreen() {
             <input className="input" value={name} onChange={(e) => setName(e.target.value)} required maxLength={40} autoComplete="nickname" />
           </label>
         )}
+        {mode === 'signup' && <GenderPicker value={gender} onChange={setGender} />}
         <label className="field"><span>E-mail</span>
           <input className="input" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required autoComplete="email" />
         </label>
