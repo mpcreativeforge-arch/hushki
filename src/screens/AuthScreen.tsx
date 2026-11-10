@@ -36,9 +36,9 @@ export function AuthScreen() {
 
   return (
     <div className="app">
-      <div className="envelope-wrap" style={{ marginTop: 14 }}><Wordmark height={96} /></div>
-      <h1>Něco jen <em>pro vás dva</em>.</h1>
-      <p className="muted">Vzkazy, které nikdo jiný neuvidí. Druhému z vás přijde jen nenápadné upozornění a vzkaz si otevře až po zadání svého PINu.</p>
+      <div className="envelope-wrap" style={{ marginTop: 10 }}><Wordmark height={64} /></div>
+      <h1 className="center">Něco jen <em>pro vás dva</em>.</h1>
+      <p className="muted center">Vzkazy, které nikdo jiný neuvidí. Druhému z vás přijde jen nenápadné upozornění a vzkaz si otevře až po zadání svého PINu.</p>
 
       <form className="stack" onSubmit={submit} style={{ marginTop: 10 }}>
         {mode === 'signup' && (
