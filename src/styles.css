@@ -364,3 +364,4 @@ p { margin: 0 0 14px; }
 .msg.mine .bubble-wrap { max-width: 100%; min-width: 0; }
 .msg .quote { align-self: stretch; min-width: 0; }
 .msg.mine .quote { text-align: right; border-left: 0; border-right: 2px solid var(--coral); }
+.bubble, .caption { overflow-wrap: anywhere; }

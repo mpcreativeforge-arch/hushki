@@ -17,7 +17,7 @@ interface Props {
 
 type Decoded = Message & { p: Payload | null; failed?: boolean };
 
-const MAX = 1200;
+const MAX = 1000;
 const TONES: { id: Tone; label: string }[] = [
   { id: 'elegantni', label: 'Elegantně' },
   { id: 'romanticky', label: 'Romanticky' },
@@ -37,6 +37,7 @@ export function ChatScreen({ user, pair, pairKey, flags, onBack, onSettings, onL
   const [push, setPush] = useState<'unknown' | 'on' | 'off' | 'unsupported'>('unknown');
   const listRef = useRef<HTMLDivElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
+  const inputRef = useRef<HTMLTextAreaElement>(null);
   const cacheRef = useRef(new Map<string, Payload | null>());
   const seenRef = useRef<Set<string> | null>(null);
   const liveRef = useRef(new Set<string>());
@@ -91,6 +92,14 @@ export function ChatScreen({ user, pair, pairKey, flags, onBack, onSettings, onL
     if (backend.mode === 'demo' || !pushSupported()) return setPush('unsupported');
     pushEnabled().then((on) => setPush(on ? 'on' : 'off'));
   }, []);
+
+  // Výška pole podle textu (i po odeslání nebo vložení nápadu)
+  useLayoutEffect(() => {
+    const el = inputRef.current;
+    if (!el) return;
+    el.style.height = 'auto';
+    el.style.height = Math.min(el.scrollHeight, 140) + 'px';
+  }, [text]);
 
   // Posun na konec při nové zprávě
   const count = items?.length ?? 0;
@@ -244,6 +253,7 @@ export function ChatScreen({ user, pair, pairKey, flags, onBack, onSettings, onL
             {flags.gentleman && <button className="chip" onClick={() => setSheet('gentleman')}>✨ Gentleman</button>}
           </div>
         )}
+        {text.length > MAX - 150 && <div className={'small ' + (text.length >= MAX ? 'error' : 'muted')} style={{ textAlign: 'right', margin: '0 4px 4px' }}>{text.length} / {MAX}</div>}
         <div className="composer-row">
           {canPhoto && (
             <button className="icon-btn round" aria-label="Poslat fotku" disabled={waiting || busy} onClick={() => fileRef.current?.click()}>
@@ -258,7 +268,7 @@ export function ChatScreen({ user, pair, pairKey, flags, onBack, onSettings, onL
           <textarea
             className="composer-input" rows={1} value={text} maxLength={MAX} disabled={waiting}
             placeholder={waiting ? 'Čekáme na partnera…' : 'Napiš vzkaz…'}
-            onChange={(e) => { setText(e.target.value); e.target.style.height = 'auto'; e.target.style.height = Math.min(e.target.scrollHeight, 140) + 'px'; }}
+            ref={inputRef} onChange={(e) => setText(e.target.value)}
           />
           <button className="send-btn" aria-label="Odeslat" disabled={!text.trim() || busy || waiting} onClick={sendText}>
             {busy ? <span className="spinner" /> : (
