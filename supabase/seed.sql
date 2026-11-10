@@ -17,10 +17,11 @@ insert into public.templates (category, title, body, sort) values
 insert into public.feature_flags (key, enabled, description) values
   ('gentleman', false, 'Gentleman mód: AI přepíše vzkaz do elegantnější podoby'),
   ('templates', true, 'Nápady na vzkazy (šablony)'),
+  ('stickers', true, 'Samolepky Hushki'),
   ('self_destruct', false, 'Vzkaz zmizí po přečtení'),
   ('scheduled_send', false, 'Odeslat vzkaz později (v nastavený čas)'),
   ('quick_signal', false, 'Rychlý signál bez textu (např. „Dnes večer?“) s odpovědí ano/ne'),
-  ('replies', false, 'Odpověď na vzkaz'),
-  ('photo_notes', false, 'Šifrovaná fotka ke vzkazu'),
+  ('replies', true, 'Odpověď na vzkaz'),
+  ('photo_notes', true, 'Šifrovaná fotka ke vzkazu'),
   ('voice_notes', false, 'Hlasový vzkaz')
 on conflict (key) do nothing;

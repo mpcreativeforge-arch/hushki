@@ -1,13 +1,12 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { backend, type Message, type Pair, type User } from './lib/backend';
-import { derivePairKey, encryptText, keyCheck, lockKey, unlockKey } from './lib/crypto';
+import { backend, type Pair, type User } from './lib/backend';
+import { derivePairKey, keyCheck, lockKey, unlockKey } from './lib/crypto';
+import { clearPhotoCache, encodePayload } from './lib/payload';
 import { clearLocked, loadLocked, saveLocked } from './lib/keystore';
 import { AuthScreen } from './screens/AuthScreen';
 import { PairScreen } from './screens/PairScreen';
 import { SetPinScreen, LockScreen } from './screens/LockScreens';
-import { InboxScreen } from './screens/InboxScreen';
-import { ComposeScreen } from './screens/ComposeScreen';
-import { ReadScreen } from './screens/ReadScreen';
+import { ChatScreen } from './screens/ChatScreen';
 import { SettingsScreen } from './screens/SettingsScreen';
 
 export const PIN_LENGTH = 6;
@@ -20,8 +19,6 @@ type Stage =
   | { name: 'setpin'; code: string; pair: Pair }
   | { name: 'locked' }
   | { name: 'inbox' }
-  | { name: 'compose' }
-  | { name: 'read'; message: Message }
   | { name: 'settings' };
 
 export function App() {
@@ -58,6 +55,7 @@ export function App() {
       if (document.hidden) hiddenAt.current = Date.now();
       else if (hiddenAt.current && Date.now() - hiddenAt.current > AUTO_LOCK_MS && pairKey) {
         setPairKey(null);
+        clearPhotoCache();
         setStage({ name: 'locked' });
       }
     };
@@ -79,7 +77,7 @@ export function App() {
     const flag = 'hushki-demo-welcome-' + pair.id;
     try { if (localStorage.getItem(flag)) return; localStorage.setItem(flag, '1'); } catch { return; }
     setTimeout(async () => {
-      const { ciphertext, iv } = await encryptText(pairKey, 'Ahoj, tohle je ukázkový vzkaz od partnerky. Vidíš ho jen ty, protože je zašifrovaný klíčem vašeho páru. 🤫');
+      const { ciphertext, iv } = await encodePayload(pairKey, { t: 'text', text: 'Ahoj, tohle je ukázkový vzkaz. Vidíš ho jen ty, protože je zašifrovaný klíčem vašeho páru. Zkus mi odpovědět, poslat fotku nebo samolepku. 🤫' });
       await backend.demoPartnerMessage?.(pair.id, ciphertext, iv);
     }, 2500);
   }, [pair?.user_b, pairKey]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -116,7 +114,7 @@ export function App() {
     setStage({ name: 'pair', restore: true });
   };
 
-  const lockNow = () => { setPairKey(null); setStage({ name: 'locked' }); };
+  const lockNow = () => { setPairKey(null); clearPhotoCache(); setStage({ name: 'locked' }); };
 
   const leave = async () => {
     await backend.leavePair();
@@ -148,27 +146,19 @@ export function App() {
       break;
     case 'inbox':
       screen = (
-        <InboxScreen
-          user={user!} pair={pair!} pairKey={pairKey!}
-          onCompose={() => setStage({ name: 'compose' })}
-          onOpen={(m) => setStage({ name: 'read', message: m })}
+        <ChatScreen
+          user={user!} pair={pair!} pairKey={pairKey!} flags={flags}
           onSettings={() => setStage({ name: 'settings' })}
           onLock={lockNow}
         />
       );
-      break;
-    case 'compose':
-      screen = <ComposeScreen user={user!} pair={pair!} pairKey={pairKey!} flags={flags} onDone={() => setStage({ name: 'inbox' })} />;
-      break;
-    case 'read':
-      screen = <ReadScreen user={user!} pair={pair!} pairKey={pairKey!} message={stage.message} onBack={() => setStage({ name: 'inbox' })} />;
       break;
     case 'settings':
       screen = (
         <SettingsScreen
           user={user!} pair={pair!} flags={flags}
           onBack={() => setStage({ name: 'inbox' })}
-          onRenamed={(name) => setUser({ ...user!, name })}
+          onProfile={(name, gender) => setUser({ ...user!, name, gender })}
           onChangePin={() => { if (user) clearLocked(user.id); setStage({ name: 'pair', restore: true }); }}
           onLeave={leave} onLogout={logout}
         />

@@ -2,9 +2,11 @@
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import templatesJson from '../data/templates.json';
 import featuresJson from '../data/features.json';
+import { b64, unb64 } from './crypto';
 
-export interface User { id: string; email: string; name: string }
-export interface Pair { id: string; user_a: string; user_b: string | null; key_check: string; partner_name: string }
+export type Gender = 'muz' | 'zena' | 'neuvedeno';
+export interface User { id: string; email: string; name: string; gender: Gender }
+export interface Pair { id: string; user_a: string; user_b: string | null; key_check: string; partner_name: string; partner_gender: Gender }
 export interface Message {
   id: string; pair_id: string; sender_id: string;
   ciphertext: string; iv: string; meta: Record<string, unknown>;
@@ -17,10 +19,10 @@ export interface Backend {
   mode: 'supabase' | 'demo';
   getUser(): Promise<User | null>;
   onAuthChange(cb: () => void): () => void;
-  signUp(email: string, password: string, name: string): Promise<{ needsConfirm: boolean }>;
+  signUp(email: string, password: string, name: string, gender: Gender): Promise<{ needsConfirm: boolean }>;
   signIn(email: string, password: string): Promise<void>;
   signOut(): Promise<void>;
-  updateName(name: string): Promise<void>;
+  updateProfile(name: string, gender: Gender): Promise<void>;
   getPair(): Promise<Pair | null>;
   createPair(inviteHash: string, keyCheck: string): Promise<Pair>;
   joinPair(inviteHash: string): Promise<Pair>;
@@ -32,6 +34,9 @@ export interface Backend {
   templates(): Promise<Template[]>;
   flags(): Promise<Record<string, boolean>>;
   gentleman(text: string, tone: Tone): Promise<string>;
+  /** Nahraje už zašifrovaná data fotky, vrací cestu v úložišti. */
+  uploadPhoto(pairId: string, data: Uint8Array): Promise<string>;
+  downloadPhoto(path: string): Promise<Uint8Array>;
   savePushSubscription(sub: PushSubscriptionJSON): Promise<void>;
   notifyPartner(messageId: string): Promise<void>;
   /** jen demo: simulace partnera */
@@ -66,16 +71,18 @@ function supabaseBackend(url: string, anonKey: string): Backend {
     throw new BackendError('server', m);
   };
 
-  const withPartner = async (p: Omit<Pair, 'partner_name'> | null): Promise<Pair | null> => {
+  const withPartner = async (p: Omit<Pair, 'partner_name' | 'partner_gender'> | null): Promise<Pair | null> => {
     if (!p) return null;
     const me = await uid();
     const partnerId = p.user_a === me ? p.user_b : p.user_a;
     let partner_name = '';
+    let partner_gender: Gender = 'neuvedeno';
     if (partnerId) {
-      const { data } = await sb.from('profiles').select('display_name').eq('id', partnerId).maybeSingle();
+      const { data } = await sb.from('profiles').select('display_name, gender').eq('id', partnerId).maybeSingle();
       partner_name = data?.display_name ?? '';
+      partner_gender = (data?.gender as Gender) ?? 'neuvedeno';
     }
-    return { ...p, partner_name };
+    return { ...p, partner_name, partner_gender };
   };
 
   return {
@@ -84,8 +91,8 @@ function supabaseBackend(url: string, anonKey: string): Backend {
       const { data } = await sb.auth.getSession();
       const u = data.session?.user;
       if (!u) return null;
-      const { data: prof } = await sb.from('profiles').select('display_name').eq('id', u.id).maybeSingle();
-      return { id: u.id, email: u.email ?? '', name: prof?.display_name ?? '' };
+      const { data: prof } = await sb.from('profiles').select('display_name, gender').eq('id', u.id).maybeSingle();
+      return { id: u.id, email: u.email ?? '', name: prof?.display_name ?? '', gender: (prof?.gender as Gender) ?? 'neuvedeno' };
     },
     onAuthChange(cb) {
       const { data } = sb.auth.onAuthStateChange((event) => {
@@ -93,8 +100,8 @@ function supabaseBackend(url: string, anonKey: string): Backend {
       });
       return () => data.subscription.unsubscribe();
     },
-    async signUp(email, password, name) {
-      const { data, error } = await sb.auth.signUp({ email, password, options: { data: { display_name: name } } });
+    async signUp(email, password, name, gender) {
+      const { data, error } = await sb.auth.signUp({ email, password, options: { data: { display_name: name, gender } } });
       if (error) throw new BackendError('auth', error.message);
       return { needsConfirm: !data.session };
     },
@@ -103,9 +110,20 @@ function supabaseBackend(url: string, anonKey: string): Backend {
       if (error) throw new BackendError('auth', error.message);
     },
     async signOut() { await sb.auth.signOut(); },
-    async updateName(name) {
-      const { error } = await sb.from('profiles').update({ display_name: name }).eq('id', await uid());
+    async updateProfile(name, gender) {
+      const { error } = await sb.from('profiles').update({ display_name: name, gender }).eq('id', await uid());
       fail(error);
+    },
+    async uploadPhoto(pairId, data) {
+      const path = `${pairId}/${crypto.randomUUID()}`;
+      const { error } = await sb.storage.from('photos').upload(path, new Blob([data as BlobPart]), { contentType: 'application/octet-stream' });
+      if (error) throw new BackendError('upload', error.message);
+      return path;
+    },
+    async downloadPhoto(path) {
+      const { data, error } = await sb.storage.from('photos').download(path);
+      if (error || !data) throw new BackendError('download', error?.message);
+      return new Uint8Array(await data.arrayBuffer());
     },
     async getPair() {
       const me = await uid();
@@ -186,6 +204,9 @@ interface DemoState {
 }
 const DEMO_KEY = 'hushki-demo-v1';
 const PARTNER_ID = 'demo-partner';
+const DEMO_PHOTO = 'hushki-demo-photo-';
+const demoPartner = (me: User | null): { partner_name: string; partner_gender: Gender } =>
+  me?.gender === 'zena' ? { partner_name: 'Partner', partner_gender: 'muz' } : { partner_name: 'Partnerka', partner_gender: 'zena' };
 
 function demoBackend(): Backend {
   const listeners = new Set<() => void>();
@@ -204,33 +225,46 @@ function demoBackend(): Backend {
     mode: 'demo',
     async getUser() { return load().user; },
     onAuthChange(cb) { authListeners.add(cb); return () => authListeners.delete(cb); },
-    async signUp(email, _pw, name) {
+    async signUp(email, _pw, name, gender) {
       await wait();
-      save({ ...load(), user: { id: 'demo-me', email, name } });
+      save({ ...load(), user: { id: 'demo-me', email, name, gender } });
       authListeners.forEach((l) => l());
       return { needsConfirm: false };
     },
     async signIn(email) {
       await wait();
       const s = load();
-      save({ ...s, user: s.user ?? { id: 'demo-me', email, name: email.split('@')[0] } });
+      save({ ...s, user: s.user ?? { id: 'demo-me', email, name: email.split('@')[0], gender: 'neuvedeno' } });
       authListeners.forEach((l) => l());
     },
     async signOut() {
-      try { localStorage.removeItem(DEMO_KEY); } catch { /* nic */ }
+      try {
+        localStorage.removeItem(DEMO_KEY);
+        Object.keys(localStorage).filter((k) => k.startsWith(DEMO_PHOTO)).forEach((k) => localStorage.removeItem(k));
+      } catch { /* nic */ }
       authListeners.forEach((l) => l());
     },
-    async updateName(name) { const s = load(); if (s.user) save({ ...s, user: { ...s.user, name } }); },
+    async updateProfile(name, gender) { const s = load(); if (s.user) save({ ...s, user: { ...s.user, name, gender } }); },
+    async uploadPhoto(pairId, data) {
+      const path = `${pairId}/${id()}`;
+      try { localStorage.setItem(DEMO_PHOTO + path, b64(data)); } catch { throw new BackendError('upload', 'Úložiště prohlížeče je plné'); }
+      return path;
+    },
+    async downloadPhoto(path) {
+      const v = localStorage.getItem(DEMO_PHOTO + path);
+      if (!v) throw new BackendError('download');
+      return unb64(v);
+    },
     async getPair() { return load().pair; },
     async createPair(invite_hash, key_check) {
       await wait();
       const s = load();
-      const pair = { id: id(), user_a: s.user!.id, user_b: null, key_check, invite_hash, partner_name: '' };
+      const pair = { id: id(), user_a: s.user!.id, user_b: null, key_check, invite_hash, partner_name: '', partner_gender: 'neuvedeno' as Gender };
       save({ ...s, pair });
       // partner se "připojí" za pár vteřin
       setTimeout(() => {
         const cur = load();
-        if (cur.pair?.id === pair.id && !cur.pair.user_b) save({ ...cur, pair: { ...cur.pair, user_b: PARTNER_ID, partner_name: 'Partnerka' } });
+        if (cur.pair?.id === pair.id && !cur.pair.user_b) save({ ...cur, pair: { ...cur.pair, user_b: PARTNER_ID, ...demoPartner(cur.user) } });
       }, 4000);
       return pair;
     },

@@ -1,23 +1,28 @@
 import { useState } from 'react';
-import { backend, type Pair, type User } from '../lib/backend';
+import { backend, type Gender, type Pair, type User } from '../lib/backend';
+import { GenderPicker } from '../components/GenderPicker';
 import features from '../data/features.json';
 import { enablePush, pushSupported } from '../lib/push';
+import { feedback, getPrefs, setPrefs } from '../lib/feedback';
 
 interface Props {
   user: User; pair: Pair; flags: Record<string, boolean>;
-  onBack: () => void; onRenamed: (name: string) => void;
+  onBack: () => void; onProfile: (name: string, gender: Gender) => void;
   onChangePin: () => void; onLeave: () => void; onLogout: () => void;
 }
 
-export function SettingsScreen({ user, flags, onBack, onRenamed, onChangePin, onLeave, onLogout }: Props) {
+export function SettingsScreen({ user, flags, onBack, onProfile, onChangePin, onLeave, onLogout }: Props) {
   const [name, setName] = useState(user.name);
+  const [gender, setGender] = useState<Gender>(user.gender);
   const [saved, setSaved] = useState(false);
   const [pushMsg, setPushMsg] = useState('');
   const [confirmLeave, setConfirmLeave] = useState(false);
+  const [fx, setFx] = useState(getPrefs());
+  const toggle = (k: 'sound' | 'haptics') => { const next = { ...fx, [k]: !fx[k] }; setFx(next); setPrefs(next); if (next[k]) feedback('receive'); };
 
   const saveName = async () => {
-    await backend.updateName(name.trim());
-    onRenamed(name.trim());
+    await backend.updateProfile(name.trim(), gender);
+    onProfile(name.trim(), gender);
     setSaved(true);
     setTimeout(() => setSaved(false), 1500);
   };
@@ -40,7 +45,8 @@ export function SettingsScreen({ user, flags, onBack, onRenamed, onChangePin, on
         <label className="field"><span>Tvoje jméno pro partnera/partnerku</span>
           <input className="input" value={name} maxLength={40} onChange={(e) => setName(e.target.value)} />
         </label>
-        <button className="btn small" onClick={saveName} disabled={!name.trim() || name === user.name}>{saved ? 'Uloženo' : 'Uložit jméno'}</button>
+        <GenderPicker value={gender} onChange={setGender} />
+        <button className="btn small" onClick={saveName} disabled={!name.trim() || (name === user.name && gender === user.gender)}>{saved ? 'Uloženo' : 'Uložit'}</button>
       </div>
 
       <div style={{ marginTop: 26 }}>
@@ -49,6 +55,12 @@ export function SettingsScreen({ user, flags, onBack, onRenamed, onChangePin, on
           <div className="settings-item"><span>Tichá upozornění</span><button className="btn small" onClick={push}>Zapnout</button></div>
         )}
         {pushMsg && <p className="small muted" style={{ marginTop: 8 }}>{pushMsg}</p>}
+        <div className="settings-item"><span>Zvuky v chatu</span>
+          <button className={'chip' + (fx.sound ? ' on' : '')} onClick={() => toggle('sound')}>{fx.sound ? 'Zapnuto' : 'Vypnuto'}</button>
+        </div>
+        <div className="settings-item"><span>Vibrace</span>
+          <button className={'chip' + (fx.haptics ? ' on' : '')} onClick={() => toggle('haptics')}>{fx.haptics ? 'Zapnuto' : 'Vypnuto'}</button>
+        </div>
         <div className="settings-item"><span>Změnit PIN</span><button className="btn small" onClick={onChangePin}>Změnit</button></div>
         <p className="small muted" style={{ marginTop: 8 }}>Ke změně PINu budeš potřebovat párovací kód.</p>
       </div>

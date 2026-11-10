@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Brand } from '../components/Logo';
 import { backend, BackendError, type Pair } from '../lib/backend';
 import { derivePairKey, generatePairCode, inviteHash, isValidCode, keyCheck, normalizeCode } from '../lib/crypto';
 
@@ -65,7 +66,7 @@ export function PairScreen({ restore, existing, onPaired, onLogout }: Props) {
   if (created) {
     return (
       <div className="app">
-        <div className="topbar"><span className="brand">Hushki</span></div>
+        <div className="topbar"><Brand /></div>
         <h1>Váš <em>tajný</em> kód</h1>
         <p className="muted">Pošli ho partnerovi/partnerce. Zadá ho po registraci v Hushki a budete spojení.</p>
         <div className="pair-code" style={{ margin: '18px 0' }}>{created.code}</div>
@@ -83,7 +84,7 @@ export function PairScreen({ restore, existing, onPaired, onLogout }: Props) {
   return (
     <div className="app">
       <div className="topbar">
-        <span className="brand">Hushki</span>
+        <Brand />
         <button className="btn ghost small" onClick={onLogout}>Odhlásit</button>
       </div>
       {restore ? (

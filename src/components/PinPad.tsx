@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { haptic } from '../lib/feedback';
 
 interface Props {
   length?: number;
@@ -15,6 +16,7 @@ export function PinPad({ length = 4, onComplete, busy }: Props) {
 
   const press = async (d: string) => {
     if (locked || pin.length >= length) return;
+    haptic('tap');
     const next = pin + d;
     setPin(next);
     if (next.length < length) return;
@@ -22,6 +24,7 @@ export function PinPad({ length = 4, onComplete, busy }: Props) {
     const ok = await onComplete(next);
     setWorking(false);
     if (ok === false) {
+      haptic('error');
       setShake(true);
       setTimeout(() => setShake(false), 450);
     }

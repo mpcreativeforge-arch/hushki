@@ -109,3 +109,15 @@ export async function unlockKey(locked: LockedKey, pin: string): Promise<CryptoK
     ['encrypt', 'decrypt'],
   );
 }
+
+// --- Binární data (fotky) ----------------------------------------------------
+
+export async function encryptBytes(key: CryptoKey, data: Uint8Array<ArrayBuffer>) {
+  const iv = crypto.getRandomValues(new Uint8Array(12));
+  const ct = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, key, data);
+  return { data: new Uint8Array(ct), iv: b64(iv) };
+}
+
+export async function decryptBytes(key: CryptoKey, data: Uint8Array<ArrayBuffer>, iv: string): Promise<Uint8Array<ArrayBuffer>> {
+  return new Uint8Array(await crypto.subtle.decrypt({ name: 'AES-GCM', iv: unb64(iv) }, key, data));
+}

@@ -1,22 +1,25 @@
 import { useState } from 'react';
-import { backend, BackendError } from '../lib/backend';
-import { Envelope } from '../components/Envelope';
+import { Wordmark } from '../components/Logo';
+import { backend, BackendError, type Gender } from '../lib/backend';
+import { GenderPicker } from '../components/GenderPicker';
 
 export function AuthScreen() {
   const [mode, setMode] = useState<'login' | 'signup'>('signup');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
+  const [gender, setGender] = useState<Gender | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [info, setInfo] = useState('');
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (mode === 'signup' && !gender) { setError('Vyber prosím, kdo jsi.'); return; }
     setError(''); setInfo(''); setBusy(true);
     try {
       if (mode === 'signup') {
-        const { needsConfirm } = await backend.signUp(email.trim(), password, name.trim());
+        const { needsConfirm } = await backend.signUp(email.trim(), password, name.trim(), gender!);
         if (needsConfirm) setInfo('Poslali jsme ti e-mail. Potvrď ho a pak se tady přihlas.');
       } else {
         await backend.signIn(email.trim(), password);
@@ -31,8 +34,7 @@ export function AuthScreen() {
 
   return (
     <div className="app">
-      <div className="topbar"><span className="brand">Hushki</span></div>
-      <div className="envelope-wrap"><Envelope size={150} className="wobble" /></div>
+      <div className="envelope-wrap" style={{ marginTop: 14 }}><Wordmark height={96} /></div>
       <h1>Něco jen <em>pro vás dva</em>.</h1>
       <p className="muted">Vzkazy, které nikdo jiný neuvidí. Partnerce přijde jen tiché upozornění a obsah otevře až za svým PINem.</p>
 
@@ -42,6 +44,7 @@ export function AuthScreen() {
             <input className="input" value={name} onChange={(e) => setName(e.target.value)} required maxLength={40} autoComplete="nickname" />
           </label>
         )}
+        {mode === 'signup' && <GenderPicker value={gender} onChange={setGender} />}
         <label className="field"><span>E-mail</span>
           <input className="input" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required autoComplete="email" />
         </label>
