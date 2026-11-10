@@ -41,7 +41,7 @@ npm run build
 ## Nastavení Supabase (účet klienta)
 
 1. Na [supabase.com](https://supabase.com) založit účet a projekt (region EU, např. Frankfurt). Vývojáře pozvat do organizace.
-2. **SQL Editor**: spustit postupně `supabase/migrations/0001_init.sql`, `0002_chat_photos.sql`, `0003_user_ideas.sql`, `0004_rooms.sql`, `0005_template_variants.sql`, `0006_room_expiry.sql` (vyžaduje zapnuté rozšíření pg_cron) a pak `supabase/seed.sql`.
+2. **SQL Editor**: spustit postupně `supabase/migrations/0001_init.sql`, `0002_chat_photos.sql`, `0003_user_ideas.sql`, `0004_rooms.sql`, `0005_template_variants.sql`, `0006_room_expiry.sql` (vyžaduje zapnuté rozšíření pg_cron), `0007_privacy.sql` a pak `supabase/seed.sql`.
 3. **Authentication → Providers → Email**: zapnuto. Pro testování lze vypnout „Confirm email“.
 4. **Authentication → URL Configuration**: Site URL nastavit na adresu aplikace.
 5. **Project Settings → API**: zkopírovat Project URL a `anon` klíč.
@@ -96,3 +96,7 @@ supabase/functions/    gentleman (Claude API), notify (Web Push)
 ## Ikona
 
 `public/icons/` je vygenerovaná z kresleného psa Hushki. Pro výměnu stačí nahradit PNG soubory (180, 192, 512 a maskable 512).
+
+## GDPR
+
+Text zásad ochrany osobních údajů je v `src/data/privacy.ts`. Před spuštěním doplň údaje provozovatele (v hranatých závorkách). Při podstatné změně textu zvyš `PRIVACY_VERSION`, uživatelé pak souhlas uvidí znovu. Souhlas se ukládá do `profiles.privacy_version` a `privacy_accepted_at`. Smazání účtu dělá RPC `delete_my_account`.
