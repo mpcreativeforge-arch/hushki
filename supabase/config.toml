@@ -1,0 +1,8 @@
+# Minimální konfigurace pro Supabase CLI (supabase link / db push / functions deploy)
+project_id = "hushki"
+
+[functions.gentleman]
+verify_jwt = true
+
+[functions.notify]
+verify_jwt = true

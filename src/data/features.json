@@ -1,0 +1,10 @@
+[
+  { "key": "gentleman", "enabled": false, "description": "Gentleman mód: AI přepíše vzkaz do elegantnější podoby" },
+  { "key": "templates", "enabled": true, "description": "Nápady na vzkazy (šablony)" },
+  { "key": "self_destruct", "enabled": false, "description": "Vzkaz zmizí po přečtení" },
+  { "key": "scheduled_send", "enabled": false, "description": "Odeslat vzkaz později (v nastavený čas)" },
+  { "key": "quick_signal", "enabled": false, "description": "Rychlý signál bez textu (např. „Dnes večer?“) s odpovědí ano/ne" },
+  { "key": "replies", "enabled": false, "description": "Odpověď na vzkaz" },
+  { "key": "photo_notes", "enabled": false, "description": "Šifrovaná fotka ke vzkazu" },
+  { "key": "voice_notes", "enabled": false, "description": "Hlasový vzkaz" }
+]
