@@ -55,6 +55,7 @@ export function ChatScreen({ user, pair, pairKey, flags, onBack, onSettings, onL
       const list = await backend.listMessages(pair.id).catch(() => [] as Message[]);
       const out: Decoded[] = [];
       for (const m of [...list].reverse()) {
+        if (m.meta?.sys) { out.push({ ...m, p: null }); continue; }
         if (!cacheRef.current.has(m.id)) {
           try { cacheRef.current.set(m.id, await decodePayload(pairKey, m.ciphertext, m.iv)); }
           catch { cacheRef.current.set(m.id, null); }
@@ -107,7 +108,7 @@ export function ChatScreen({ user, pair, pairKey, flags, onBack, onSettings, onL
       backend.notifyPartner(msg.id);
       setReplyTo(null);
       feedback(p.t === 'sticker' ? 'sticker' : 'send');
-      if (backend.mode === 'demo') demoReply(msg.id, p);
+      if (backend.mode === 'demo') demoReply();
       return true;
     } catch (e) {
       haptic('error');
@@ -140,15 +141,14 @@ export function ChatScreen({ user, pair, pairKey, flags, onBack, onSettings, onL
   };
 
   // Demo: simulovaný partner odpoví samolepkou nebo nápadem
-  const demoReply = (replyId: string, mine: Omit<Payload, 'v'>) => {
+  const demoReply = () => {
     setTimeout(async () => {
       const partnerPack = packsFor(pair.partner_gender === 'muz' ? 'muz' : 'zena')[0];
       const templates = templatesFor(await backend.templates(), pair.partner_gender === 'zena');
       const useSticker = Math.random() < 0.5;
-      const reply = { id: replyId, preview: previewOf({ v: 1, ...mine }) };
       const p: Omit<Payload, 'v'> = useSticker
-        ? { t: 'sticker', sticker: partnerPack.stickers[Math.floor(Math.random() * partnerPack.stickers.length)].id, reply }
-        : { t: 'text', text: templates[Math.floor(Math.random() * templates.length)].body, reply };
+        ? { t: 'sticker', sticker: partnerPack.stickers[Math.floor(Math.random() * partnerPack.stickers.length)].id }
+        : { t: 'text', text: templates[Math.floor(Math.random() * templates.length)].body };
       const { ciphertext, iv } = await encodePayload(pairKey, p);
       await backend.demoPartnerMessage?.(pair.id, ciphertext, iv);
     }, 4500);
@@ -180,7 +180,7 @@ export function ChatScreen({ user, pair, pairKey, flags, onBack, onSettings, onL
           </button>
           <div style={{ minWidth: 0 }}>
             <div className="room-title">{waiting ? 'Nová místnost' : partner}</div>
-            <div className="small muted">{waiting ? 'Čekáme na připojení partnera' : unread ? (unread === 1 ? '1 nový vzkaz' : `${unread} nové vzkazy`) : 'Šifrováno, uvidíte jen vy dva'}</div>
+            <div className="small muted">{waiting ? 'Čekáme na připojení partnera' : unread ? (unread === 1 ? '1 nový vzkaz' : `${unread} nové vzkazy`) : pair.expires_at ? `Smaže se za ${remaining(pair.expires_at)}` : 'Šifrováno, uvidíte jen vy dva'}</div>
           </div>
         </div>
         <div className="row" style={{ gap: 0 }}>
@@ -213,12 +213,14 @@ export function ChatScreen({ user, pair, pairKey, flags, onBack, onSettings, onL
             <p className="small muted">{waiting ? 'Až se partner/ka připojí s vaším kódem, můžete si psát.' : 'Napiš první vzkaz. Uvidí ho jen vy dva.'}</p>
           </div>
         ) : (
-          items.map((m, i) => (
+          items.map((m, i) => m.meta?.sys ? (
+            <SystemNote key={m.id} m={m} mine={m.sender_id === user.id} me={user} pair={pair} partner={partner} />
+          ) : (
             <Bubble
-              key={m.id} m={m} live={liveRef.current.has(m.id)} mine={m.sender_id === user.id} partner={partner} pairKey={pairKey}
+              key={m.id} m={m} live={liveRef.current.has(m.id)} onDone={() => setSelected(null)} mine={m.sender_id === user.id} partner={partner} pairKey={pairKey}
               showTime={i === 0 || new Date(m.created_at).getTime() - new Date(items[i - 1].created_at).getTime() > 15 * 60_000}
               selected={selected === m.id}
-              onSelect={() => { setSelected(selected === m.id ? null : m.id); }}
+              onSelect={() => setSelected(m.id)}
               onOpen={() => open(m)}
               onReply={canReply ? () => { setReplyTo(m); setSelected(null); } : undefined}
               onPhoto={setViewer}
@@ -270,7 +272,7 @@ export function ChatScreen({ user, pair, pairKey, flags, onBack, onSettings, onL
       {sheet === 'stickers' && <StickerSheet user={user} onPick={sendSticker} onClose={() => setSheet(null)} />}
       {sheet === 'ideas' && <IdeasSheet pairKey={pairKey} writerFemale={user.gender === 'zena' || (user.gender === 'neuvedeno' && pair.partner_gender === 'muz')} onPick={(t) => { setText(t); setSheet(null); }} onClose={() => setSheet(null)} />}
       {sheet === 'gentleman' && <GentlemanSheet initial={text} onUse={(t) => { setText(t); setSheet(null); }} onClose={() => setSheet(null)} />}
-      {menu && <QuickMenu onClose={() => setMenu(false)} onSettings={() => { setMenu(false); onSettings(); }} onLogout={onLogout} onLeave={onLeave} leaveName={waiting ? undefined : partner} />}
+      {menu && <QuickMenu extra={!waiting && <ExpiryPicker pair={pair} last={pair.expires_at ? ([...(items ?? [])].reverse().find((m) => m.meta?.sys === 'expiry')?.meta.seconds as number | undefined) ?? 'custom' : null} />} onClose={() => setMenu(false)} onSettings={() => { setMenu(false); onSettings(); }} onLogout={onLogout} onLeave={onLeave} />}
       {viewer && (
         <div className="viewer" onClick={() => setViewer(null)}>
           <img src={viewer} alt="Fotka" />
@@ -282,12 +284,17 @@ export function ChatScreen({ user, pair, pairKey, flags, onBack, onSettings, onL
 
 // ---------------------------------------------------------------------------
 
-function Bubble({ m, live, mine, partner, pairKey, showTime, selected, onSelect, onOpen, onReply, onPhoto }: {
-  m: Decoded; live: boolean; mine: boolean; partner: string; pairKey: CryptoKey; showTime: boolean; selected: boolean;
+function Bubble({ m, live, onDone, mine, partner, pairKey, showTime, selected, onSelect, onOpen, onReply, onPhoto }: {
+  m: Decoded; live: boolean; onDone: () => void; mine: boolean; partner: string; pairKey: CryptoKey; showTime: boolean; selected: boolean;
   onSelect: () => void; onOpen: () => void; onReply?: () => void; onPhoto: (url: string) => void;
 }) {
   const sealed = !mine && !m.read_at;
   const [revealed, setRevealed] = useState(!sealed);
+  const pressRef = useRef<{ t: number; x: number; y: number } | null>(null);
+  const [copied, setCopied] = useState(false);
+  const copy = (text: string) => {
+    navigator.clipboard?.writeText(text).then(() => { setCopied(true); setTimeout(() => { setCopied(false); onDone(); }, 900); }).catch(() => undefined);
+  };
 
   if (sealed && !revealed) {
     return (
@@ -306,10 +313,25 @@ function Bubble({ m, live, mine, partner, pairKey, showTime, selected, onSelect,
 
   const p = m.p;
   const isSticker = p?.t === 'sticker';
+  // podržení prstu (jako ve WhatsAppu) nabídne odpověď
+  function startPress(e: React.PointerEvent) {
+    if (!onReply && !p?.text) return;
+    const t = window.setTimeout(() => { pressRef.current = null; haptic('tap'); onSelect(); }, 420);
+    pressRef.current = { t, x: e.clientX, y: e.clientY };
+  }
+  function cancelPress() {
+    if (pressRef.current) { clearTimeout(pressRef.current.t); pressRef.current = null; }
+  }
   return (
     <div className={'msg ' + (mine ? 'mine' : 'theirs')}>
       {showTime && <div className="msg-time">{when(m.created_at)}</div>}
-      <div className={'bubble-wrap' + (selected ? ' selected' : '')} data-haptic="" onClick={(e) => { e.stopPropagation(); onSelect(); }}>
+      <div
+        className={'bubble-wrap' + (selected ? ' selected' : '')}
+        onPointerDown={startPress} onPointerUp={cancelPress} onPointerLeave={cancelPress} onPointerCancel={cancelPress}
+        onPointerMove={(e) => { if (pressRef.current && (Math.abs(e.clientX - pressRef.current.x) > 10 || Math.abs(e.clientY - pressRef.current.y) > 10)) cancelPress(); }}
+        onContextMenu={(e) => e.preventDefault()}
+        onClick={(e) => e.stopPropagation()}
+      >
         {p?.reply && <div className="quote">↩ {p.reply.preview}</div>}
         {m.failed || !p ? (
           <div className="bubble"><i>Vzkaz nejde rozšifrovat.</i></div>
@@ -325,8 +347,13 @@ function Bubble({ m, live, mine, partner, pairKey, showTime, selected, onSelect,
         )}
       </div>
       {mine && <div className="msg-status">{m.read_at ? 'přečteno' : 'doručeno'}</div>}
-      {selected && onReply && (
-        <button className="chip reply-chip" onClick={(e) => { e.stopPropagation(); onReply(); }}>↩ Odpovědět</button>
+      {selected && (
+        <div className="msg-actions">
+          {onReply && <button className="chip" onClick={(e) => { e.stopPropagation(); onReply(); }}>↩ Odpovědět</button>}
+          {p?.text && (
+            <button className="chip" onClick={(e) => { e.stopPropagation(); copy(p.text!); }}>{copied ? '✓ Zkopírováno' : '⧉ Zkopírovat'}</button>
+          )}
+        </div>
       )}
     </div>
   );
@@ -545,5 +572,65 @@ function GentlemanSheet({ initial, onUse, onClose }: { initial: string; onUse: (
         </div>
       )}
     </Sheet>
+  );
+}
+
+// --- Automatické smazání místnosti -------------------------------------------
+
+const EXPIRY: { s: number | null; label: string; long: string }[] = [
+  { s: null, label: 'Nikdy', long: '' },
+  { s: 3600, label: '1 hodina', long: '1 hodinu' },
+  { s: 86400, label: '24 hodin', long: '24 hodin' },
+  { s: 604800, label: '7 dní', long: '7 dní' },
+  { s: 2592000, label: '30 dní', long: '30 dní' },
+];
+
+function remaining(iso: string) {
+  const ms = new Date(iso).getTime() - Date.now();
+  if (ms <= 0) return 'chvíli';
+  const h = ms / 3600_000;
+  if (h < 1) return `${Math.max(1, Math.round(ms / 60_000))} min`;
+  if (h < 48) return `${Math.round(h)} h`;
+  return `${Math.round(h / 24)} dní`;
+}
+
+const verb = (g: string, base: string) => (g === 'zena' ? base + 'a' : g === 'muz' ? base : base + '/a');
+
+function SystemNote({ m, mine, me, pair, partner }: { m: Decoded; mine: boolean; me: User; pair: Pair; partner: string }) {
+  const seconds = m.meta.seconds as number | null;
+  const g = mine ? me.gender : pair.partner_gender;
+  const who = mine ? '' : partner + ' ';
+  const label = EXPIRY.find((e) => e.s === seconds)?.long ?? `${Math.round((seconds ?? 0) / 3600)} h`;
+  let text = seconds === null
+    ? `${who}${verb(g, mine ? 'Vypnul' : 'vypnul')}${mine ? ' jsi' : ''} automatické smazání místnosti.`
+    : `${who}${verb(g, mine ? 'Nastavil' : 'nastavil')}${mine ? ' jsi' : ''} smazání místnosti za ${label}.`;
+  text = text.charAt(0).toUpperCase() + text.slice(1);
+  return <div className="sys-note">⏳ {text} <span className="sys-time">{when(m.created_at)}</span></div>;
+}
+
+function ExpiryPicker({ pair, last }: { pair: Pair; last: number | null | 'custom' }) {
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState('');
+  const [current, setCurrent] = useState<number | null | 'custom'>(last);
+  const pick = async (s: number | null) => {
+    if (busy || (s === null && current === null)) return;
+    setBusy(true); setErr('');
+    try { await backend.setRoomExpiry(pair.id, s); setCurrent(s); } catch { setErr('Nastavení se nepovedlo.'); }
+    setBusy(false);
+  };
+  return (
+    <div style={{ padding: '6px 0 12px', borderBottom: '1px solid rgba(244, 230, 210, 0.12)' }}>
+      <div style={{ marginBottom: 8 }}>Smazat místnost za</div>
+      <div className="chips">
+        {EXPIRY.map((e) => (
+          <button key={e.label} className={'chip' + (current === e.s ? ' on' : '')} disabled={busy} onClick={() => pick(e.s)}>{e.label}</button>
+        ))}
+      </div>
+      <p className="small muted" style={{ margin: '8px 0 0' }}>
+        {pair.expires_at && current !== null ? `Teď se smaže za ${remaining(pair.expires_at)}. ` : ''}
+        Odpočet běží od nastavení. Pak zmizí místnost i všechny vzkazy u vás obou. Změnu uvidíte oba v chatu.
+      </p>
+      {err && <p className="error small">{err}</p>}
+    </div>
   );
 }

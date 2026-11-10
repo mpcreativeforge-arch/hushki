@@ -76,6 +76,15 @@ export function App() {
     return () => offs.forEach((off) => off());
   }, [pairIds, refreshPairs]);
 
+  // Místnost s nastaveným smazáním zmizí, jakmile vyprší.
+  const nextExpiry = pairs.map((p) => p.expires_at).filter(Boolean).sort()[0];
+  useEffect(() => {
+    if (!nextExpiry) return;
+    const ms = Math.max(0, new Date(nextExpiry).getTime() - Date.now()) + 1000;
+    const t = setTimeout(() => { refreshPairs(); }, Math.min(ms, 2_000_000_000));
+    return () => clearTimeout(t);
+  }, [nextExpiry, refreshPairs]);
+
   // Demo: partner pošle první vzkaz, jakmile se "připojí".
   useEffect(() => {
     if (backend.mode !== 'demo') return;
