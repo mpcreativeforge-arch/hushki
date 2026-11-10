@@ -150,6 +150,7 @@ export function App() {
           user={user!} pair={pair!} pairKey={pairKey!} flags={flags}
           onSettings={() => setStage({ name: 'settings' })}
           onLock={lockNow}
+          onLogout={logout}
         />
       );
       break;

@@ -39,6 +39,9 @@ export interface Backend {
   downloadPhoto(path: string): Promise<Uint8Array>;
   savePushSubscription(sub: PushSubscriptionJSON): Promise<void>;
   notifyPartner(messageId: string): Promise<void>;
+  /** Vlastní nápady uživatele, zašifrované. Vidí je jen on sám. */
+  getIdeas(): Promise<{ ciphertext: string; iv: string } | null>;
+  saveIdeas(ciphertext: string, iv: string): Promise<void>;
   /** jen demo: simulace partnera */
   demoPartnerMessage?(pairId: string, ciphertext: string, iv: string): Promise<void>;
 }
@@ -191,6 +194,15 @@ function supabaseBackend(url: string, anonKey: string): Backend {
     async notifyPartner(message_id) {
       await sb.functions.invoke('notify', { body: { message_id } }).catch(() => undefined);
     },
+    async getIdeas() {
+      const { data, error } = await sb.from('user_ideas').select('ciphertext,iv').eq('user_id', await uid()).maybeSingle();
+      fail(error);
+      return data;
+    },
+    async saveIdeas(ciphertext, iv) {
+      const { error } = await sb.from('user_ideas').upsert({ user_id: await uid(), ciphertext, iv, updated_at: new Date().toISOString() });
+      fail(error);
+    },
   };
 }
 
@@ -205,6 +217,7 @@ interface DemoState {
 const DEMO_KEY = 'hushki-demo-v1';
 const PARTNER_ID = 'demo-partner';
 const DEMO_PHOTO = 'hushki-demo-photo-';
+const DEMO_IDEAS = 'hushki-demo-ideas';
 const demoPartner = (me: User | null): { partner_name: string; partner_gender: Gender } =>
   me?.gender === 'zena' ? { partner_name: 'Partner', partner_gender: 'muz' } : { partner_name: 'Partnerka', partner_gender: 'zena' };
 
@@ -240,6 +253,7 @@ function demoBackend(): Backend {
     async signOut() {
       try {
         localStorage.removeItem(DEMO_KEY);
+        localStorage.removeItem(DEMO_IDEAS);
         Object.keys(localStorage).filter((k) => k.startsWith(DEMO_PHOTO)).forEach((k) => localStorage.removeItem(k));
       } catch { /* nic */ }
       authListeners.forEach((l) => l());
@@ -310,6 +324,12 @@ function demoBackend(): Backend {
       const body = t.charAt(0).toUpperCase() + t.slice(1);
       const intro = { elegantni: 'Celý den mi nejdeš z hlavy.', romanticky: 'Myslím na tebe víc, než bych měl.', hravy: 'Mám pro tebe malé tajemství.' }[tone];
       return `${intro} ${body}${/[.!?…]$/.test(body) ? '' : '.'} Těším se na večer.`;
+    },
+    async getIdeas() {
+      try { return JSON.parse(localStorage.getItem(DEMO_IDEAS) ?? 'null'); } catch { return null; }
+    },
+    async saveIdeas(ciphertext, iv) {
+      try { localStorage.setItem(DEMO_IDEAS, JSON.stringify({ ciphertext, iv })); } catch { throw new BackendError('storage'); }
     },
     async savePushSubscription() { /* demo */ },
     async notifyPartner() { /* demo */ },

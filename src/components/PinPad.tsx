@@ -36,7 +36,7 @@ export function PinPad({ length = 4, onComplete, busy }: Props) {
       <div className={'pin-dots' + (shake ? ' shake' : '')}>
         {Array.from({ length }, (_, i) => <div key={i} className={'pin-dot' + (i < pin.length ? ' on' : '')} />)}
       </div>
-      <div className="keypad">
+      <div className="keypad" data-haptic="off">
         {['1', '2', '3', '4', '5', '6', '7', '8', '9'].map((d) => (
           <button key={d} className="key" onClick={() => press(d)}>{d}</button>
         ))}
