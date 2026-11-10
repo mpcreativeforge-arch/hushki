@@ -6,7 +6,7 @@ import { b64, unb64 } from './crypto';
 
 export type Gender = 'muz' | 'zena' | 'neuvedeno';
 export interface User { id: string; email: string; name: string; gender: Gender }
-export interface Pair { id: string; user_a: string; user_b: string | null; key_check: string; partner_name: string; partner_gender: Gender }
+export interface Pair { id: string; user_a: string; user_b: string | null; key_check: string; partner_name: string; partner_gender: Gender; expires_at?: string | null }
 export interface Message {
   id: string; pair_id: string; sender_id: string;
   ciphertext: string; iv: string; meta: Record<string, unknown>;
@@ -40,6 +40,8 @@ export interface Backend {
   createPair(inviteHash: string, keyCheck: string): Promise<Pair>;
   joinPair(inviteHash: string): Promise<Pair>;
   leavePair(pairId: string): Promise<void>;
+  /** Automatické smazání místnosti za daný počet sekund (null = vypnout). */
+  setRoomExpiry(pairId: string, seconds: number | null): Promise<void>;
   listMessages(pairId: string): Promise<Message[]>;
   sendMessage(pairId: string, ciphertext: string, iv: string, meta?: Record<string, unknown>): Promise<Message>;
   markRead(id: string): Promise<void>;
@@ -143,7 +145,7 @@ function supabaseBackend(url: string, anonKey: string): Backend {
     },
     async getPairs() {
       const me = await uid();
-      const { data, error } = await sb.from('pairs').select('id,user_a,user_b,key_check')
+      const { data, error } = await sb.from('pairs').select('id,user_a,user_b,key_check,expires_at')
         .or(`user_a.eq.${me},user_b.eq.${me}`).order('created_at');
       fail(error);
       return (await Promise.all((data ?? []).map(withPartner))) as Pair[];
@@ -160,6 +162,7 @@ function supabaseBackend(url: string, anonKey: string): Backend {
       return (await withPartner(data))!;
     },
     async leavePair(pairId) { fail((await sb.rpc('leave_pair', { p_pair: pairId })).error); },
+    async setRoomExpiry(pairId, seconds) { fail((await sb.rpc('set_room_expiry', { p_pair: pairId, p_seconds: seconds })).error); },
     async listMessages(pairId) {
       const { data, error } = await sb.from('messages').select('*').eq('pair_id', pairId)
         .order('created_at', { ascending: false }).limit(200);
@@ -289,7 +292,22 @@ function demoBackend(): Backend {
       if (!v) throw new BackendError('download');
       return unb64(v);
     },
-    async getPairs() { return load().pairs.map(({ invite_hash: _h, ...p }) => p); },
+    async getPairs() {
+      const s = load();
+      const now = new Date().toISOString();
+      const alive = s.pairs.filter((p) => !p.expires_at || p.expires_at > now);
+      if (alive.length !== s.pairs.length) {
+        const ids = new Set(alive.map((p) => p.id));
+        save({ ...s, pairs: alive, messages: s.messages.filter((m) => ids.has(m.pair_id)) });
+      }
+      return alive.map(({ invite_hash: _h, ...p }) => p);
+    },
+    async setRoomExpiry(pairId, seconds) {
+      const s = load();
+      const expires_at = seconds === null ? null : new Date(Date.now() + seconds * 1000).toISOString();
+      const m: Message = { id: id(), pair_id: pairId, sender_id: s.user!.id, ciphertext: '', iv: '', meta: { sys: 'expiry', seconds, expires_at }, created_at: new Date().toISOString(), read_at: new Date().toISOString() };
+      save({ ...s, pairs: s.pairs.map((p) => (p.id === pairId ? { ...p, expires_at } : p)), messages: [...s.messages, m] });
+    },
     async createPair(invite_hash, key_check) {
       await wait();
       const s = load();

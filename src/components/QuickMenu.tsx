@@ -15,8 +15,8 @@ export async function shareApp(): Promise<'shared' | 'copied' | 'failed'> {
   }
 }
 
-export function QuickMenu({ onClose, onSettings, onLogout, onLeave, leaveName }: {
-  onClose: () => void; onSettings?: () => void; onLogout?: () => void; onLeave?: () => void; leaveName?: string;
+export function QuickMenu({ onClose, onSettings, onLogout, onLeave, extra }: {
+  extra?: React.ReactNode; onClose: () => void; onSettings?: () => void; onLogout?: () => void; onLeave?: () => void;
 }) {
   const [fx, setFx] = useState(getPrefs());
   const [confirmLeave, setConfirmLeave] = useState(false);
@@ -33,6 +33,7 @@ export function QuickMenu({ onClose, onSettings, onLogout, onLeave, leaveName }:
   return (
     <Sheet onClose={onClose}>
       <h2>Menu</h2>
+      {extra}
       <div className="settings-item"><span>Zvuky</span>
         <button className={'chip' + (fx.sound ? ' on' : '')} onClick={() => toggle('sound')}>{fx.sound ? 'Zapnuto' : 'Vypnuto'}</button>
       </div>
@@ -43,7 +44,7 @@ export function QuickMenu({ onClose, onSettings, onLogout, onLeave, leaveName }:
       {note && <p className="small muted" style={{ margin: '6px 0 0' }}>{note}</p>}
       {onSettings && <button className="settings-item menu-link" onClick={onSettings}><span>Nastavení</span><span aria-hidden>›</span></button>}
       {onLeave && (!confirmLeave ? (
-        <button className="settings-item menu-link" onClick={() => setConfirmLeave(true)}><span>Zrušit místnost{leaveName ? ` s ${leaveName}` : ''}</span><span aria-hidden>✕</span></button>
+        <button className="settings-item menu-link" onClick={() => setConfirmLeave(true)}><span>Zrušit tuto místnost</span><span aria-hidden>✕</span></button>
       ) : (
         <div className="notice stack" style={{ marginTop: 10 }}>
           <span>Opravdu? Místnost i všechny vzkazy v ní se smažou u vás obou.</span>
