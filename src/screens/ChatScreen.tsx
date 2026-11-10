@@ -9,6 +9,7 @@ import { Sheet } from '../components/Sheet';
 import { QuickMenu } from '../components/QuickMenu';
 import { loadMyIdeas, newId, saveMyIdeas, type MyCategory, type MyIdea, type MyIdeas } from '../lib/ideas';
 import { when } from './format';
+import { LockButton } from '../components/LockButton';
 
 interface Props {
   user: User; pair: Pair; pairKey: CryptoKey; flags: Record<string, boolean>;
@@ -193,9 +194,7 @@ export function ChatScreen({ user, pair, pairKey, flags, onBack, onSettings, onL
           </div>
         </div>
         <div className="row" style={{ gap: 0 }}>
-          <button className="icon-btn" aria-label="Zamknout" onClick={onLock}>
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"><rect x="5" y="11" width="14" height="9" rx="2.5" /><path d="M8 11V8a4 4 0 0 1 8 0v3" /></svg>
-          </button>
+          <LockButton onLock={onLock} />
           <button className="icon-btn" aria-label="Menu" onClick={() => setMenu(true)}>
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"><path d="M4 7h16M4 12h16M4 17h10" /></svg>
           </button>
@@ -470,14 +469,12 @@ function IdeasSheet({ pairKey, writerFemale, onPick, onClose }: { pairKey: Crypt
 
   return (
     <Sheet onClose={onClose}>
-      <div className="row between sheet-head">
-        <h2>Nápady</h2>
-        <button className="btn small" disabled={!mine} onClick={() => setEdit({ id: newId(), cat: cat === 'vse' || cat === 'moje' ? '' : cat, title: '', text: '' })}>+ Vlastní</button>
-      </div>
+      <h2>Nápady</h2>
       <div className="chips" style={{ marginBottom: 8 }}>
         <button className={'chip' + (cat === 'vse' ? ' on' : '')} onClick={() => setCat('vse')}>Vše</button>
         {!!mine?.ideas.length && <button className={'chip' + (cat === 'moje' ? ' on' : '')} onClick={() => setCat('moje')}>Moje</button>}
         {cats.map((c) => <button key={c.id} className={'chip' + (cat === c.id ? ' on' : '')} onClick={() => setCat(c.id)}>{c.name}</button>)}
+        <button className="chip add" disabled={!mine} onClick={() => setEdit({ id: newId(), cat: cat === 'vse' || cat === 'moje' ? '' : cat, title: '', text: '' })}>+ Vlastní</button>
       </div>
       {error && <p className="error small">{error}</p>}
       {ideas === null || mine === null ? <div className="center"><span className="spinner" /></div> : (
@@ -498,7 +495,7 @@ function IdeasSheet({ pairKey, writerFemale, onPick, onClose }: { pairKey: Crypt
             </button>
           ))}
           {!myList.length && !builtList.length && (
-            <p className="small muted">Tady zatím nic není. Přidej si vlastní nápad tlačítkem + Vlastní.</p>
+            <p className="small muted">Tady zatím nic není. Přidej si vlastní nápad tlačítkem + Vlastní u kategorií.</p>
           )}
           {cat === 'moje' && <p className="small muted" style={{ marginTop: 10 }}>Vlastní nápady jsou zašifrované a vidíš je jen ty.</p>}
           {isCustomCat && <button className="btn ghost small" style={{ marginTop: 10 }} onClick={removeCat}>Smazat kategorii {catName(cat)}</button>}

@@ -5,6 +5,7 @@ import { QuickMenu } from '../components/QuickMenu';
 import { backend, type Pair, type User } from '../lib/backend';
 import { feedback } from '../lib/feedback';
 import { when } from './format';
+import { LockButton } from '../components/LockButton';
 
 interface Props {
   user: User; pairs: Pair[]; keys: Record<string, CryptoKey>;
@@ -53,9 +54,7 @@ export function HomeScreen({ user, pairs, keys, onOpen, onAdd, onSettings, onLoc
       <div className="topbar">
         <Brand />
         <div className="row" style={{ gap: 0 }}>
-          <button className="icon-btn" aria-label="Zamknout" onClick={onLock}>
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"><rect x="5" y="11" width="14" height="9" rx="2.5" /><path d="M8 11V8a4 4 0 0 1 8 0v3" /></svg>
-          </button>
+          <LockButton onLock={onLock} />
           <button className="icon-btn" aria-label="Menu" onClick={() => setMenu(true)}>
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"><path d="M4 7h16M4 12h16M4 17h10" /></svg>
           </button>
