@@ -88,7 +88,7 @@ export function HomeScreen({ user, pairs, keys, onOpen, onAdd, onSettings, onLoc
       </div>
 
       <div className="grow" />
-      <button className="btn primary" style={{ marginTop: 22 }} onClick={onAdd}>＋ Nová místnost</button>
+      <button className="btn primary" style={{ marginTop: 22 }} onClick={onAdd}>+ Nová místnost</button>
 
       {menu && <QuickMenu onClose={() => setMenu(false)} onSettings={() => { setMenu(false); onSettings(); }} onLogout={onLogout} />}
     </div>

@@ -470,9 +470,9 @@ function IdeasSheet({ pairKey, writerFemale, onPick, onClose }: { pairKey: Crypt
 
   return (
     <Sheet onClose={onClose}>
-      <div className="row between">
+      <div className="row between sheet-head">
         <h2>Nápady</h2>
-        <button className="btn small" disabled={!mine} onClick={() => setEdit({ id: newId(), cat: cat === 'vse' || cat === 'moje' ? '' : cat, title: '', text: '' })}>＋ Vlastní</button>
+        <button className="btn small" disabled={!mine} onClick={() => setEdit({ id: newId(), cat: cat === 'vse' || cat === 'moje' ? '' : cat, title: '', text: '' })}>+ Vlastní</button>
       </div>
       <div className="chips" style={{ marginBottom: 8 }}>
         <button className={'chip' + (cat === 'vse' ? ' on' : '')} onClick={() => setCat('vse')}>Vše</button>
@@ -498,7 +498,7 @@ function IdeasSheet({ pairKey, writerFemale, onPick, onClose }: { pairKey: Crypt
             </button>
           ))}
           {!myList.length && !builtList.length && (
-            <p className="small muted">Tady zatím nic není. Přidej si vlastní nápad tlačítkem ＋ Vlastní.</p>
+            <p className="small muted">Tady zatím nic není. Přidej si vlastní nápad tlačítkem + Vlastní.</p>
           )}
           {cat === 'moje' && <p className="small muted" style={{ marginTop: 10 }}>Vlastní nápady jsou zašifrované a vidíš je jen ty.</p>}
           {isCustomCat && <button className="btn ghost small" style={{ marginTop: 10 }} onClick={removeCat}>Smazat kategorii {catName(cat)}</button>}
@@ -539,7 +539,7 @@ function IdeaEditor({ idea, cats, isNew, onSave, onDelete, onBack }: {
         <div className="chips">
           <button className={'chip' + (!cat && newCat === null ? ' on' : '')} onClick={() => { setCat(''); setNewCat(null); }}>Bez kategorie</button>
           {cats.map((c) => <button key={c.id} className={'chip' + (cat === c.id && newCat === null ? ' on' : '')} onClick={() => { setCat(c.id); setNewCat(null); }}>{c.name}</button>)}
-          <button className={'chip' + (newCat !== null ? ' on' : '')} onClick={() => setNewCat('')}>＋ Nová</button>
+          <button className={'chip' + (newCat !== null ? ' on' : '')} onClick={() => setNewCat('')}>+ Nová</button>
         </div>
         {newCat !== null && (
           <input className="input" style={{ marginTop: 8 }} autoFocus value={newCat} maxLength={24} onChange={(e) => setNewCat(e.target.value)} placeholder="Název kategorie" />

@@ -72,6 +72,8 @@ p { margin: 0 0 14px; }
 .stack > * + * { margin-top: 12px; }
 .row { display: flex; gap: 10px; align-items: center; }
 .between { justify-content: space-between; }
+.row > h1, .row > h2 { margin: 0; }
+.sheet-head { margin-bottom: 14px; }
 
 /* Ovládací prvky ------------------------------------------------------------ */
 .btn {
@@ -84,6 +86,8 @@ p { margin: 0 0 14px; }
   letter-spacing: 0.01em;
   cursor: pointer;
   width: 100%;
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+  text-align: center; line-height: 1.25;
   transition: transform 0.12s ease, background 0.2s ease, opacity 0.2s;
 }
 .btn:active { transform: scale(0.98) rotate(-0.4deg); }
@@ -126,6 +130,7 @@ p { margin: 0 0 14px; }
 .chip {
   border: 1.5px solid rgba(244, 230, 210, 0.35);
   background: transparent; border-radius: 999px; padding: 7px 14px; font-size: 14px; cursor: pointer;
+  display: inline-flex; align-items: center; justify-content: center; text-align: center; line-height: 1.25;
 }
 .chip.on { background: var(--cream); color: var(--wine-900); border-color: var(--cream); }
 

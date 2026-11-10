@@ -73,7 +73,7 @@ export function PairScreen({ mode, existing, known, onPaired, onLogout, onBack }
       <div className="app">
         <div className="topbar"><Brand /></div>
         <h1>Váš <em>tajný</em> kód</h1>
-        <p className="muted">Pošli ho partnerovi/partnerce. Zadá ho v Hushki (po registraci, nebo přes ＋ Nová místnost) a budete spojení.</p>
+        <p className="muted">Pošli ho partnerovi/partnerce. Zadá ho v Hushki (po registraci, nebo přes + Nová místnost) a budete spojení.</p>
         <div className="pair-code" style={{ margin: '18px 0' }}>{created.code}</div>
         <div className="notice" style={{ marginBottom: 18 }}>
           Kód si někam bezpečně ulož. Je to zároveň klíč k vašim vzkazům. Bez něj je na novém telefonu neotevřeš a nikdo (ani my) ho neumí obnovit.
