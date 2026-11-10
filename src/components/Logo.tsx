@@ -1,15 +1,16 @@
-const src = `${import.meta.env.BASE_URL}hushki-logo.png`;
+const base = import.meta.env.BASE_URL;
+const src = `${base}hushki-logo.png`;
+const wordmark = `${base}hushki-wordmark.png`;
 
 export function Logo({ size = 120, className = '' }: { size?: number; className?: string }) {
   return <img src={src} width={size} height={size} alt="Hushki" className={'logo ' + className} />;
 }
 
-/** Malé logo + nápis do horní lišty. */
+/** Celé logo: pes + nápis Hushki. */
+export function Wordmark({ height = 80, className = '' }: { height?: number; className?: string }) {
+  return <img src={wordmark} height={height} style={{ width: 'auto', maxWidth: '100%' }} alt="Hushki" className={'logo ' + className} />;
+}
+
 export function Brand() {
-  return (
-    <span className="brand-row">
-      <img src={src} width={30} height={30} alt="" />
-      <span className="brand">Hushki</span>
-    </span>
-  );
+  return <img src={wordmark} height={32} style={{ width: 'auto' }} alt="Hushki" className="brand-mark" />;
 }

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Logo } from '../components/Logo';
+import { Wordmark } from '../components/Logo';
 import { backend, BackendError, type Gender } from '../lib/backend';
 import { GenderPicker } from '../components/GenderPicker';
 
@@ -34,7 +34,7 @@ export function AuthScreen() {
 
   return (
     <div className="app">
-      <div className="envelope-wrap" style={{ marginTop: 10 }}><Logo size={150} className="wobble" /></div>
+      <div className="envelope-wrap" style={{ marginTop: 14 }}><Wordmark height={96} /></div>
       <h1>Něco jen <em>pro vás dva</em>.</h1>
       <p className="muted">Vzkazy, které nikdo jiný neuvidí. Partnerce přijde jen tiché upozornění a obsah otevře až za svým PINem.</p>
 
