@@ -3,6 +3,7 @@ import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import templatesJson from '../data/templates.json';
 import featuresJson from '../data/features.json';
 import { b64, unb64 } from './crypto';
+import { clearVault } from './keystore';
 
 export type Gender = 'muz' | 'zena' | 'neuvedeno';
 export interface User { id: string; email: string; name: string; gender: Gender; privacyVersion?: number | null }
@@ -239,6 +240,8 @@ function supabaseBackend(url: string, anonKey: string): Backend {
 // ---------------------------------------------------------------------------
 interface DemoState {
   user: User | null;
+  /** Účet po odhlášení: data zůstávají, aby se po přihlášení vrátila. */
+  account?: User | null;
   pairs: (Pair & { invite_hash: string })[];
   messages: Message[];
 }
@@ -250,6 +253,14 @@ const demoPartner = (me: User | null, n: number): { partner_name: string; partne
   me?.gender === 'zena'
     ? { partner_name: ['Partner', 'Tomáš', 'Jakub', 'Ondřej'][n % 4], partner_gender: 'muz' }
     : { partner_name: ['Partnerka', 'Lucie', 'Klára', 'Tereza'][n % 4], partner_gender: 'zena' };
+
+function wipeDemo() {
+  try {
+    localStorage.removeItem(DEMO_KEY);
+    localStorage.removeItem(DEMO_IDEAS);
+    Object.keys(localStorage).filter((k) => k.startsWith(DEMO_PHOTO)).forEach((k) => localStorage.removeItem(k));
+  } catch { /* nic */ }
+}
 
 function demoBackend(): Backend {
   const listeners = new Set<() => void>();
@@ -275,27 +286,30 @@ function demoBackend(): Backend {
     onAuthChange(cb) { authListeners.add(cb); return () => authListeners.delete(cb); },
     async signUp(email, _pw, name, gender) {
       await wait();
-      save({ ...load(), user: { id: 'demo-me', email, name, gender } });
+      // Nová registrace v demu začíná načisto (jinak by zdědila místnosti předchozího účtu).
+      wipeDemo(); clearVault('demo-me');
+      save({ user: { id: 'demo-me', email, name, gender }, pairs: [], messages: [] });
       authListeners.forEach((l) => l());
       return { needsConfirm: false };
     },
     async signIn(email) {
       await wait();
       const s = load();
-      save({ ...s, user: s.user ?? { id: 'demo-me', email, name: email.split('@')[0], gender: 'neuvedeno' } });
+      save({ ...s, user: s.user ?? s.account ?? { id: 'demo-me', email, name: email.split('@')[0], gender: 'neuvedeno' }, account: null });
       authListeners.forEach((l) => l());
     },
     async signOut() {
-      try {
-        localStorage.removeItem(DEMO_KEY);
-        localStorage.removeItem(DEMO_IDEAS);
-        Object.keys(localStorage).filter((k) => k.startsWith(DEMO_PHOTO)).forEach((k) => localStorage.removeItem(k));
-      } catch { /* nic */ }
+      // Jako u skutečného serveru: odhlášení nic nemaže, místnosti počkají na další přihlášení.
+      const s = load();
+      save({ ...s, user: null, account: s.user ?? s.account ?? null });
+      authListeners.forEach((l) => l());
+    },
+    async deleteAccount() {
+      wipeDemo();
       authListeners.forEach((l) => l());
     },
     async updateProfile(name, gender) { const s = load(); if (s.user) save({ ...s, user: { ...s.user, name, gender } }); },
     async acceptPrivacy(version) { const s = load(); if (s.user) save({ ...s, user: { ...s.user, privacyVersion: version } }); },
-    async deleteAccount() { await this.signOut(); },
     async uploadPhoto(pairId, data) {
       const path = `${pairId}/${id()}`;
       try { localStorage.setItem(DEMO_PHOTO + path, b64(data)); } catch { throw new BackendError('upload', 'Úložiště prohlížeče je plné'); }

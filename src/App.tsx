@@ -205,8 +205,8 @@ export function App() {
   };
 
   const logout = async () => {
+    // Trezor s klíči místností zůstává (chrání ho PIN), takže po přihlášení stačí zadat PIN.
     clearSession();
-    if (user) clearVault(user.id);
     await backend.signOut();
   };
 
