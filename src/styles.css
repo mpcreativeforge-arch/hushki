@@ -325,6 +325,8 @@ p { margin: 0 0 14px; }
   border-radius: 22px; padding: 10px 14px; outline: none; font-size: 16px; line-height: 1.4;
 }
 .composer-input:focus { border-color: var(--cream); }
+.composer-input { scrollbar-width: none; }
+.composer-input::-webkit-scrollbar { display: none; }
 .icon-btn.round { width: 44px; height: 44px; border-radius: 50%; flex: none; }
 .icon-btn:disabled { opacity: .4; }
 .send-btn {
