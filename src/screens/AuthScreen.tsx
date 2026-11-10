@@ -1,7 +1,7 @@
 import { useState } from 'react';
+import { Logo } from '../components/Logo';
 import { backend, BackendError, type Gender } from '../lib/backend';
 import { GenderPicker } from '../components/GenderPicker';
-import { Envelope } from '../components/Envelope';
 
 export function AuthScreen() {
   const [mode, setMode] = useState<'login' | 'signup'>('signup');
@@ -34,8 +34,7 @@ export function AuthScreen() {
 
   return (
     <div className="app">
-      <div className="topbar"><span className="brand">Hushki</span></div>
-      <div className="envelope-wrap"><Envelope size={150} className="wobble" /></div>
+      <div className="envelope-wrap" style={{ marginTop: 10 }}><Logo size={150} className="wobble" /></div>
       <h1>Něco jen <em>pro vás dva</em>.</h1>
       <p className="muted">Vzkazy, které nikdo jiný neuvidí. Partnerce přijde jen tiché upozornění a obsah otevře až za svým PINem.</p>
 

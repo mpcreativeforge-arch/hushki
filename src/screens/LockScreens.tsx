@@ -1,6 +1,6 @@
 import { useState } from 'react';
+import { Brand, Logo } from '../components/Logo';
 import { PinPad } from '../components/PinPad';
-import { Envelope } from '../components/Envelope';
 
 export function SetPinScreen({ length, onSet }: { length: number; code: string; onSet: (pin: string) => Promise<void> }) {
   const [first, setFirst] = useState<string | null>(null);
@@ -14,7 +14,7 @@ export function SetPinScreen({ length, onSet }: { length: number; code: string; 
 
   return (
     <div className="app">
-      <div className="topbar"><span className="brand">Hushki</span></div>
+      <div className="topbar"><Brand /></div>
       <h1 className="center">{first ? 'Ještě jednou' : <>Nastav si <em>PIN</em></>}</h1>
       <p className="muted center">{length} číslic. Bez něj se vzkazy v tomhle telefonu neotevřou.</p>
       {error && <p className="error center">{error}</p>}
@@ -27,8 +27,8 @@ export function LockScreen({ length, onUnlock, onForgot }: { length: number; onU
   const [tries, setTries] = useState(0);
   return (
     <div className="app">
-      <div className="topbar"><span className="brand">Hushki</span></div>
-      <div className="envelope-wrap" style={{ marginBottom: 4 }}><Envelope size={96} sparks={false} /></div>
+      <div className="topbar"><Brand /></div>
+      <div className="envelope-wrap" style={{ marginBottom: 4 }}><Logo size={110} /></div>
       <h1 className="center">Zamčeno</h1>
       <p className="muted center">Zadej svůj PIN.</p>
       <PinPad length={length} onComplete={async (pin) => { const ok = await onUnlock(pin); if (!ok) setTries((t) => t + 1); return ok; }} />

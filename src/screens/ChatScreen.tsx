@@ -1,4 +1,5 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { Brand } from '../components/Logo';
 import { backend, BackendError, type Message, type Pair, type Template, type Tone, type User } from '../lib/backend';
 import { decodePayload, encodePayload, photoUrl, previewOf, uploadPhoto, type Payload, type PhotoRef } from '../lib/payload';
 import { enablePush, isIOS, isStandalone, pushEnabled, pushSupported } from '../lib/push';
@@ -154,7 +155,7 @@ export function ChatScreen({ user, pair, pairKey, flags, onSettings, onLock }: P
     <div className="chat">
       <header className="chat-top">
         <div>
-          <div className="brand">Hushki</div>
+          <Brand />
           <div className="small muted">{waiting ? 'Čekáme na připojení partnera' : unread ? `${partner} · ${unread === 1 ? '1 nový vzkaz' : `${unread} nové vzkazy`}` : partner}</div>
         </div>
         <div className="row" style={{ gap: 0 }}>

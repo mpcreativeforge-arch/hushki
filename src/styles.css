@@ -333,3 +333,7 @@ p { margin: 0 0 14px; }
 .sticker-btn { min-width: 0; overflow: hidden; }
 .sticker-btn .sticker { width: 88%; height: auto; }
 .sticker-btn .sticker-fallback { width: 100% !important; height: 100% !important; font-size: 34px !important; }
+
+.brand-row { display: inline-flex; align-items: center; gap: 8px; }
+.brand-row img { border-radius: 50%; }
+.logo { display: block; filter: drop-shadow(0 10px 24px rgba(0, 0, 0, .35)); }
