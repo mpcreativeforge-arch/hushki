@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Brand, Logo } from '../components/Logo';
 import { PinPad } from '../components/PinPad';
 
-export function SetPinScreen({ length, onSet }: { length: number; code: string; onSet: (pin: string) => Promise<void> }) {
+export function SetPinScreen({ length, change, onSet, onCancel }: { length: number; change?: boolean; onSet: (pin: string) => Promise<void>; onCancel?: () => void }) {
   const [first, setFirst] = useState<string | null>(null);
   const [error, setError] = useState('');
 
@@ -14,9 +14,9 @@ export function SetPinScreen({ length, onSet }: { length: number; code: string; 
 
   return (
     <div className="app">
-      <div className="topbar"><Brand /></div>
-      <h1 className="center">{first ? 'Ještě jednou' : <>Nastav si <em>PIN</em></>}</h1>
-      <p className="muted center">{length} číslic. Bez něj se vzkazy v tomhle telefonu neotevřou.</p>
+      <div className="topbar">{onCancel ? <button className="btn ghost small" onClick={onCancel}>← Zpět</button> : <Brand />}</div>
+      <h1 className="center">{first ? 'Ještě jednou' : change ? <>Nový <em>PIN</em></> : <>Nastav si <em>PIN</em></>}</h1>
+      <p className="muted center">{length} číslic. Jeden PIN odemyká všechny tvoje místnosti v tomhle telefonu.</p>
       {error && <p className="error center">{error}</p>}
       <PinPad key={first ? 'b' : 'a'} length={length} onComplete={complete} />
     </div>

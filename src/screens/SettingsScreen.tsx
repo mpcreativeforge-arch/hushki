@@ -1,22 +1,21 @@
 import { useState } from 'react';
-import { backend, type Gender, type Pair, type User } from '../lib/backend';
+import { backend, type Gender, type User } from '../lib/backend';
 import { GenderPicker } from '../components/GenderPicker';
 import features from '../data/features.json';
 import { enablePush, pushSupported } from '../lib/push';
 import { feedback, getPrefs, setPrefs } from '../lib/feedback';
 
 interface Props {
-  user: User; pair: Pair; flags: Record<string, boolean>;
+  user: User; flags: Record<string, boolean>;
   onBack: () => void; onProfile: (name: string, gender: Gender) => void;
-  onChangePin: () => void; onLeave: () => void; onLogout: () => void;
+  onChangePin: () => void; onLogout: () => void;
 }
 
-export function SettingsScreen({ user, flags, onBack, onProfile, onChangePin, onLeave, onLogout }: Props) {
+export function SettingsScreen({ user, flags, onBack, onProfile, onChangePin, onLogout }: Props) {
   const [name, setName] = useState(user.name);
   const [gender, setGender] = useState<Gender>(user.gender);
   const [saved, setSaved] = useState(false);
   const [pushMsg, setPushMsg] = useState('');
-  const [confirmLeave, setConfirmLeave] = useState(false);
   const [fx, setFx] = useState(getPrefs());
   const toggle = (k: 'sound' | 'haptics') => { const next = { ...fx, [k]: !fx[k] }; setFx(next); setPrefs(next); if (next[k]) feedback('receive'); };
 
@@ -58,11 +57,10 @@ export function SettingsScreen({ user, flags, onBack, onProfile, onChangePin, on
         <div className="settings-item"><span>Zvuky v chatu</span>
           <button className={'chip' + (fx.sound ? ' on' : '')} onClick={() => toggle('sound')}>{fx.sound ? 'Zapnuto' : 'Vypnuto'}</button>
         </div>
-        <div className="settings-item"><span>Vibrace</span>
+        <div className="settings-item"><span>Haptická odezva</span>
           <button className={'chip' + (fx.haptics ? ' on' : '')} onClick={() => toggle('haptics')}>{fx.haptics ? 'Zapnuto' : 'Vypnuto'}</button>
         </div>
         <div className="settings-item"><span>Změnit PIN</span><button className="btn small" onClick={onChangePin}>Změnit</button></div>
-        <p className="small muted" style={{ marginTop: 8 }}>Ke změně PINu budeš potřebovat párovací kód.</p>
       </div>
 
       {upcoming.length > 0 && (
@@ -75,15 +73,6 @@ export function SettingsScreen({ user, flags, onBack, onProfile, onChangePin, on
       )}
 
       <div className="stack" style={{ marginTop: 30 }}>
-        {!confirmLeave ? (
-          <button className="btn ghost" onClick={() => setConfirmLeave(true)}>Zrušit spojení</button>
-        ) : (
-          <div className="notice stack">
-            <span>Opravdu? Smažou se všechny vaše vzkazy u obou z vás.</span>
-            <button className="btn" onClick={onLeave}>Ano, zrušit spojení</button>
-            <button className="btn ghost" onClick={() => setConfirmLeave(false)}>Ne</button>
-          </div>
-        )}
         <button className="btn ghost" onClick={onLogout}>Odhlásit se</button>
       </div>
     </div>

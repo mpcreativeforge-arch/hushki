@@ -48,6 +48,15 @@ export function haptic(kind: HapticKind = 'tap') {
   } catch { /* nic */ }
 }
 
+/** Jemné ťuknutí u každého tlačítka v aplikaci (kromě prvků s data-haptic="off"). */
+export function installGlobalHaptics() {
+  document.addEventListener('pointerdown', (e) => {
+    const el = (e.target as Element | null)?.closest?.('button, a, [data-haptic]');
+    if (!el || el.closest('[data-haptic="off"]') || (el as HTMLButtonElement).disabled) return;
+    haptic('tap');
+  }, { passive: true, capture: true });
+}
+
 // --- Zvuky -------------------------------------------------------------------
 
 let ctx: AudioContext | null = null;

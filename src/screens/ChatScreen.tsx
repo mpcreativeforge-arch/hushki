@@ -1,5 +1,4 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { Brand } from '../components/Logo';
 import { backend, BackendError, type Message, type Pair, type Template, type Tone, type User } from '../lib/backend';
 import { decodePayload, encodePayload, photoUrl, previewOf, uploadPhoto, type Payload, type PhotoRef } from '../lib/payload';
 import { enablePush, isIOS, isStandalone, pushEnabled, pushSupported } from '../lib/push';
@@ -7,11 +6,13 @@ import { packsFor, STICKERS, stickerSrc } from '../data/stickers';
 import { Envelope } from '../components/Envelope';
 import { feedback, haptic } from '../lib/feedback';
 import { Sheet } from '../components/Sheet';
+import { QuickMenu } from '../components/QuickMenu';
+import { loadMyIdeas, newId, saveMyIdeas, type MyCategory, type MyIdea, type MyIdeas } from '../lib/ideas';
 import { when } from './format';
 
 interface Props {
   user: User; pair: Pair; pairKey: CryptoKey; flags: Record<string, boolean>;
-  onSettings: () => void; onLock: () => void;
+  onBack: () => void; onSettings: () => void; onLock: () => void; onLogout: () => void; onLeave: () => void;
 }
 
 type Decoded = Message & { p: Payload | null; failed?: boolean };
@@ -24,7 +25,7 @@ const TONES: { id: Tone; label: string }[] = [
 ];
 const CATEGORIES: Record<string, string> = { romantika: 'Romantika', odvaha: 'Odvaha', hra: 'Hra' };
 
-export function ChatScreen({ user, pair, pairKey, flags, onSettings, onLock }: Props) {
+export function ChatScreen({ user, pair, pairKey, flags, onBack, onSettings, onLock, onLogout, onLeave }: Props) {
   const [items, setItems] = useState<Decoded[] | null>(null);
   const [text, setText] = useState('');
   const [replyTo, setReplyTo] = useState<Decoded | null>(null);
@@ -38,6 +39,8 @@ export function ChatScreen({ user, pair, pairKey, flags, onSettings, onLock }: P
   const fileRef = useRef<HTMLInputElement>(null);
   const cacheRef = useRef(new Map<string, Payload | null>());
   const seenRef = useRef<Set<string> | null>(null);
+  const liveRef = useRef(new Set<string>());
+  const [menu, setMenu] = useState(false);
 
   const partner = pair.partner_name || (pair.partner_gender === 'muz' ? 'Partner' : pair.partner_gender === 'zena' ? 'Partnerka' : 'Partner/ka');
   const waiting = !pair.user_b;
@@ -60,9 +63,21 @@ export function ChatScreen({ user, pair, pairKey, flags, onSettings, onLock }: P
         out.push({ ...m, p, failed: p === null });
       }
       if (!alive) return;
-      // nový příchozí vzkaz → zvuk a vibrace (ne při prvním načtení)
+      // Nový příchozí vzkaz → zvuk a vibrace (ne při prvním načtení).
+      // Když je chat zrovna otevřený, vzkaz se rovnou ukáže a nemusí se rozlepovat.
       const incoming = out.filter((m) => m.sender_id !== user.id);
-      if (seenRef.current && incoming.some((m) => !seenRef.current!.has(m.id))) feedback('receive');
+      if (seenRef.current) {
+        const fresh = incoming.filter((m) => !seenRef.current!.has(m.id));
+        if (fresh.length) feedback('receive');
+        if (!document.hidden) {
+          for (const m of fresh) {
+            if (m.read_at) continue;
+            liveRef.current.add(m.id);
+            backend.markRead(m.id).catch(() => undefined);
+          }
+        }
+      }
+      for (const m of out) if (liveRef.current.has(m.id) && !m.read_at) m.read_at = new Date().toISOString();
       seenRef.current = new Set(incoming.map((m) => m.id));
       setItems(out);
     };
@@ -144,6 +159,11 @@ export function ChatScreen({ user, pair, pairKey, flags, onSettings, onLock }: P
     if (m.sender_id !== user.id && !m.read_at) backend.markRead(m.id).catch(() => undefined);
   };
 
+  const openAll = () => {
+    feedback('open');
+    for (const m of items ?? []) if (m.sender_id !== user.id && !m.read_at) backend.markRead(m.id).catch(() => undefined);
+  };
+
   const turnOnPush = async () => {
     const r = await enablePush().catch(() => 'denied' as const);
     setPush(r === 'ok' ? 'on' : r === 'unsupported' ? 'unsupported' : 'off');
@@ -154,16 +174,21 @@ export function ChatScreen({ user, pair, pairKey, flags, onSettings, onLock }: P
   return (
     <div className="chat">
       <header className="chat-top">
-        <div>
-          <Brand />
-          <div className="small muted">{waiting ? 'Čekáme na připojení partnera' : unread ? `${partner} · ${unread === 1 ? '1 nový vzkaz' : `${unread} nové vzkazy`}` : partner}</div>
+        <div className="row" style={{ gap: 4, minWidth: 0 }}>
+          <button className="icon-btn" aria-label="Zpět na místnosti" onClick={onBack}>
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M15 5l-7 7 7 7" /></svg>
+          </button>
+          <div style={{ minWidth: 0 }}>
+            <div className="room-title">{waiting ? 'Nová místnost' : partner}</div>
+            <div className="small muted">{waiting ? 'Čekáme na připojení partnera' : unread ? (unread === 1 ? '1 nový vzkaz' : `${unread} nové vzkazy`) : 'Šifrováno, uvidíte jen vy dva'}</div>
+          </div>
         </div>
         <div className="row" style={{ gap: 0 }}>
           <button className="icon-btn" aria-label="Zamknout" onClick={onLock}>
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"><rect x="5" y="11" width="14" height="9" rx="2.5" /><path d="M8 11V8a4 4 0 0 1 8 0v3" /></svg>
           </button>
-          <button className="icon-btn" aria-label="Nastavení" onClick={onSettings}>
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"><path d="M4 7h10M18 7h2M4 17h4M12 17h8" /><circle cx="16" cy="7" r="2" /><circle cx="10" cy="17" r="2" /></svg>
+          <button className="icon-btn" aria-label="Menu" onClick={() => setMenu(true)}>
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"><path d="M4 7h16M4 12h16M4 17h10" /></svg>
           </button>
         </div>
       </header>
@@ -190,10 +215,10 @@ export function ChatScreen({ user, pair, pairKey, flags, onSettings, onLock }: P
         ) : (
           items.map((m, i) => (
             <Bubble
-              key={m.id} m={m} mine={m.sender_id === user.id} partner={partner} pairKey={pairKey}
+              key={m.id} m={m} live={liveRef.current.has(m.id)} mine={m.sender_id === user.id} partner={partner} pairKey={pairKey}
               showTime={i === 0 || new Date(m.created_at).getTime() - new Date(items[i - 1].created_at).getTime() > 15 * 60_000}
               selected={selected === m.id}
-              onSelect={() => { haptic('tap'); setSelected(selected === m.id ? null : m.id); }}
+              onSelect={() => { setSelected(selected === m.id ? null : m.id); }}
               onOpen={() => open(m)}
               onReply={canReply ? () => { setReplyTo(m); setSelected(null); } : undefined}
               onPhoto={setViewer}
@@ -212,18 +237,19 @@ export function ChatScreen({ user, pair, pairKey, flags, onSettings, onLock }: P
         )}
         {!waiting && !text && (
           <div className="chips" style={{ marginBottom: 8 }}>
+            {unread > 1 && <button className="chip" onClick={openAll}>✉ Otevřít vše ({unread})</button>}
             {flags.templates !== false && <button className="chip" onClick={() => setSheet('ideas')}>💡 Nápady</button>}
             {flags.gentleman && <button className="chip" onClick={() => setSheet('gentleman')}>✨ Gentleman</button>}
           </div>
         )}
         <div className="composer-row">
           {canPhoto && (
-            <button className="icon-btn round" aria-label="Poslat fotku" disabled={waiting || busy} onClick={() => { haptic('tap'); fileRef.current?.click(); }}>
+            <button className="icon-btn round" aria-label="Poslat fotku" disabled={waiting || busy} onClick={() => fileRef.current?.click()}>
               <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="6" width="18" height="14" rx="3" /><circle cx="12" cy="13" r="3.5" /><path d="M8.5 6l1.5-2h4l1.5 2" /></svg>
             </button>
           )}
           {canSticker && (
-            <button className="icon-btn round" aria-label="Samolepky" disabled={waiting || busy} onClick={() => { haptic('tap'); setSheet('stickers'); }}>
+            <button className="icon-btn round" aria-label="Samolepky" disabled={waiting || busy} onClick={() => setSheet('stickers')}>
               <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"><circle cx="12" cy="12" r="9" /><path d="M8.5 14.5c1.8 2 5.2 2 7 0" /><circle cx="9" cy="10" r=".8" fill="currentColor" /><circle cx="15" cy="10" r=".8" fill="currentColor" /></svg>
             </button>
           )}
@@ -242,8 +268,9 @@ export function ChatScreen({ user, pair, pairKey, flags, onSettings, onLock }: P
       </footer>
 
       {sheet === 'stickers' && <StickerSheet user={user} onPick={sendSticker} onClose={() => setSheet(null)} />}
-      {sheet === 'ideas' && <IdeasSheet onPick={(t) => { setText(t); setSheet(null); }} onClose={() => setSheet(null)} />}
+      {sheet === 'ideas' && <IdeasSheet pairKey={pairKey} onPick={(t) => { setText(t); setSheet(null); }} onClose={() => setSheet(null)} />}
       {sheet === 'gentleman' && <GentlemanSheet initial={text} onUse={(t) => { setText(t); setSheet(null); }} onClose={() => setSheet(null)} />}
+      {menu && <QuickMenu onClose={() => setMenu(false)} onSettings={() => { setMenu(false); onSettings(); }} onLogout={onLogout} onLeave={onLeave} leaveName={waiting ? undefined : partner} />}
       {viewer && (
         <div className="viewer" onClick={() => setViewer(null)}>
           <img src={viewer} alt="Fotka" />
@@ -255,8 +282,8 @@ export function ChatScreen({ user, pair, pairKey, flags, onSettings, onLock }: P
 
 // ---------------------------------------------------------------------------
 
-function Bubble({ m, mine, partner, pairKey, showTime, selected, onSelect, onOpen, onReply, onPhoto }: {
-  m: Decoded; mine: boolean; partner: string; pairKey: CryptoKey; showTime: boolean; selected: boolean;
+function Bubble({ m, live, mine, partner, pairKey, showTime, selected, onSelect, onOpen, onReply, onPhoto }: {
+  m: Decoded; live: boolean; mine: boolean; partner: string; pairKey: CryptoKey; showTime: boolean; selected: boolean;
   onSelect: () => void; onOpen: () => void; onReply?: () => void; onPhoto: (url: string) => void;
 }) {
   const sealed = !mine && !m.read_at;
@@ -266,7 +293,7 @@ function Bubble({ m, mine, partner, pairKey, showTime, selected, onSelect, onOpe
     return (
       <div className="msg theirs">
         {showTime && <div className="msg-time">{when(m.created_at)}</div>}
-        <button className="sealed" onClick={(e) => { e.stopPropagation(); setRevealed(true); onOpen(); }}>
+        <button className="sealed" data-haptic="off" onClick={(e) => { e.stopPropagation(); setRevealed(true); onOpen(); }}>
           <Envelope size={52} />
           <div>
             <div className="who">Nový vzkaz od: {partner}</div>
@@ -282,7 +309,7 @@ function Bubble({ m, mine, partner, pairKey, showTime, selected, onSelect, onOpe
   return (
     <div className={'msg ' + (mine ? 'mine' : 'theirs')}>
       {showTime && <div className="msg-time">{when(m.created_at)}</div>}
-      <div className={'bubble-wrap' + (selected ? ' selected' : '')} onClick={(e) => { e.stopPropagation(); onSelect(); }}>
+      <div className={'bubble-wrap' + (selected ? ' selected' : '')} data-haptic="" onClick={(e) => { e.stopPropagation(); onSelect(); }}>
         {p?.reply && <div className="quote">↩ {p.reply.preview}</div>}
         {m.failed || !p ? (
           <div className="bubble"><i>Vzkaz nejde rozšifrovat.</i></div>
@@ -294,7 +321,7 @@ function Bubble({ m, mine, partner, pairKey, showTime, selected, onSelect, onOpe
             {p.text && <div className="caption">{p.text}</div>}
           </div>
         ) : (
-          <div className={'bubble' + (revealed && sealed ? ' unfold' : '')}>{p.text}</div>
+          <div className={'bubble' + ((revealed && sealed) || live ? ' unfold' : '')}>{p.text}</div>
         )}
       </div>
       {mine && <div className="msg-status">{m.read_at ? 'přečteno' : 'doručeno'}</div>}
@@ -347,26 +374,144 @@ function StickerSheet({ user, onPick, onClose }: { user: User; onPick: (id: stri
   );
 }
 
-function IdeasSheet({ onPick, onClose }: { onPick: (t: string) => void; onClose: () => void }) {
+function IdeasSheet({ pairKey, onPick, onClose }: { pairKey: CryptoKey; onPick: (t: string) => void; onClose: () => void }) {
   const [ideas, setIdeas] = useState<Template[] | null>(null);
+  const [mine, setMine] = useState<MyIdeas | null>(null);
   const [cat, setCat] = useState('vse');
-  useEffect(() => { backend.templates().then(setIdeas).catch(() => setIdeas([])); }, []);
-  const cats = Array.from(new Set((ideas ?? []).map((t) => t.category)));
-  const shown = (ideas ?? []).filter((t) => cat === 'vse' || t.category === cat);
+  const [edit, setEdit] = useState<MyIdea | null>(null);
+  const [error, setError] = useState('');
+  useEffect(() => {
+    backend.templates().then(setIdeas).catch(() => setIdeas([]));
+    loadMyIdeas(pairKey).then(setMine);
+  }, [pairKey]);
+
+  const builtinCats = Array.from(new Set((ideas ?? []).map((t) => t.category)));
+  const cats: MyCategory[] = [...builtinCats.map((c) => ({ id: c, name: CATEGORIES[c] ?? c })), ...(mine?.cats ?? [])];
+  const catName = (id: string) => cats.find((c) => c.id === id)?.name ?? '';
+  const myList = (mine?.ideas ?? []).filter((t) => cat === 'vse' || cat === 'moje' || t.cat === cat);
+  const builtList = cat === 'moje' ? [] : (ideas ?? []).filter((t) => cat === 'vse' || t.category === cat);
+  const isCustomCat = !!mine?.cats.some((c) => c.id === cat);
+
+  const persist = async (next: MyIdeas) => {
+    setMine(next); setError('');
+    try { await saveMyIdeas(pairKey, next); } catch { setError('Uložení se nepovedlo. Zkontroluj připojení.'); }
+  };
+
+  const save = async (idea: MyIdea, newCat?: string) => {
+    if (!mine) return;
+    let cats2 = mine.cats;
+    if (newCat) { const c = { id: 'c-' + newId(), name: newCat }; cats2 = [...cats2, c]; idea = { ...idea, cat: c.id }; }
+    const exists = mine.ideas.some((x) => x.id === idea.id);
+    await persist({ ...mine, cats: cats2, ideas: exists ? mine.ideas.map((x) => (x.id === idea.id ? idea : x)) : [idea, ...mine.ideas] });
+    setEdit(null);
+    setCat(idea.cat || 'moje');
+  };
+
+  const remove = async (id: string) => {
+    if (!mine) return;
+    await persist({ ...mine, ideas: mine.ideas.filter((x) => x.id !== id) });
+    setEdit(null);
+  };
+
+  const removeCat = async () => {
+    if (!mine) return;
+    await persist({ ...mine, cats: mine.cats.filter((c) => c.id !== cat), ideas: mine.ideas.map((x) => (x.cat === cat ? { ...x, cat: '' } : x)) });
+    setCat('moje');
+  };
+
+  if (edit) {
+    return (
+      <Sheet onClose={onClose}>
+        <IdeaEditor
+          idea={edit} cats={cats} isNew={!mine?.ideas.some((x) => x.id === edit.id)}
+          onSave={save} onDelete={() => remove(edit.id)} onBack={() => setEdit(null)}
+        />
+        {error && <p className="error small">{error}</p>}
+      </Sheet>
+    );
+  }
+
   return (
     <Sheet onClose={onClose}>
-      <h2>Nápady</h2>
+      <div className="row between">
+        <h2>Nápady</h2>
+        <button className="btn small" disabled={!mine} onClick={() => setEdit({ id: newId(), cat: cat === 'vse' || cat === 'moje' ? '' : cat, title: '', text: '' })}>＋ Vlastní</button>
+      </div>
       <div className="chips" style={{ marginBottom: 8 }}>
         <button className={'chip' + (cat === 'vse' ? ' on' : '')} onClick={() => setCat('vse')}>Vše</button>
-        {cats.map((c) => <button key={c} className={'chip' + (cat === c ? ' on' : '')} onClick={() => setCat(c)}>{CATEGORIES[c] ?? c}</button>)}
+        {!!mine?.ideas.length && <button className={'chip' + (cat === 'moje' ? ' on' : '')} onClick={() => setCat('moje')}>Moje</button>}
+        {cats.map((c) => <button key={c.id} className={'chip' + (cat === c.id ? ' on' : '')} onClick={() => setCat(c.id)}>{c.name}</button>)}
       </div>
-      {ideas === null ? <div className="center"><span className="spinner" /></div> : shown.map((t) => (
-        <button key={t.id} className="idea" onClick={() => onPick(t.body)}>
-          <b>{t.title}</b>
-          <span>{t.body}</span>
-        </button>
-      ))}
+      {error && <p className="error small">{error}</p>}
+      {ideas === null || mine === null ? <div className="center"><span className="spinner" /></div> : (
+        <>
+          {myList.map((t) => (
+            <div key={t.id} className="idea-row">
+              <button className="idea mine" onClick={() => onPick(t.text)}>
+                <b>{t.title || 'Můj nápad'}{t.cat && cat === 'vse' ? <em className="idea-tag">{catName(t.cat)}</em> : null}</b>
+                <span>{t.text}</span>
+              </button>
+              <button className="icon-btn" aria-label="Upravit" onClick={() => setEdit(t)}>✎</button>
+            </div>
+          ))}
+          {builtList.map((t) => (
+            <button key={t.id} className="idea" onClick={() => onPick(t.body)}>
+              <b>{t.title}</b>
+              <span>{t.body}</span>
+            </button>
+          ))}
+          {!myList.length && !builtList.length && (
+            <p className="small muted">Tady zatím nic není. Přidej si vlastní nápad tlačítkem ＋ Vlastní.</p>
+          )}
+          {cat === 'moje' && <p className="small muted" style={{ marginTop: 10 }}>Vlastní nápady jsou zašifrované a vidíš je jen ty.</p>}
+          {isCustomCat && <button className="btn ghost small" style={{ marginTop: 10 }} onClick={removeCat}>Smazat kategorii {catName(cat)}</button>}
+        </>
+      )}
     </Sheet>
+  );
+}
+
+function IdeaEditor({ idea, cats, isNew, onSave, onDelete, onBack }: {
+  idea: MyIdea; cats: MyCategory[]; isNew: boolean;
+  onSave: (i: MyIdea, newCat?: string) => Promise<void>; onDelete: () => void; onBack: () => void;
+}) {
+  const [title, setTitle] = useState(idea.title);
+  const [body, setBody] = useState(idea.text);
+  const [cat, setCat] = useState(idea.cat);
+  const [newCat, setNewCat] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+  const submit = async () => {
+    setBusy(true);
+    await onSave({ ...idea, title: title.trim(), text: body.trim(), cat: newCat === null ? cat : '' }, newCat?.trim() || undefined);
+    setBusy(false);
+  };
+  return (
+    <div className="stack">
+      <div className="row between">
+        <button className="btn ghost small" onClick={onBack}>← Zpět</button>
+        {!isNew && <button className="btn ghost small" onClick={onDelete}>Smazat</button>}
+      </div>
+      <h2 style={{ margin: 0 }}>{isNew ? 'Nový nápad' : 'Upravit nápad'}</h2>
+      <label className="field"><span>Název (nepovinný)</span>
+        <input className="input" value={title} maxLength={40} onChange={(e) => setTitle(e.target.value)} placeholder="Třeba: Páteční večer" />
+      </label>
+      <label className="field"><span>Text vzkazu</span>
+        <textarea className="textarea" style={{ minHeight: 120 }} value={body} maxLength={MAX} onChange={(e) => setBody(e.target.value)} placeholder="Napiš si reakci nebo vzkaz dopředu…" />
+      </label>
+      <div className="field"><span>Kategorie</span>
+        <div className="chips">
+          <button className={'chip' + (!cat && newCat === null ? ' on' : '')} onClick={() => { setCat(''); setNewCat(null); }}>Bez kategorie</button>
+          {cats.map((c) => <button key={c.id} className={'chip' + (cat === c.id && newCat === null ? ' on' : '')} onClick={() => { setCat(c.id); setNewCat(null); }}>{c.name}</button>)}
+          <button className={'chip' + (newCat !== null ? ' on' : '')} onClick={() => setNewCat('')}>＋ Nová</button>
+        </div>
+        {newCat !== null && (
+          <input className="input" style={{ marginTop: 8 }} autoFocus value={newCat} maxLength={24} onChange={(e) => setNewCat(e.target.value)} placeholder="Název kategorie" />
+        )}
+      </div>
+      <button className="btn primary" disabled={busy || !body.trim() || (newCat !== null && !newCat.trim())} onClick={submit}>
+        {busy ? <span className="spinner" /> : 'Uložit'}
+      </button>
+    </div>
   );
 }
 
