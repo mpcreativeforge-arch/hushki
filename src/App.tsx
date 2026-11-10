@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { backend, type Pair, type User } from './lib/backend';
-import { createMaster, derivePairKey, keyCheck, lockKey, unlockKey, unlockMaster, unwrapRoom, wrapRoom } from './lib/crypto';
+import { createMaster, decryptText, derivePairKey, encryptText, keyCheck, lockKey, unlockKey, unlockMaster, unwrapRoom, wrapRoom } from './lib/crypto';
 import { clearPhotoCache, encodePayload } from './lib/payload';
 import { clearVault, loadVault, pinLength, saveVault, type Vault } from './lib/keystore';
 import { clearSession, loadSession, saveSession, touchSession } from './lib/session';
@@ -131,10 +131,20 @@ export function App() {
     const key = await derivePairKey(code);
     if ((await keyCheck(key)) !== pair.key_check) throw new Error('key_mismatch');
     const vault = loadVault(user!.id) as Vault;
-    vault.rooms[pair.id] = await wrapRoom(m, key);
+    const wrapped = await wrapRoom(m, key);
+    const usable = await unwrapRoom(m, wrapped);
+    // kód si pamatujeme (zašifrovaný klíčem místnosti), aby ho šlo po zadání PINu znovu zobrazit
+    const c = await encryptText(usable, code);
+    vault.rooms[pair.id] = { ...wrapped, code: { ct: c.ciphertext, iv: c.iv } };
     saveVault(user!.id, vault);
-    const usable = await unwrapRoom(m, vault.rooms[pair.id]);
     setKeys((k) => ({ ...k, [pair.id]: usable }));
+  };
+
+  const roomCode = async (pairId: string): Promise<string | null> => {
+    const v = user ? loadVault(user.id) : null;
+    const c = v && v.v === 2 ? v.rooms[pairId]?.code : undefined;
+    if (!c || !keys[pairId]) return null;
+    try { return await decryptText(keys[pairId], c.ct, c.iv); } catch { return null; }
   };
 
   const onPaired = async (code: string, p: Pair) => {
@@ -269,7 +279,7 @@ export function App() {
           user={user!} pair={room} pairKey={keys[room.id]} flags={flags}
           onBack={() => setStage({ name: 'home' })}
           onSettings={() => setStage({ name: 'settings' })}
-          onLock={lockNow} onLogout={logout} onLeave={() => leave(room.id)}
+          onLock={lockNow} onLogout={logout} onLeave={() => leave(room.id)} getCode={() => roomCode(room.id)}
         />
       ) : <div className="app"><div className="grow" style={{ display: 'grid', placeItems: 'center' }}><span className="spinner" /></div></div>;
       break;

@@ -113,7 +113,7 @@ export async function unlockKey(locked: LockedKey, pin: string, extractable = fa
 // --- Trezor místností ---------------------------------------------------------
 // Náhodný hlavní klíč zařízení je zamčený PINem a obaluje klíče jednotlivých místností.
 
-export interface WrappedRoom { iv: string; wrapped: string }
+export interface WrappedRoom { iv: string; wrapped: string; /** kód místnosti zašifrovaný jejím klíčem */ code?: { ct: string; iv: string } }
 
 export function createMaster(): Promise<CryptoKey> {
   return crypto.subtle.generateKey({ name: 'AES-GCM', length: 256 }, true, ['wrapKey', 'unwrapKey']);

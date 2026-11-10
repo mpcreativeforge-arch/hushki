@@ -14,6 +14,7 @@ import { LockButton } from '../components/LockButton';
 interface Props {
   user: User; pair: Pair; pairKey: CryptoKey; flags: Record<string, boolean>;
   onBack: () => void; onSettings: () => void; onLock: () => void; onLogout: () => void; onLeave: () => void;
+  getCode: () => Promise<string | null>;
 }
 
 type Decoded = Message & { p: Payload | null; failed?: boolean };
@@ -26,7 +27,7 @@ const TONES: { id: Tone; label: string }[] = [
 ];
 const CATEGORIES: Record<string, string> = { romantika: 'Romantika', odvaha: 'Odvaha', hra: 'Hra' };
 
-export function ChatScreen({ user, pair, pairKey, flags, onBack, onSettings, onLock, onLogout, onLeave }: Props) {
+export function ChatScreen({ user, pair, pairKey, flags, onBack, onSettings, onLock, onLogout, onLeave, getCode }: Props) {
   const [items, setItems] = useState<Decoded[] | null>(null);
   const [text, setText] = useState('');
   const [replyTo, setReplyTo] = useState<Decoded | null>(null);
@@ -281,7 +282,7 @@ export function ChatScreen({ user, pair, pairKey, flags, onBack, onSettings, onL
       {sheet === 'stickers' && <StickerSheet user={user} onPick={sendSticker} onClose={() => setSheet(null)} />}
       {sheet === 'ideas' && <IdeasSheet pairKey={pairKey} writerFemale={user.gender === 'zena' || (user.gender === 'neuvedeno' && pair.partner_gender === 'muz')} onPick={(t) => { setText(t); setSheet(null); }} onClose={() => setSheet(null)} />}
       {sheet === 'gentleman' && <GentlemanSheet initial={text} onUse={(t) => { setText(t); setSheet(null); }} onClose={() => setSheet(null)} />}
-      {menu && <QuickMenu extra={!waiting && <ExpiryPicker pair={pair} last={pair.expires_at ? ([...(items ?? [])].reverse().find((m) => m.meta?.sys === 'expiry')?.meta.seconds as number | undefined) ?? 'custom' : null} />} onClose={() => setMenu(false)} onSettings={() => { setMenu(false); onSettings(); }} onLogout={onLogout} onLeave={onLeave} />}
+      {menu && <QuickMenu extra={<><RoomCode getCode={getCode} />{!waiting && <ExpiryPicker pair={pair} last={pair.expires_at ? ([...(items ?? [])].reverse().find((m) => m.meta?.sys === 'expiry')?.meta.seconds as number | undefined) ?? 'custom' : null} />}</>} onClose={() => setMenu(false)} onSettings={() => { setMenu(false); onSettings(); }} onLogout={onLogout} onLeave={onLeave} />}
       {viewer && (
         <div className="viewer" onClick={() => setViewer(null)}>
           <img src={viewer} alt="Fotka" />
@@ -613,6 +614,37 @@ function SystemNote({ m, mine, me, pair, partner }: { m: Decoded; mine: boolean;
     : `${who}${verb(g, mine ? 'Nastavil' : 'nastavil')}${mine ? ' jsi' : ''} smazání místnosti za ${label}.`;
   text = text.charAt(0).toUpperCase() + text.slice(1);
   return <div className="sys-note">⏳ {text} <span className="sys-time">{when(m.created_at)}</span></div>;
+}
+
+/** Kód místnosti: uložený v telefonu zašifrovaně, ukáže se až na klepnutí. */
+function RoomCode({ getCode }: { getCode: () => Promise<string | null> }) {
+  const [code, setCode] = useState<string | null | undefined>(undefined);
+  const [note, setNote] = useState('');
+  const show = async () => setCode(await getCode());
+  const copy = async () => {
+    if (!code) return;
+    try { await navigator.clipboard.writeText(code); setNote('Zkopírováno.'); } catch { setNote(''); }
+  };
+  if (code === undefined) {
+    return (
+      <div className="settings-item"><span>Kód místnosti</span>
+        <button className="chip" onClick={show}>Zobrazit</button>
+      </div>
+    );
+  }
+  return (
+    <div className="settings-item" style={{ display: 'block' }}>
+      {code ? (
+        <>
+          <div className="row between"><span>Kód místnosti</span><button className="chip" onClick={copy}>{note || 'Zkopírovat'}</button></div>
+          <div className="pair-code" style={{ margin: '12px 0 6px' }}>{code}</div>
+          <p className="small muted" style={{ margin: 0 }}>Kód je klíč k vašim vzkazům. Pošli ho jen partnerovi a schovej si ho pro nový telefon.</p>
+        </>
+      ) : (
+        <p className="small muted" style={{ margin: 0 }}>Kód této místnosti v telefonu uložený není, protože místnost vznikla ve starší verzi aplikace. Nové místnosti si ho pamatují.</p>
+      )}
+    </div>
+  );
 }
 
 function ExpiryPicker({ pair, last }: { pair: Pair; last: number | null | 'custom' }) {
