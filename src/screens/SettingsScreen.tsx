@@ -3,6 +3,7 @@ import { backend, type Gender, type Pair, type User } from '../lib/backend';
 import { GenderPicker } from '../components/GenderPicker';
 import features from '../data/features.json';
 import { enablePush, pushSupported } from '../lib/push';
+import { feedback, getPrefs, setPrefs } from '../lib/feedback';
 
 interface Props {
   user: User; pair: Pair; flags: Record<string, boolean>;
@@ -16,6 +17,8 @@ export function SettingsScreen({ user, flags, onBack, onProfile, onChangePin, on
   const [saved, setSaved] = useState(false);
   const [pushMsg, setPushMsg] = useState('');
   const [confirmLeave, setConfirmLeave] = useState(false);
+  const [fx, setFx] = useState(getPrefs());
+  const toggle = (k: 'sound' | 'haptics') => { const next = { ...fx, [k]: !fx[k] }; setFx(next); setPrefs(next); if (next[k]) feedback('receive'); };
 
   const saveName = async () => {
     await backend.updateProfile(name.trim(), gender);
@@ -52,6 +55,12 @@ export function SettingsScreen({ user, flags, onBack, onProfile, onChangePin, on
           <div className="settings-item"><span>Tichá upozornění</span><button className="btn small" onClick={push}>Zapnout</button></div>
         )}
         {pushMsg && <p className="small muted" style={{ marginTop: 8 }}>{pushMsg}</p>}
+        <div className="settings-item"><span>Zvuky v chatu</span>
+          <button className={'chip' + (fx.sound ? ' on' : '')} onClick={() => toggle('sound')}>{fx.sound ? 'Zapnuto' : 'Vypnuto'}</button>
+        </div>
+        <div className="settings-item"><span>Vibrace</span>
+          <button className={'chip' + (fx.haptics ? ' on' : '')} onClick={() => toggle('haptics')}>{fx.haptics ? 'Zapnuto' : 'Vypnuto'}</button>
+        </div>
         <div className="settings-item"><span>Změnit PIN</span><button className="btn small" onClick={onChangePin}>Změnit</button></div>
         <p className="small muted" style={{ marginTop: 8 }}>Ke změně PINu budeš potřebovat párovací kód.</p>
       </div>

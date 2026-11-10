@@ -4,6 +4,7 @@ import { decodePayload, encodePayload, photoUrl, previewOf, uploadPhoto, type Pa
 import { enablePush, isIOS, isStandalone, pushEnabled, pushSupported } from '../lib/push';
 import { packsFor, STICKERS, stickerSrc } from '../data/stickers';
 import { Envelope } from '../components/Envelope';
+import { feedback, haptic } from '../lib/feedback';
 import { Sheet } from '../components/Sheet';
 import { when } from './format';
 
@@ -35,6 +36,7 @@ export function ChatScreen({ user, pair, pairKey, flags, onSettings, onLock }: P
   const listRef = useRef<HTMLDivElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const cacheRef = useRef(new Map<string, Payload | null>());
+  const seenRef = useRef<Set<string> | null>(null);
 
   const partner = pair.partner_name || (pair.partner_gender === 'muz' ? 'Partner' : pair.partner_gender === 'zena' ? 'Partnerka' : 'Partner/ka');
   const waiting = !pair.user_b;
@@ -56,12 +58,17 @@ export function ChatScreen({ user, pair, pairKey, flags, onSettings, onLock }: P
         const p = cacheRef.current.get(m.id) ?? null;
         out.push({ ...m, p, failed: p === null });
       }
-      if (alive) setItems(out);
+      if (!alive) return;
+      // nový příchozí vzkaz → zvuk a vibrace (ne při prvním načtení)
+      const incoming = out.filter((m) => m.sender_id !== user.id);
+      if (seenRef.current && incoming.some((m) => !seenRef.current!.has(m.id))) feedback('receive');
+      seenRef.current = new Set(incoming.map((m) => m.id));
+      setItems(out);
     };
     load();
     const off = backend.subscribe(pair.id, load);
     return () => { alive = false; off(); };
-  }, [pair.id, pairKey]);
+  }, [pair.id, pairKey, user.id]);
 
   useEffect(() => {
     if (backend.mode === 'demo' || !pushSupported()) return setPush('unsupported');
@@ -83,9 +90,11 @@ export function ChatScreen({ user, pair, pairKey, flags, onSettings, onLock }: P
       const msg = await backend.sendMessage(pair.id, ciphertext, iv);
       backend.notifyPartner(msg.id);
       setReplyTo(null);
+      feedback(p.t === 'sticker' ? 'sticker' : 'send');
       if (backend.mode === 'demo') demoReply(msg.id, p);
       return true;
     } catch (e) {
+      haptic('error');
       setError((e as BackendError).code === 'upload' ? 'Fotku se nepodařilo nahrát.' : 'Odeslání se nepovedlo. Zkontroluj připojení.');
       return false;
     } finally { setBusy(false); }
@@ -130,6 +139,7 @@ export function ChatScreen({ user, pair, pairKey, flags, onSettings, onLock }: P
   };
 
   const open = (m: Decoded) => {
+    feedback('open');
     if (m.sender_id !== user.id && !m.read_at) backend.markRead(m.id).catch(() => undefined);
   };
 
@@ -182,7 +192,7 @@ export function ChatScreen({ user, pair, pairKey, flags, onSettings, onLock }: P
               key={m.id} m={m} mine={m.sender_id === user.id} partner={partner} pairKey={pairKey}
               showTime={i === 0 || new Date(m.created_at).getTime() - new Date(items[i - 1].created_at).getTime() > 15 * 60_000}
               selected={selected === m.id}
-              onSelect={() => setSelected(selected === m.id ? null : m.id)}
+              onSelect={() => { haptic('tap'); setSelected(selected === m.id ? null : m.id); }}
               onOpen={() => open(m)}
               onReply={canReply ? () => { setReplyTo(m); setSelected(null); } : undefined}
               onPhoto={setViewer}
@@ -207,12 +217,12 @@ export function ChatScreen({ user, pair, pairKey, flags, onSettings, onLock }: P
         )}
         <div className="composer-row">
           {canPhoto && (
-            <button className="icon-btn round" aria-label="Poslat fotku" disabled={waiting || busy} onClick={() => fileRef.current?.click()}>
+            <button className="icon-btn round" aria-label="Poslat fotku" disabled={waiting || busy} onClick={() => { haptic('tap'); fileRef.current?.click(); }}>
               <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="6" width="18" height="14" rx="3" /><circle cx="12" cy="13" r="3.5" /><path d="M8.5 6l1.5-2h4l1.5 2" /></svg>
             </button>
           )}
           {canSticker && (
-            <button className="icon-btn round" aria-label="Samolepky" disabled={waiting || busy} onClick={() => setSheet('stickers')}>
+            <button className="icon-btn round" aria-label="Samolepky" disabled={waiting || busy} onClick={() => { haptic('tap'); setSheet('stickers'); }}>
               <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"><circle cx="12" cy="12" r="9" /><path d="M8.5 14.5c1.8 2 5.2 2 7 0" /><circle cx="9" cy="10" r=".8" fill="currentColor" /><circle cx="15" cy="10" r=".8" fill="currentColor" /></svg>
             </button>
           )}
