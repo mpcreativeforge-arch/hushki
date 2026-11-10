@@ -3,6 +3,7 @@ import { backend, type Pair, type User } from './lib/backend';
 import { createMaster, derivePairKey, keyCheck, lockKey, unlockKey, unlockMaster, unwrapRoom, wrapRoom } from './lib/crypto';
 import { clearPhotoCache, encodePayload } from './lib/payload';
 import { clearVault, loadVault, pinLength, saveVault, type Vault } from './lib/keystore';
+import { clearSession, loadSession, saveSession, touchSession } from './lib/session';
 import { AuthScreen } from './screens/AuthScreen';
 import { PairScreen } from './screens/PairScreen';
 import { SetPinScreen, LockScreen } from './screens/LockScreens';
@@ -49,7 +50,18 @@ export function App() {
     if (!u) return setStage({ name: 'auth' });
     backend.flags().then(setFlags).catch(() => undefined);
     const list = await refreshPairs();
-    if (!loadVault(u.id)) return setStage({ name: 'pair', mode: list.length ? 'restore' : 'first' });
+    const vault = loadVault(u.id);
+    if (!vault) return setStage({ name: 'pair', mode: list.length ? 'restore' : 'first' });
+    // obnovení stránky v otevřené relaci → bez PINu
+    const sess = vault.v === 2 ? await loadSession(u.id) : null;
+    if (sess && vault.v === 2) {
+      try {
+        const out: Record<string, CryptoKey> = {};
+        for (const [id, r] of Object.entries(vault.rooms)) out[id] = await unwrapRoom(sess.master, r);
+        setMaster(sess.master); setKeys(out);
+        return setStage(sess.room && out[sess.room] && list.some((p) => p.id === sess.room) ? { name: 'room', pairId: sess.room } : { name: 'home' });
+      } catch { clearSession(); }
+    }
     setStage({ name: 'locked' });
   }, [refreshPairs]);
 
@@ -58,7 +70,19 @@ export function App() {
     return backend.onAuthChange(() => route());
   }, [route]);
 
-  const lockNow = useCallback(() => { setMaster(null); setKeys({}); clearPhotoCache(); setStage({ name: 'locked' }); }, []);
+  const lockNow = useCallback(() => { clearSession(); setMaster(null); setKeys({}); clearPhotoCache(); setStage({ name: 'locked' }); }, []);
+
+  // relace: uložit po odemčení, prodlužovat a pamatovat si otevřenou místnost
+  useEffect(() => {
+    if (!master || !user) return;
+    saveSession(user.id, master, stage.name === 'room' ? stage.pairId : undefined);
+  }, [master, user?.id]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    if (!master) return;
+    touchSession(stage.name === 'room' ? stage.pairId : null);
+    const t = setInterval(() => { if (!document.hidden) touchSession(); }, 30_000);
+    return () => clearInterval(t);
+  }, [master, stage]);
 
   // Automatické zamčení po odchodu z aplikace.
   useEffect(() => {
@@ -164,6 +188,7 @@ export function App() {
   };
 
   const onForgotPin = () => {
+    clearSession();
     if (user) clearVault(user.id);
     route();
   };
@@ -180,6 +205,7 @@ export function App() {
   };
 
   const logout = async () => {
+    clearSession();
     if (user) clearVault(user.id);
     await backend.signOut();
   };
