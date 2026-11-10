@@ -12,7 +12,20 @@ export interface Message {
   ciphertext: string; iv: string; meta: Record<string, unknown>;
   created_at: string; read_at: string | null;
 }
-export interface Template { id: string; category: string; title: string; body: string }
+export interface Template {
+  id: string; category: string; title: string; body: string;
+  /** verze, když píše žena */
+  body_zena?: string | null;
+  /** jen pro pisatele tohoto pohlaví */
+  pro?: 'muz' | 'zena' | null;
+}
+
+/** Nápady pro daného pisatele: vybere ženskou nebo mužskou verzi textu. */
+export function templatesFor(list: Template[], writerFemale: boolean): Template[] {
+  return list
+    .filter((t) => !t.pro || t.pro === (writerFemale ? 'zena' : 'muz'))
+    .map((t) => (writerFemale && t.body_zena ? { ...t, body: t.body_zena } : t));
+}
 export type Tone = 'elegantni' | 'romanticky' | 'hravy';
 
 export interface Backend {
@@ -47,7 +60,7 @@ export interface Backend {
 }
 
 const defaultFlags = Object.fromEntries(featuresJson.map((f) => [f.key, f.enabled]));
-const localTemplates: Template[] = templatesJson.map((t, i) => ({ id: 'local-' + i, ...t }));
+const localTemplates: Template[] = (templatesJson as Omit<Template, 'id'>[]).map((t, i) => ({ id: 'local-' + i, ...t }));
 
 export class BackendError extends Error {
   constructor(public code: string, message?: string) { super(message ?? code); }
@@ -168,7 +181,7 @@ function supabaseBackend(url: string, anonKey: string): Backend {
       return () => { sb.removeChannel(ch); };
     },
     async templates() {
-      const { data, error } = await sb.from('templates').select('id,category,title,body').order('sort');
+      const { data, error } = await sb.from('templates').select('id,category,title,body,body_zena,pro').order('sort');
       if (error || !data?.length) return localTemplates;
       return data;
     },

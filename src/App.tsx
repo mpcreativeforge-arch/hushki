@@ -144,8 +144,8 @@ export function App() {
       const out: Record<string, CryptoKey> = {};
       for (const [id, r] of Object.entries(vault.rooms)) out[id] = await unwrapRoom(m, r);
       setMaster(m); setKeys(out);
-      const list = await refreshPairs();
-      setStage(list.length === 1 && out[list[0].id] ? { name: 'room', pairId: list[0].id } : { name: 'home' });
+      await refreshPairs();
+      setStage({ name: 'home' });
       return true;
     } catch {
       return false;

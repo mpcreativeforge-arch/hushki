@@ -1,5 +1,5 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { backend, BackendError, type Message, type Pair, type Template, type Tone, type User } from '../lib/backend';
+import { backend, BackendError, templatesFor, type Message, type Pair, type Template, type Tone, type User } from '../lib/backend';
 import { decodePayload, encodePayload, photoUrl, previewOf, uploadPhoto, type Payload, type PhotoRef } from '../lib/payload';
 import { enablePush, isIOS, isStandalone, pushEnabled, pushSupported } from '../lib/push';
 import { packsFor, STICKERS, stickerSrc } from '../data/stickers';
@@ -143,7 +143,7 @@ export function ChatScreen({ user, pair, pairKey, flags, onBack, onSettings, onL
   const demoReply = (replyId: string, mine: Omit<Payload, 'v'>) => {
     setTimeout(async () => {
       const partnerPack = packsFor(pair.partner_gender === 'muz' ? 'muz' : 'zena')[0];
-      const templates = await backend.templates();
+      const templates = templatesFor(await backend.templates(), pair.partner_gender === 'zena');
       const useSticker = Math.random() < 0.5;
       const reply = { id: replyId, preview: previewOf({ v: 1, ...mine }) };
       const p: Omit<Payload, 'v'> = useSticker
@@ -268,7 +268,7 @@ export function ChatScreen({ user, pair, pairKey, flags, onBack, onSettings, onL
       </footer>
 
       {sheet === 'stickers' && <StickerSheet user={user} onPick={sendSticker} onClose={() => setSheet(null)} />}
-      {sheet === 'ideas' && <IdeasSheet pairKey={pairKey} onPick={(t) => { setText(t); setSheet(null); }} onClose={() => setSheet(null)} />}
+      {sheet === 'ideas' && <IdeasSheet pairKey={pairKey} writerFemale={user.gender === 'zena' || (user.gender === 'neuvedeno' && pair.partner_gender === 'muz')} onPick={(t) => { setText(t); setSheet(null); }} onClose={() => setSheet(null)} />}
       {sheet === 'gentleman' && <GentlemanSheet initial={text} onUse={(t) => { setText(t); setSheet(null); }} onClose={() => setSheet(null)} />}
       {menu && <QuickMenu onClose={() => setMenu(false)} onSettings={() => { setMenu(false); onSettings(); }} onLogout={onLogout} onLeave={onLeave} leaveName={waiting ? undefined : partner} />}
       {viewer && (
@@ -374,16 +374,16 @@ function StickerSheet({ user, onPick, onClose }: { user: User; onPick: (id: stri
   );
 }
 
-function IdeasSheet({ pairKey, onPick, onClose }: { pairKey: CryptoKey; onPick: (t: string) => void; onClose: () => void }) {
+function IdeasSheet({ pairKey, writerFemale, onPick, onClose }: { pairKey: CryptoKey; writerFemale: boolean; onPick: (t: string) => void; onClose: () => void }) {
   const [ideas, setIdeas] = useState<Template[] | null>(null);
   const [mine, setMine] = useState<MyIdeas | null>(null);
   const [cat, setCat] = useState('vse');
   const [edit, setEdit] = useState<MyIdea | null>(null);
   const [error, setError] = useState('');
   useEffect(() => {
-    backend.templates().then(setIdeas).catch(() => setIdeas([]));
+    backend.templates().then((l) => setIdeas(templatesFor(l, writerFemale))).catch(() => setIdeas([]));
     loadMyIdeas(pairKey).then(setMine);
-  }, [pairKey]);
+  }, [pairKey, writerFemale]);
 
   const builtinCats = Array.from(new Set((ideas ?? []).map((t) => t.category)));
   const cats: MyCategory[] = [...builtinCats.map((c) => ({ id: c, name: CATEGORIES[c] ?? c })), ...(mine?.cats ?? [])];
