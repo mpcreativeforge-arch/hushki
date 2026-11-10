@@ -41,7 +41,7 @@ npm run build
 ## Nastavení Supabase (účet klienta)
 
 1. Na [supabase.com](https://supabase.com) založit účet a projekt (region EU, např. Frankfurt). Vývojáře pozvat do organizace.
-2. **SQL Editor**: spustit postupně `supabase/migrations/0001_init.sql`, `0002_chat_photos.sql` a pak `supabase/seed.sql`.
+2. **SQL Editor**: spustit postupně `supabase/migrations/0001_init.sql`, `0002_chat_photos.sql`, `0003_user_ideas.sql`, `0004_rooms.sql` a pak `supabase/seed.sql`.
 3. **Authentication → Providers → Email**: zapnuto. Pro testování lze vypnout „Confirm email“.
 4. **Authentication → URL Configuration**: Site URL nastavit na adresu aplikace.
 5. **Project Settings → API**: zkopírovat Project URL a `anon` klíč.

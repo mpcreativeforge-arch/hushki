@@ -97,7 +97,7 @@ export async function lockKey(pairKey: CryptoKey, pin: string): Promise<LockedKe
 }
 
 /** Vrátí klíč páru, nebo vyhodí chybu při špatném PINu. */
-export async function unlockKey(locked: LockedKey, pin: string): Promise<CryptoKey> {
+export async function unlockKey(locked: LockedKey, pin: string, extractable = false, usages: KeyUsage[] = ['encrypt', 'decrypt']): Promise<CryptoKey> {
   const kek = await pbkdf2(pin, unb64(locked.salt), locked.iterations, false);
   return crypto.subtle.unwrapKey(
     'raw',
@@ -105,9 +105,33 @@ export async function unlockKey(locked: LockedKey, pin: string): Promise<CryptoK
     kek,
     { name: 'AES-GCM', iv: unb64(locked.iv) },
     { name: 'AES-GCM', length: 256 },
-    false,
-    ['encrypt', 'decrypt'],
+    extractable,
+    usages,
   );
+}
+
+// --- Trezor místností ---------------------------------------------------------
+// Náhodný hlavní klíč zařízení je zamčený PINem a obaluje klíče jednotlivých místností.
+
+export interface WrappedRoom { iv: string; wrapped: string }
+
+export function createMaster(): Promise<CryptoKey> {
+  return crypto.subtle.generateKey({ name: 'AES-GCM', length: 256 }, true, ['wrapKey', 'unwrapKey']);
+}
+
+export function unlockMaster(locked: LockedKey, pin: string): Promise<CryptoKey> {
+  return unlockKey(locked, pin, true, ['wrapKey', 'unwrapKey']);
+}
+
+export async function wrapRoom(master: CryptoKey, roomKey: CryptoKey): Promise<WrappedRoom> {
+  const iv = crypto.getRandomValues(new Uint8Array(12));
+  const wrapped = await crypto.subtle.wrapKey('raw', roomKey, master, { name: 'AES-GCM', iv });
+  return { iv: b64(iv), wrapped: b64(wrapped) };
+}
+
+export function unwrapRoom(master: CryptoKey, r: WrappedRoom): Promise<CryptoKey> {
+  return crypto.subtle.unwrapKey('raw', unb64(r.wrapped), master, { name: 'AES-GCM', iv: unb64(r.iv) },
+    { name: 'AES-GCM', length: 256 }, false, ['encrypt', 'decrypt']);
 }
 
 // --- Binární data (fotky) ----------------------------------------------------

@@ -1,5 +1,4 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { Brand } from '../components/Logo';
 import { backend, BackendError, type Message, type Pair, type Template, type Tone, type User } from '../lib/backend';
 import { decodePayload, encodePayload, photoUrl, previewOf, uploadPhoto, type Payload, type PhotoRef } from '../lib/payload';
 import { enablePush, isIOS, isStandalone, pushEnabled, pushSupported } from '../lib/push';
@@ -13,7 +12,7 @@ import { when } from './format';
 
 interface Props {
   user: User; pair: Pair; pairKey: CryptoKey; flags: Record<string, boolean>;
-  onSettings: () => void; onLock: () => void; onLogout: () => void;
+  onBack: () => void; onSettings: () => void; onLock: () => void; onLogout: () => void; onLeave: () => void;
 }
 
 type Decoded = Message & { p: Payload | null; failed?: boolean };
@@ -26,7 +25,7 @@ const TONES: { id: Tone; label: string }[] = [
 ];
 const CATEGORIES: Record<string, string> = { romantika: 'Romantika', odvaha: 'Odvaha', hra: 'Hra' };
 
-export function ChatScreen({ user, pair, pairKey, flags, onSettings, onLock, onLogout }: Props) {
+export function ChatScreen({ user, pair, pairKey, flags, onBack, onSettings, onLock, onLogout, onLeave }: Props) {
   const [items, setItems] = useState<Decoded[] | null>(null);
   const [text, setText] = useState('');
   const [replyTo, setReplyTo] = useState<Decoded | null>(null);
@@ -175,9 +174,14 @@ export function ChatScreen({ user, pair, pairKey, flags, onSettings, onLock, onL
   return (
     <div className="chat">
       <header className="chat-top">
-        <div>
-          <Brand />
-          <div className="small muted">{waiting ? 'Čekáme na připojení partnera' : unread ? `${partner} · ${unread === 1 ? '1 nový vzkaz' : `${unread} nové vzkazy`}` : partner}</div>
+        <div className="row" style={{ gap: 4, minWidth: 0 }}>
+          <button className="icon-btn" aria-label="Zpět na místnosti" onClick={onBack}>
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M15 5l-7 7 7 7" /></svg>
+          </button>
+          <div style={{ minWidth: 0 }}>
+            <div className="room-title">{waiting ? 'Nová místnost' : partner}</div>
+            <div className="small muted">{waiting ? 'Čekáme na připojení partnera' : unread ? (unread === 1 ? '1 nový vzkaz' : `${unread} nové vzkazy`) : 'Šifrováno, uvidíte jen vy dva'}</div>
+          </div>
         </div>
         <div className="row" style={{ gap: 0 }}>
           <button className="icon-btn" aria-label="Zamknout" onClick={onLock}>
@@ -266,7 +270,7 @@ export function ChatScreen({ user, pair, pairKey, flags, onSettings, onLock, onL
       {sheet === 'stickers' && <StickerSheet user={user} onPick={sendSticker} onClose={() => setSheet(null)} />}
       {sheet === 'ideas' && <IdeasSheet pairKey={pairKey} onPick={(t) => { setText(t); setSheet(null); }} onClose={() => setSheet(null)} />}
       {sheet === 'gentleman' && <GentlemanSheet initial={text} onUse={(t) => { setText(t); setSheet(null); }} onClose={() => setSheet(null)} />}
-      {menu && <QuickMenu onClose={() => setMenu(false)} onSettings={() => { setMenu(false); onSettings(); }} onLogout={onLogout} />}
+      {menu && <QuickMenu onClose={() => setMenu(false)} onSettings={() => { setMenu(false); onSettings(); }} onLogout={onLogout} onLeave={onLeave} leaveName={waiting ? undefined : partner} />}
       {viewer && (
         <div className="viewer" onClick={() => setViewer(null)}>
           <img src={viewer} alt="Fotka" />

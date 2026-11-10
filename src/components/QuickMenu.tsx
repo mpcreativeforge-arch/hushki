@@ -15,8 +15,11 @@ export async function shareApp(): Promise<'shared' | 'copied' | 'failed'> {
   }
 }
 
-export function QuickMenu({ onClose, onSettings, onLogout }: { onClose: () => void; onSettings?: () => void; onLogout?: () => void }) {
+export function QuickMenu({ onClose, onSettings, onLogout, onLeave, leaveName }: {
+  onClose: () => void; onSettings?: () => void; onLogout?: () => void; onLeave?: () => void; leaveName?: string;
+}) {
   const [fx, setFx] = useState(getPrefs());
+  const [confirmLeave, setConfirmLeave] = useState(false);
   const [note, setNote] = useState('');
   const toggle = (k: 'sound' | 'haptics') => {
     const next = { ...fx, [k]: !fx[k] };
@@ -39,7 +42,16 @@ export function QuickMenu({ onClose, onSettings, onLogout }: { onClose: () => vo
       <button className="settings-item menu-link" onClick={share}><span>Sdílet aplikaci</span><span aria-hidden>↗</span></button>
       {note && <p className="small muted" style={{ margin: '6px 0 0' }}>{note}</p>}
       {onSettings && <button className="settings-item menu-link" onClick={onSettings}><span>Nastavení</span><span aria-hidden>›</span></button>}
-      {onLogout && <button className="settings-item menu-link" onClick={onLogout}><span>Odhlásit se</span><span aria-hidden>⎋</span></button>}
+      {onLeave && (!confirmLeave ? (
+        <button className="settings-item menu-link" onClick={() => setConfirmLeave(true)}><span>Zrušit místnost{leaveName ? ` s ${leaveName}` : ''}</span><span aria-hidden>✕</span></button>
+      ) : (
+        <div className="notice stack" style={{ marginTop: 10 }}>
+          <span>Opravdu? Místnost i všechny vzkazy v ní se smažou u vás obou.</span>
+          <button className="btn" onClick={onLeave}>Ano, zrušit</button>
+          <button className="btn ghost" onClick={() => setConfirmLeave(false)}>Ne</button>
+        </div>
+      ))}
+      {onLogout && <button className="settings-item menu-link" onClick={onLogout}><span>Odhlásit se</span><span aria-hidden>→</span></button>}
     </Sheet>
   );
 }

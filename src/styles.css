@@ -346,3 +346,13 @@ p { margin: 0 0 14px; }
 .idea-tag { font-style: normal; font-family: var(--sans, inherit); font-size: 11px; font-weight: 600; margin-left: 8px; padding: 2px 8px; border-radius: 10px; background: rgba(244, 230, 210, 0.12); color: var(--cream-dim); vertical-align: middle; }
 .idea-row { border-bottom: 1px solid rgba(244, 230, 210, 0.14); align-items: center; }
 .idea-row .idea { border-bottom: 0; }
+.room-title { font-family: var(--serif); font-size: 21px; line-height: 1.15; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* Seznam místností */
+.rooms { display: flex; flex-direction: column; gap: 10px; margin-top: 18px; }
+.room { display: flex; align-items: center; gap: 14px; width: 100%; text-align: left; padding: 14px 16px; border-radius: 22px; border: 1.5px solid rgba(244, 230, 210, 0.22); background: rgba(244, 230, 210, 0.04); color: inherit; font: inherit; cursor: pointer; }
+.room.unread { border-color: var(--cream); background: rgba(244, 230, 210, 0.08); }
+.room-body { flex: 1; min-width: 0; }
+.room-name { font-size: 17px; font-weight: 600; }
+.room-sub { font-size: 13px; color: var(--cream-dim); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.room-badge { min-width: 24px; height: 24px; padding: 0 7px; border-radius: 12px; background: var(--coral); color: #2a0f1f; font-size: 13px; font-weight: 700; display: grid; place-items: center; }

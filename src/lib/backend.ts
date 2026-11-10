@@ -23,10 +23,10 @@ export interface Backend {
   signIn(email: string, password: string): Promise<void>;
   signOut(): Promise<void>;
   updateProfile(name: string, gender: Gender): Promise<void>;
-  getPair(): Promise<Pair | null>;
+  getPairs(): Promise<Pair[]>;
   createPair(inviteHash: string, keyCheck: string): Promise<Pair>;
   joinPair(inviteHash: string): Promise<Pair>;
-  leavePair(): Promise<void>;
+  leavePair(pairId: string): Promise<void>;
   listMessages(pairId: string): Promise<Message[]>;
   sendMessage(pairId: string, ciphertext: string, iv: string, meta?: Record<string, unknown>): Promise<Message>;
   markRead(id: string): Promise<void>;
@@ -68,7 +68,7 @@ function supabaseBackend(url: string, anonKey: string): Backend {
   const fail = (error: { message: string } | null) => {
     if (!error) return;
     const m = error.message;
-    for (const code of ['invalid_code', 'pair_full', 'already_paired', 'not_authenticated']) {
+    for (const code of ['invalid_code', 'pair_full', 'too_many_rooms', 'not_authenticated']) {
       if (m.includes(code)) throw new BackendError(code);
     }
     throw new BackendError('server', m);
@@ -128,12 +128,12 @@ function supabaseBackend(url: string, anonKey: string): Backend {
       if (error || !data) throw new BackendError('download', error?.message);
       return new Uint8Array(await data.arrayBuffer());
     },
-    async getPair() {
+    async getPairs() {
       const me = await uid();
       const { data, error } = await sb.from('pairs').select('id,user_a,user_b,key_check')
-        .or(`user_a.eq.${me},user_b.eq.${me}`).maybeSingle();
+        .or(`user_a.eq.${me},user_b.eq.${me}`).order('created_at');
       fail(error);
-      return withPartner(data);
+      return (await Promise.all((data ?? []).map(withPartner))) as Pair[];
     },
     async createPair(invite_hash, key_check) {
       const { data, error } = await sb.from('pairs').insert({ user_a: await uid(), invite_hash, key_check })
@@ -146,7 +146,7 @@ function supabaseBackend(url: string, anonKey: string): Backend {
       fail(error);
       return (await withPartner(data))!;
     },
-    async leavePair() { fail((await sb.rpc('leave_pair')).error); },
+    async leavePair(pairId) { fail((await sb.rpc('leave_pair', { p_pair: pairId })).error); },
     async listMessages(pairId) {
       const { data, error } = await sb.from('messages').select('*').eq('pair_id', pairId)
         .order('created_at', { ascending: false }).limit(200);
@@ -211,21 +211,28 @@ function supabaseBackend(url: string, anonKey: string): Backend {
 // ---------------------------------------------------------------------------
 interface DemoState {
   user: User | null;
-  pair: (Pair & { invite_hash: string }) | null;
+  pairs: (Pair & { invite_hash: string })[];
   messages: Message[];
 }
 const DEMO_KEY = 'hushki-demo-v1';
 const PARTNER_ID = 'demo-partner';
 const DEMO_PHOTO = 'hushki-demo-photo-';
 const DEMO_IDEAS = 'hushki-demo-ideas';
-const demoPartner = (me: User | null): { partner_name: string; partner_gender: Gender } =>
-  me?.gender === 'zena' ? { partner_name: 'Partner', partner_gender: 'muz' } : { partner_name: 'Partnerka', partner_gender: 'zena' };
+const demoPartner = (me: User | null, n: number): { partner_name: string; partner_gender: Gender } =>
+  me?.gender === 'zena'
+    ? { partner_name: ['Partner', 'Tomáš', 'Jakub', 'Ondřej'][n % 4], partner_gender: 'muz' }
+    : { partner_name: ['Partnerka', 'Lucie', 'Klára', 'Tereza'][n % 4], partner_gender: 'zena' };
 
 function demoBackend(): Backend {
   const listeners = new Set<() => void>();
   const authListeners = new Set<() => void>();
   const load = (): DemoState => {
-    try { return JSON.parse(localStorage.getItem(DEMO_KEY) ?? '') as DemoState; } catch { return { user: null, pair: null, messages: [] }; }
+    try {
+      const s = JSON.parse(localStorage.getItem(DEMO_KEY) ?? '') as DemoState & { pair?: DemoState['pairs'][number] | null };
+      if (!s.pairs) s.pairs = s.pair ? [s.pair] : []; // starší demo s jedním párem
+      delete s.pair;
+      return s;
+    } catch { return { user: null, pairs: [], messages: [] }; }
   };
   const save = (s: DemoState) => {
     try { localStorage.setItem(DEMO_KEY, JSON.stringify(s)); } catch { /* nic */ }
@@ -269,27 +276,30 @@ function demoBackend(): Backend {
       if (!v) throw new BackendError('download');
       return unb64(v);
     },
-    async getPair() { return load().pair; },
+    async getPairs() { return load().pairs.map(({ invite_hash: _h, ...p }) => p); },
     async createPair(invite_hash, key_check) {
       await wait();
       const s = load();
+      if (s.pairs.length >= 10) throw new BackendError('too_many_rooms');
+      const n = s.pairs.length;
       const pair = { id: id(), user_a: s.user!.id, user_b: null, key_check, invite_hash, partner_name: '', partner_gender: 'neuvedeno' as Gender };
-      save({ ...s, pair });
+      save({ ...s, pairs: [...s.pairs, pair] });
       // partner se "připojí" za pár vteřin
       setTimeout(() => {
         const cur = load();
-        if (cur.pair?.id === pair.id && !cur.pair.user_b) save({ ...cur, pair: { ...cur.pair, user_b: PARTNER_ID, ...demoPartner(cur.user) } });
+        save({ ...cur, pairs: cur.pairs.map((x) => (x.id === pair.id && !x.user_b ? { ...x, user_b: PARTNER_ID + '-' + n, ...demoPartner(cur.user, n) } : x)) });
       }, 4000);
-      return pair;
+      const { invite_hash: _h, ...out } = pair;
+      return out;
     },
     async joinPair(invite_hash) {
       await wait();
-      const s = load();
-      if (s.pair && s.pair.invite_hash === invite_hash) return s.pair;
+      const p = load().pairs.find((x) => x.invite_hash === invite_hash);
+      if (p) { const { invite_hash: _h, ...out } = p; return out; }
       throw new BackendError('demo_join');
     },
-    async leavePair() { save({ ...load(), pair: null, messages: [] }); },
-    async listMessages() { return [...load().messages].sort((a, b) => b.created_at.localeCompare(a.created_at)); },
+    async leavePair(pairId) { const s = load(); save({ ...s, pairs: s.pairs.filter((p) => p.id !== pairId), messages: s.messages.filter((m) => m.pair_id !== pairId) }); },
+    async listMessages(pairId) { return load().messages.filter((m) => m.pair_id === pairId).sort((a, b) => b.created_at.localeCompare(a.created_at)); },
     async sendMessage(pair_id, ciphertext, iv, meta = {}) {
       await wait();
       const s = load();
@@ -303,7 +313,8 @@ function demoBackend(): Backend {
     },
     async demoPartnerMessage(pair_id, ciphertext, iv) {
       const s = load();
-      const m: Message = { id: id(), pair_id, sender_id: PARTNER_ID, ciphertext, iv, meta: {}, created_at: new Date().toISOString(), read_at: null };
+      const sender = s.pairs.find((p) => p.id === pair_id)?.user_b ?? PARTNER_ID;
+      const m: Message = { id: id(), pair_id, sender_id: sender, ciphertext, iv, meta: {}, created_at: new Date().toISOString(), read_at: null };
       save({ ...s, messages: [...s.messages, m] });
     },
     async markRead(mid) {
