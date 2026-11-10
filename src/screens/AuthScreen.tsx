@@ -1,10 +1,12 @@
 import { useState } from 'react';
 import { Wordmark } from '../components/Logo';
+import { PrivacySheetScreen } from '../components/Privacy';
 import { backend, BackendError, type Gender } from '../lib/backend';
 import { GenderPicker } from '../components/GenderPicker';
 
 export function AuthScreen() {
   const [mode, setMode] = useState<'login' | 'signup'>('signup');
+  const [privacy, setPrivacy] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
@@ -58,6 +60,10 @@ export function AuthScreen() {
           {mode === 'signup' ? 'Už mám účet' : 'Ještě nemám účet'}
         </button>
       </form>
+      <p className="center" style={{ marginTop: 14 }}>
+        <button type="button" className="link-btn" onClick={() => setPrivacy(true)}>Zásady ochrany osobních údajů</button>
+      </p>
+      {privacy && <PrivacySheetScreen onBack={() => setPrivacy(false)} />}
     </div>
   );
 }

@@ -364,3 +364,15 @@ p { margin: 0 0 14px; }
 .msg.mine .bubble-wrap { max-width: 100%; min-width: 0; }
 .msg .quote { align-self: stretch; min-width: 0; }
 .msg.mine .quote { text-align: right; border-left: 0; border-right: 2px solid var(--coral); }
+.bubble, .caption { overflow-wrap: anywhere; }
+
+/* Zásady ochrany soukromí */
+.consent-backdrop { position: fixed; inset: 0; z-index: 40; background: rgba(15, 4, 10, 0.72); display: grid; place-items: end center; animation: fade .2s; }
+.consent { width: 100%; max-width: 560px; max-height: 92dvh; display: flex; flex-direction: column; background: var(--wine-800, #3a1630); border-radius: 26px 26px 0 0; padding: 22px 18px calc(18px + env(safe-area-inset-bottom)); box-sizing: border-box; animation: rise .25s ease-out; }
+.consent-scroll { flex: 1; min-height: 120px; overflow-y: auto; margin: 6px -4px 12px; padding: 0 4px; border-bottom: 1px solid rgba(244, 230, 210, 0.12); }
+.privacy h3 { font-family: var(--serif); font-weight: 500; font-size: 18px; margin: 18px 0 6px; }
+.privacy p { font-size: 14px; line-height: 1.55; color: var(--cream-dim); margin: 0 0 8px; }
+.privacy .notice span { display: block; font-size: 14px; margin: 3px 0; }
+.check { display: flex; gap: 10px; align-items: flex-start; font-size: 14px; margin: 6px 0; cursor: pointer; }
+.check input { width: 20px; height: 20px; flex: none; margin-top: 1px; accent-color: var(--coral); }
+.link-btn { background: none; border: 0; color: var(--cream-dim); text-decoration: underline; font: inherit; font-size: 13px; cursor: pointer; padding: 4px; }

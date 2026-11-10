@@ -4,19 +4,28 @@ import { GenderPicker } from '../components/GenderPicker';
 import features from '../data/features.json';
 import { enablePush, pushSupported } from '../lib/push';
 import { feedback, getPrefs, setPrefs } from '../lib/feedback';
+import { PrivacySheetScreen } from '../components/Privacy';
 
 interface Props {
   user: User; flags: Record<string, boolean>;
   onBack: () => void; onProfile: (name: string, gender: Gender) => void;
-  onChangePin: () => void; onLogout: () => void;
+  onChangePin: () => void; onLogout: () => void; onDeleteAccount: () => Promise<void>;
 }
 
-export function SettingsScreen({ user, flags, onBack, onProfile, onChangePin, onLogout }: Props) {
+export function SettingsScreen({ user, flags, onBack, onProfile, onChangePin, onLogout, onDeleteAccount }: Props) {
   const [name, setName] = useState(user.name);
   const [gender, setGender] = useState<Gender>(user.gender);
   const [saved, setSaved] = useState(false);
   const [pushMsg, setPushMsg] = useState('');
   const [fx, setFx] = useState(getPrefs());
+  const [privacy, setPrivacy] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [deleteErr, setDeleteErr] = useState('');
+  const doDelete = async () => {
+    setDeleting(true); setDeleteErr('');
+    try { await onDeleteAccount(); } catch { setDeleteErr('Účet se nepodařilo smazat. Zkus to prosím znovu.'); setDeleting(false); }
+  };
   const toggle = (k: 'sound' | 'haptics') => { const next = { ...fx, [k]: !fx[k] }; setFx(next); setPrefs(next); if (next[k]) feedback('receive'); };
 
   const saveName = async () => {
@@ -61,6 +70,7 @@ export function SettingsScreen({ user, flags, onBack, onProfile, onChangePin, on
           <button className={'chip' + (fx.haptics ? ' on' : '')} onClick={() => toggle('haptics')}>{fx.haptics ? 'Zapnuto' : 'Vypnuto'}</button>
         </div>
         <div className="settings-item"><span>Změnit PIN</span><button className="btn small" onClick={onChangePin}>Změnit</button></div>
+        <button className="settings-item menu-link" onClick={() => setPrivacy(true)}><span>Ochrana soukromí (GDPR)</span><span aria-hidden>›</span></button>
       </div>
 
       {upcoming.length > 0 && (
@@ -74,7 +84,18 @@ export function SettingsScreen({ user, flags, onBack, onProfile, onChangePin, on
 
       <div className="stack" style={{ marginTop: 30 }}>
         <button className="btn ghost" onClick={onLogout}>Odhlásit se</button>
+        {!confirmDelete ? (
+          <button className="link-btn" onClick={() => setConfirmDelete(true)}>Smazat účet</button>
+        ) : (
+          <div className="notice stack">
+            <span>Smažeme tvůj účet, všechny místnosti, vzkazy, fotky i vlastní nápady. U partnerů zmizí i vaše společné místnosti. Nejde to vrátit.</span>
+            {deleteErr && <span className="error small">{deleteErr}</span>}
+            <button className="btn" disabled={deleting} onClick={doDelete}>{deleting ? <span className="spinner" /> : 'Ano, smazat vše'}</button>
+            <button className="btn ghost" onClick={() => setConfirmDelete(false)}>Ne</button>
+          </div>
+        )}
       </div>
+      {privacy && <PrivacySheetScreen onBack={() => setPrivacy(false)} />}
     </div>
   );
 }

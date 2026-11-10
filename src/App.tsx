@@ -9,6 +9,8 @@ import { SetPinScreen, LockScreen } from './screens/LockScreens';
 import { ChatScreen } from './screens/ChatScreen';
 import { HomeScreen } from './screens/HomeScreen';
 import { SettingsScreen } from './screens/SettingsScreen';
+import { PrivacyConsent } from './components/Privacy';
+import { PRIVACY_VERSION } from './data/privacy';
 
 export const PIN_LENGTH = 4;
 const AUTO_LOCK_MS = 30_000;
@@ -182,6 +184,18 @@ export function App() {
     await backend.signOut();
   };
 
+  const deleteAccount = async () => {
+    const id = user?.id;
+    await backend.deleteAccount();
+    if (id) clearVault(id);
+  };
+
+  const needsConsent = !!user && stage.name !== 'auth' && stage.name !== 'loading' && user.privacyVersion !== PRIVACY_VERSION;
+  const acceptPrivacy = async () => {
+    await backend.acceptPrivacy(PRIVACY_VERSION);
+    setUser((u) => (u ? { ...u, privacyVersion: PRIVACY_VERSION } : u));
+  };
+
   const room = stage.name === 'room' ? pairs.find((p) => p.id === stage.pairId) : undefined;
   // místnost zmizela (partner ji zrušil) → zpět na seznam
   useEffect(() => {
@@ -240,7 +254,7 @@ export function App() {
           onBack={() => setStage({ name: 'home' })}
           onProfile={(name, gender) => setUser({ ...user!, name, gender })}
           onChangePin={() => setStage({ name: 'setpin' })}
-          onLogout={logout}
+          onLogout={logout} onDeleteAccount={deleteAccount}
         />
       );
       break;
@@ -250,6 +264,7 @@ export function App() {
     <>
       {backend.mode === 'demo' && <div className="demo-banner">Demo režim: data zůstávají jen v tomto prohlížeči</div>}
       {screen}
+      {needsConsent && <PrivacyConsent updated={user!.privacyVersion != null} onAccept={acceptPrivacy} onDecline={logout} />}
     </>
   );
 }

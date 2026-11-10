@@ -5,7 +5,7 @@ import featuresJson from '../data/features.json';
 import { b64, unb64 } from './crypto';
 
 export type Gender = 'muz' | 'zena' | 'neuvedeno';
-export interface User { id: string; email: string; name: string; gender: Gender }
+export interface User { id: string; email: string; name: string; gender: Gender; privacyVersion?: number | null }
 export interface Pair { id: string; user_a: string; user_b: string | null; key_check: string; partner_name: string; partner_gender: Gender; expires_at?: string | null }
 export interface Message {
   id: string; pair_id: string; sender_id: string;
@@ -35,6 +35,10 @@ export interface Backend {
   signUp(email: string, password: string, name: string, gender: Gender): Promise<{ needsConfirm: boolean }>;
   signIn(email: string, password: string): Promise<void>;
   signOut(): Promise<void>;
+  /** Uloží souhlas se zásadami ochrany soukromí. */
+  acceptPrivacy(version: number): Promise<void>;
+  /** Smaže účet a všechna data (GDPR). */
+  deleteAccount(): Promise<void>;
   updateProfile(name: string, gender: Gender): Promise<void>;
   getPairs(): Promise<Pair[]>;
   createPair(inviteHash: string, keyCheck: string): Promise<Pair>;
@@ -109,8 +113,8 @@ function supabaseBackend(url: string, anonKey: string): Backend {
       const { data } = await sb.auth.getSession();
       const u = data.session?.user;
       if (!u) return null;
-      const { data: prof } = await sb.from('profiles').select('display_name, gender').eq('id', u.id).maybeSingle();
-      return { id: u.id, email: u.email ?? '', name: prof?.display_name ?? '', gender: (prof?.gender as Gender) ?? 'neuvedeno' };
+      const { data: prof } = await sb.from('profiles').select('display_name, gender, privacy_version').eq('id', u.id).maybeSingle();
+      return { id: u.id, email: u.email ?? '', name: prof?.display_name ?? '', gender: (prof?.gender as Gender) ?? 'neuvedeno', privacyVersion: prof?.privacy_version ?? null };
     },
     onAuthChange(cb) {
       const { data } = sb.auth.onAuthStateChange((event) => {
@@ -128,6 +132,14 @@ function supabaseBackend(url: string, anonKey: string): Backend {
       if (error) throw new BackendError('auth', error.message);
     },
     async signOut() { await sb.auth.signOut(); },
+    async acceptPrivacy(version) {
+      const { error } = await sb.from('profiles').update({ privacy_version: version, privacy_accepted_at: new Date().toISOString() }).eq('id', await uid());
+      fail(error);
+    },
+    async deleteAccount() {
+      fail((await sb.rpc('delete_my_account')).error);
+      await sb.auth.signOut();
+    },
     async updateProfile(name, gender) {
       const { error } = await sb.from('profiles').update({ display_name: name, gender }).eq('id', await uid());
       fail(error);
@@ -282,6 +294,8 @@ function demoBackend(): Backend {
       authListeners.forEach((l) => l());
     },
     async updateProfile(name, gender) { const s = load(); if (s.user) save({ ...s, user: { ...s.user, name, gender } }); },
+    async acceptPrivacy(version) { const s = load(); if (s.user) save({ ...s, user: { ...s.user, privacyVersion: version } }); },
+    async deleteAccount() { await this.signOut(); },
     async uploadPhoto(pairId, data) {
       const path = `${pairId}/${id()}`;
       try { localStorage.setItem(DEMO_PHOTO + path, b64(data)); } catch { throw new BackendError('upload', 'Úložiště prohlížeče je plné'); }
