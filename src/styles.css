@@ -158,7 +158,6 @@ p { margin: 0 0 14px; }
   border: 1.5px solid var(--cream);
   border-radius: var(--r-hand);
   user-select: all;
-  transform: rotate(-0.6deg);
 }
 
 /* PIN ----------------------------------------------------------------------- */
