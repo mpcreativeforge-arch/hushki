@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { haptic } from '../lib/feedback';
+import { diceRollSound, haptic } from '../lib/feedback';
 import { t } from '../lib/i18n';
 
 // Dvacetistěnná kostka (D20) v samostatném okně. Ťuknutím se roztočí a padne číslo 1–20.
@@ -66,6 +66,7 @@ export function DiceOverlay({ max = 20, prev, onResult, onClose, actionLabel }: 
     const reduce = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
     const started = Date.now();
     const dur = reduce ? 200 : 1500;
+    diceRollSound(dur);
     clearInterval(timer.current);
     timer.current = window.setInterval(() => {
       if (Date.now() - started >= dur) {
