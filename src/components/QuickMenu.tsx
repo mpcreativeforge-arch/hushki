@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Sheet } from './Sheet';
 import { t } from '../lib/i18n';
 import { HelpSheet } from './Help';
+import { AboutSheet } from './About';
 import { LangSwitch } from './LangSwitch';
 import { InstallSheet } from './InstallSheet';
 import { isStandalone } from '../lib/push';
@@ -26,11 +27,13 @@ export function QuickMenu({ onClose, onSettings, onLogout, onLeave, extra }: {
   const [note, setNote] = useState('');
   const [help, setHelp] = useState(false);
   const [install, setInstall] = useState(false);
+  const [about, setAbout] = useState(false);
   const share = async () => {
     const r = await shareApp();
     setNote(r === 'copied' ? t('Odkaz je zkopírovaný.', 'Link copied.') : r === 'failed' ? t('Sdílení se nepovedlo. Odkaz: ', 'Sharing failed. Link: ') + appUrl() : '');
   };
   if (help) return <HelpSheet onClose={() => setHelp(false)} />;
+  if (about) return <AboutSheet onClose={() => setAbout(false)} />;
   if (install) return <InstallSheet onClose={() => setInstall(false)} />;
   return (
     <Sheet onClose={onClose}>
@@ -41,6 +44,7 @@ export function QuickMenu({ onClose, onSettings, onLogout, onLeave, extra }: {
       {!isStandalone() && <button className="settings-item menu-link" onClick={() => setInstall(true)}><span>{t('Přidat na plochu', 'Add to home screen')}</span><span aria-hidden>⊕</span></button>}
       <button className="settings-item menu-link" onClick={share}><span>{t('Sdílet aplikaci', 'Share the app')}</span><span aria-hidden>↗</span></button>
       {note && <p className="small muted" style={{ margin: '6px 0 0' }}>{note}</p>}
+      <button className="settings-item menu-link" onClick={() => setAbout(true)}><span>{t('O aplikaci', 'About')}</span><span aria-hidden>ⓘ</span></button>
       {onSettings && <button className="settings-item menu-link" onClick={onSettings}><span>{t('Nastavení', 'Settings')}</span><span aria-hidden>›</span></button>}
       {onLeave && (!confirmLeave ? (
         <button className="settings-item menu-link" onClick={() => setConfirmLeave(true)}><span>{t('Zrušit tuto místnost', 'Close this room')}</span><span aria-hidden>✕</span></button>

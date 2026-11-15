@@ -6,6 +6,7 @@ import { enablePush, pushSupported } from '../lib/push';
 import { feedback, getPrefs, setPrefs } from '../lib/feedback';
 import { PrivacySheetScreen } from '../components/Privacy';
 import { HelpSheet } from '../components/Help';
+import { AboutSheet } from '../components/About';
 import { LangSwitch } from '../components/LangSwitch';
 import { INFO_EMAIL, SUPPORT_EMAIL } from '../data/privacy';
 import { exportMyData } from '../lib/export';
@@ -26,6 +27,7 @@ export function SettingsScreen({ user, flags, onBack, onProfile, onChangePin, on
   const [fx, setFx] = useState(getPrefs());
   const [privacy, setPrivacy] = useState(false);
   const [help, setHelp] = useState(false);
+  const [about, setAbout] = useState(false);
   const [exporting, setExporting] = useState(false);
   const [exportMsg, setExportMsg] = useState('');
   const [confirmDelete, setConfirmDelete] = useState(false);
@@ -99,6 +101,7 @@ export function SettingsScreen({ user, flags, onBack, onProfile, onChangePin, on
           <button className={'chip' + (fx.haptics ? ' on' : '')} onClick={() => toggle('haptics')}>{fx.haptics ? t('Zapnuto', 'On') : t('Vypnuto', 'Off')}</button>
         </div>
         <button className="settings-item menu-link" onClick={() => setHelp(true)}><span><span className="help-q" aria-hidden>?</span> {t('Nápověda', 'Help')}</span><span aria-hidden>›</span></button>
+        <button className="settings-item menu-link" onClick={() => setAbout(true)}><span>{t('O aplikaci', 'About')}</span><span aria-hidden>ⓘ</span></button>
       </section>
 
       <section className="settings-group">
@@ -150,6 +153,7 @@ export function SettingsScreen({ user, flags, onBack, onProfile, onChangePin, on
       </div>
       {privacy && <PrivacySheetScreen onBack={() => setPrivacy(false)} />}
       {help && <HelpSheet onClose={() => setHelp(false)} />}
+      {about && <AboutSheet onClose={() => setAbout(false)} />}
     </div>
   );
 }
