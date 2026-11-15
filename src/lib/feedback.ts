@@ -121,3 +121,49 @@ export function feedback(kind: SoundKind) {
   sound(kind);
   haptic(kind === 'receive' ? 'receive' : kind === 'send' || kind === 'sticker' ? 'send' : 'tap');
 }
+
+// --- Kostka ------------------------------------------------------------------
+
+let noiseBuf: AudioBuffer | null = null;
+function noise(c: AudioContext) {
+  if (noiseBuf && noiseBuf.sampleRate === c.sampleRate) return noiseBuf;
+  const len = Math.floor(c.sampleRate * 0.08);
+  noiseBuf = c.createBuffer(1, len, c.sampleRate);
+  const d = noiseBuf.getChannelData(0);
+  for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, 3);
+  return noiseBuf;
+}
+
+/** Jedno cvaknutí kostky o stůl (krátký filtrovaný šum + tělo tónu). */
+function clack(c: AudioContext, at: number, vol: number, pitch: number) {
+  const src = c.createBufferSource();
+  src.buffer = noise(c);
+  const bp = c.createBiquadFilter();
+  bp.type = 'bandpass'; bp.frequency.value = pitch; bp.Q.value = 2.5;
+  const g = c.createGain();
+  g.gain.setValueAtTime(vol, at);
+  g.gain.exponentialRampToValueAtTime(0.0001, at + 0.07);
+  src.connect(bp).connect(g).connect(c.destination);
+  src.start(at); src.stop(at + 0.09);
+  tone(c, pitch / 6, at, 0.05, vol * 0.35, 'triangle');
+}
+
+/** Zvuk rotující kostky: cvakání, které se postupně zpomaluje, a nakonec dopad. */
+export function diceRollSound(durMs: number) {
+  if (!getPrefs().sound) return;
+  const c = audio();
+  if (!c) return;
+  const start = c.currentTime + 0.02;
+  const dur = Math.max(0.2, durMs / 1000);
+  let t = 0;
+  let gap = 0.045;
+  while (t < dur - 0.08) {
+    const k = t / dur; // 0 → 1
+    clack(c, start + t, 0.22 * (1 - k * 0.5), 1900 + Math.random() * 1300 - k * 600);
+    gap *= 1.09 + Math.random() * 0.05; // zpomaluje se
+    t += gap;
+  }
+  // dopad: hlubší ťuk + krátký dozvuk
+  clack(c, start + dur, 0.32, 1100);
+  clack(c, start + dur + 0.09, 0.12, 1500);
+}

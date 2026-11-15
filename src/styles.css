@@ -612,3 +612,8 @@ a.settings-item { color: inherit; text-decoration: none; }
 .pw-wrap .input { width: 100%; padding-right: 52px; }
 .pw-eye { position: absolute; right: 4px; top: 50%; transform: translateY(-50%); width: 44px; height: 44px; border: 0; background: transparent; color: var(--cream-dim); display: grid; place-items: center; cursor: pointer; border-radius: 50%; }
 .pw-eye[aria-pressed="true"] { color: var(--coral-soft); }
+.about-more { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-top: 10px; padding: 10px 16px; border-radius: 14px; border: 1px dashed rgba(244, 230, 210, 0.14); color: var(--cream-dim); text-decoration: none; font-size: 14px; }
+.about-more:hover, .about-more:active { border-color: var(--coral); color: var(--cream); }
+.about-more { flex-direction: column; align-items: flex-start; gap: 4px; }
+.about-more-text { display: flex; flex-direction: column; gap: 2px; line-height: 1.4; }
+.about-more-link { color: var(--coral-soft); font-weight: 600; }

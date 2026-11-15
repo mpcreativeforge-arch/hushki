@@ -41,6 +41,14 @@ export function AboutSheet({ onClose }: { onClose: () => void }) {
         <span><a href={`mailto:${INFO_EMAIL}`}>{INFO_EMAIL}</a> · <a href={`mailto:${SUPPORT_EMAIL}`}>{SUPPORT_EMAIL}</a></span>
       </div>
 
+      <a className="about-more" href="https://podpisnamiru.cz" target="_blank" rel="noopener noreferrer">
+        <span className="about-more-text">
+          <span className="small muted">{t('Další služba autora', 'Another service by the author')}</span>
+          <span className="small">{t('Váš podpis je vaše vizitka. Navrhneme vám originální podpis na míru a naučíme vás ho psát s elegancí.', 'Your signature is your calling card. We design an original signature just for you and teach you to write it with elegance.')}</span>
+        </span>
+        <span className="about-more-link">podpisnamiru.cz <span aria-hidden>↗</span></span>
+      </a>
+
       <CreditLine logo />
     </Sheet>
   );
