@@ -9,6 +9,8 @@ import { PinPad } from '../../components/PinPad';
 import { t } from '../../lib/i18n';
 
 import { StickerImg } from './Bubble';
+import { LegendEditor } from './LegendEditor';
+import { applyEdit, useRoomLegend, type LegendEdit } from '../../lib/roomLegend';
 
 /** Zamčená část popisu: písmena se nahradí jinými, aby nešla přečíst ani ze zdrojového kódu stránky. */
 function scramble(t: string) {
@@ -19,13 +21,16 @@ function scramble(t: string) {
 
 type Filter = 'all' | 'got' | 'open';
 
-export function LegendSheet({ start, locks, unlocked, onPin, meFemale, partnerFemale, onDice, onClose }: {
+export function LegendSheet({ start, locks, unlocked, onPin, meFemale, partnerFemale, sex, onSaveEdit, onDice, onClose }: {
   start?: number; locks: Map<number, LockRef[]>; unlocked: number[]; onPin: (pin: string, n: number) => Promise<boolean>;
+  sex: 'muz' | 'zena'; onSaveEdit: (n: number, e: LegendEdit | null) => Promise<void>;
   meFemale: boolean; partnerFemale: boolean; onDice: (prev?: number) => void; onClose: () => void;
 }) {
   const [focus, setFocus] = useState<number | null>(start ?? null);
   const [pinFor, setPinFor] = useState<number | null>(null);
   const [filter, setFilter] = useState<Filter>('all');
+  const [editFor, setEditFor] = useState<number | null>(null);
+  const edits = useRoomLegend();
   const [howto, setHowto] = useState(() => { try { return !localStorage.getItem('hushki.legend-howto'); } catch { return true; } });
   const closeHowto = () => { setHowto(false); try { localStorage.setItem('hushki.legend-howto', '1'); } catch { /* */ } };
   const gotLocked = [...locks.keys()].filter((n) => !unlocked.includes(n));
@@ -33,6 +38,18 @@ export function LegendSheet({ start, locks, unlocked, onPin, meFemale, partnerFe
   useEffect(() => {
     if (focus) refs.current.get(focus)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
   }, [focus, pinFor]);
+
+  if (editFor) {
+    const base = legend().find((x) => x.n === editFor)!;
+    const got = locks.has(editFor);
+    const shown = { ...applyEdit(base, edits[editFor]) };
+    shown.body = legendText(shown, got ? partnerFemale : meFemale);
+    return (
+      <LegendEditor item={shown} base={{ ...base, body: legendText(base, got ? partnerFemale : meFemale) }} edit={edits[editFor]} sex={sex}
+        onSave={async (e) => { await onSaveEdit(editFor, e); setFocus(editFor); setEditFor(null); }}
+        onClose={() => { setFocus(editFor); setEditFor(null); }} />
+    );
+  }
 
   if (pinFor) {
     const tryPin = async (pin: string) => {
@@ -66,6 +83,7 @@ export function LegendSheet({ start, locks, unlocked, onPin, meFemale, partnerFe
             <li>{t('Partner pošle pikantní samolepku s číslem 1–20.', 'Your partner sends a spicy sticker with a number from 1 to 20.')}</li>
             <li>{t('Tady najdeš, co číslo znamená. Konec popisu je zamčený.', 'Here you find what the number means. The end of the description is locked.')}</li>
             <li>{t('Heslo ti partner prozradí, až bude chtít. Platí pro celou místnost.', 'Your partner tells you the password when they want to. It works for the whole room.')}</li>
+            <li>{t('Tužkou ✎ si můžete každé číslo přepsat po svém a dát mu vlastní ikonu.', 'With the pencil ✎ you can rewrite any number your own way and give it your own icon.')}</li>
           </ol>
           <button className="btn ghost small" onClick={closeHowto}>{t('Rozumím', 'Got it')}</button>
         </div>
@@ -83,7 +101,7 @@ export function LegendSheet({ start, locks, unlocked, onPin, meFemale, partnerFe
           <button key={it.n} className={'num-chip' + (focus === it.n ? ' on' : '') + (unlocked.includes(it.n) ? ' open' : '') + (locks.has(it.n) ? ' got' : '')} onClick={() => setFocus(it.n)}>{it.n}</button>
         ))}
       </div>
-      {legend().filter((it) => filter === 'all' || (filter === 'got' ? locks.has(it.n) : unlocked.includes(it.n))).map((it) => {
+      {legend().map((x) => applyEdit(x, edits[x.n])).filter((it) => filter === 'all' || (filter === 'got' ? locks.has(it.n) : unlocked.includes(it.n))).map((it) => {
         const open = unlocked.includes(it.n);
         const got = locks.has(it.n);
         const text = legendText(it, got ? partnerFemale : meFemale);
@@ -92,7 +110,10 @@ export function LegendSheet({ start, locks, unlocked, onPin, meFemale, partnerFe
           <div key={it.n} ref={(el) => { if (el) refs.current.set(it.n, el); }} className={'legend-item' + (focus === it.n ? ' focus' : '')}>
             <StickerImg id={pikantId(it.n)} size={56} />
             <div style={{ minWidth: 0, flex: 1 }}>
-              <b>{it.n}. {it.title}</b>
+              <div className="row" style={{ gap: 6, alignItems: 'flex-start' }}>
+                <b>{it.n}. {it.title}{edits[it.n] ? <span className="small muted"> · {t('upraveno', 'edited')}</span> : null}</b>
+                {(open || !got) && <button className="chip legend-edit-btn" aria-label={t('Upravit číslo', 'Edit number') + ' ' + it.n} onClick={() => setEditFor(it.n)}>✎</button>}
+              </div>
               {open ? <p>{text}</p> : (
                 <>
                   <p>{text.slice(0, cut)}<span className="blurred" aria-hidden> {scramble(text.slice(cut))}</span></p>

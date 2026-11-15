@@ -4,6 +4,7 @@ import { legend, legendText } from '../../data/legend';
 import { Sheet } from '../../components/Sheet';
 import { PinPad } from '../../components/PinPad';
 import { t } from '../../lib/i18n';
+import { applyEdit, useRoomLegend } from '../../lib/roomLegend';
 
 import { StickerImg } from './Bubble';
 
@@ -18,7 +19,9 @@ export function PikantSheet({ n, dice, busy, roomPin, meFemale, onSend, onReroll
   const [change, setChange] = useState(!roomPin);
   const [peek, setPeek] = useState(false);
   const [showPin, setShowPin] = useState(false);
-  const item = legend().find((x) => x.n === n);
+  const edits = useRoomLegend();
+  const base = legend().find((x) => x.n === n);
+  const item = base && applyEdit(base, edits[n]);
   return (
     <Sheet onClose={onClose}>
       <div className="center">

@@ -47,6 +47,9 @@ export interface Backend {
   leavePair(pairId: string): Promise<void>;
   /** Automatické smazání místnosti za daný počet sekund (null = vypnout). */
   setRoomExpiry(pairId: string, seconds: number | null): Promise<void>;
+  /** Vlastní Legenda místnosti, zašifrovaná klíčem místnosti. */
+  getRoomLegend(pairId: string): Promise<{ ciphertext: string; iv: string } | null>;
+  saveRoomLegend(pairId: string, ciphertext: string, iv: string): Promise<void>;
   listMessages(pairId: string): Promise<Message[]>;
   sendMessage(pairId: string, ciphertext: string, iv: string, meta?: Record<string, unknown>): Promise<Message>;
   markRead(id: string): Promise<void>;
@@ -178,6 +181,12 @@ function supabaseBackend(url: string, anonKey: string): Backend {
     },
     async leavePair(pairId) { fail((await sb.rpc('leave_pair', { p_pair: pairId })).error); },
     async setRoomExpiry(pairId, seconds) { fail((await sb.rpc('set_room_expiry', { p_pair: pairId, p_seconds: seconds })).error); },
+    async getRoomLegend(pairId) {
+      const { data, error } = await sb.from('pairs').select('legend_ciphertext,legend_iv').eq('id', pairId).maybeSingle();
+      fail(error);
+      return data?.legend_ciphertext && data.legend_iv ? { ciphertext: data.legend_ciphertext, iv: data.legend_iv } : null;
+    },
+    async saveRoomLegend(pairId, ciphertext, iv) { fail((await sb.rpc('set_room_legend', { p_pair: pairId, p_ciphertext: ciphertext, p_iv: iv })).error); },
     async listMessages(pairId) {
       const { data, error } = await sb.from('messages').select('*').eq('pair_id', pairId)
         .order('created_at', { ascending: false }).limit(200);
@@ -252,6 +261,7 @@ const DEMO_KEY = 'hushki-demo-v1';
 const PARTNER_ID = 'demo-partner';
 const DEMO_PHOTO = 'hushki-demo-photo-';
 const DEMO_IDEAS = 'hushki-demo-ideas';
+const DEMO_LEGEND = 'hushki-demo-legend-';
 const demoPartner = (me: User | null, n: number): { partner_name: string; partner_gender: Gender } =>
   me?.gender === 'zena'
     ? { partner_name: ['Partner', 'Tomáš', 'Jakub', 'Ondřej'][n % 4], partner_gender: 'muz' }
@@ -261,6 +271,7 @@ function wipeDemo() {
   try {
     localStorage.removeItem(DEMO_KEY);
     localStorage.removeItem(DEMO_IDEAS);
+    Object.keys(localStorage).filter((k) => k.startsWith(DEMO_LEGEND)).forEach((k) => localStorage.removeItem(k));
     Object.keys(localStorage).filter((k) => k.startsWith(DEMO_PHOTO)).forEach((k) => localStorage.removeItem(k));
   } catch { /* nic */ }
 }
@@ -359,6 +370,13 @@ function demoBackend(): Backend {
       const p = load().pairs.find((x) => x.invite_hash === invite_hash);
       if (p) { const { invite_hash: _h, ...out } = p; return out; }
       throw new BackendError('demo_join');
+    },
+    async getRoomLegend(pairId) {
+      try { return JSON.parse(localStorage.getItem(DEMO_LEGEND + pairId) ?? 'null'); } catch { return null; }
+    },
+    async saveRoomLegend(pairId, ciphertext, iv) {
+      try { localStorage.setItem(DEMO_LEGEND + pairId, JSON.stringify({ ciphertext, iv })); } catch { throw new BackendError('storage'); }
+      listeners.forEach((l) => l());
     },
     async leavePair(pairId) { const s = load(); save({ ...s, pairs: s.pairs.filter((p) => p.id !== pairId), messages: s.messages.filter((m) => m.pair_id !== pairId) }); },
     async listMessages(pairId) { return load().messages.filter((m) => m.pair_id === pairId).sort((a, b) => b.created_at.localeCompare(a.created_at)); },

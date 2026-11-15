@@ -11,6 +11,7 @@ export function AuthScreen({ invited }: { invited?: boolean }) {
   const [privacy, setPrivacy] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPw, setShowPw] = useState(false);
   const [intro, setIntro] = useState(() => !invited && !introSeen());
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
@@ -50,7 +51,14 @@ export function AuthScreen({ invited }: { invited?: boolean }) {
           <input className="input" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required autoComplete="email" />
         </label>
         <label className="field"><span>{t('Heslo', 'Password')}</span>
-          <input className="input" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required minLength={8} autoComplete={mode === 'signup' ? 'new-password' : 'current-password'} />
+          <span className="pw-wrap">
+            <input className="input" type={showPw ? 'text' : 'password'} value={password} onChange={(e) => setPassword(e.target.value)} required minLength={8} autoComplete={mode === 'signup' ? 'new-password' : 'current-password'} />
+            <button type="button" className="pw-eye" aria-label={showPw ? t('Skrýt heslo', 'Hide password') : t('Zobrazit heslo', 'Show password')} aria-pressed={showPw} onClick={() => setShowPw((v) => !v)}>
+              {showPw
+                ? <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M3 3l18 18" /><path d="M10.6 5.1A10.4 10.4 0 0112 5c5.5 0 9 5.5 9 7 0 .7-.8 2.2-2.2 3.6M6.6 6.6C4.3 8 3 10.9 3 12c0 1.5 3.5 7 9 7 1.8 0 3.4-.6 4.7-1.4" /><path d="M9.9 9.9a3 3 0 004.2 4.2" /></svg>
+                : <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M3 12c0-1.5 3.5-7 9-7s9 5.5 9 7-3.5 7-9 7-9-5.5-9-7z" /><circle cx="12" cy="12" r="3" /></svg>}
+            </button>
+          </span>
         </label>
         {error && <p className="error">{error}</p>}
         {info && <p className="notice">{info}</p>}
