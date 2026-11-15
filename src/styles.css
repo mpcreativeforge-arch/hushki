@@ -614,3 +614,6 @@ a.settings-item { color: inherit; text-decoration: none; }
 .pw-eye[aria-pressed="true"] { color: var(--coral-soft); }
 .about-more { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-top: 10px; padding: 10px 16px; border-radius: 14px; border: 1px dashed rgba(244, 230, 210, 0.14); color: var(--cream-dim); text-decoration: none; font-size: 14px; }
 .about-more:hover, .about-more:active { border-color: var(--coral); color: var(--cream); }
+.about-more { flex-direction: column; align-items: flex-start; gap: 4px; }
+.about-more-text { display: flex; flex-direction: column; gap: 2px; line-height: 1.4; }
+.about-more-link { color: var(--coral-soft); font-weight: 600; }
