@@ -120,7 +120,7 @@ export function App() {
       const flag = 'hushki-demo-welcome-' + p.id;
       try { if (localStorage.getItem(flag)) continue; localStorage.setItem(flag, '1'); } catch { continue; }
       setTimeout(async () => {
-        const { ciphertext, iv } = await encodePayload(key, { t: 'text', text: 'Ahoj, tohle je ukázkový vzkaz. Vidíš ho jen ty, protože je zašifrovaný klíčem vaší místnosti. Zkus mi odpovědět, poslat fotku nebo samolepku. 🤫' });
+        const { ciphertext, iv } = await encodePayload(key, { t: 'sticker', sticker: p.partner_gender === 'zena' ? 'f01' : 'm01', text: 'Ahoj! Tady si píšeme jen samolepkami. Zkus mi nějakou poslat a mrkni i na Legendu. 🤫' });
         await backend.demoPartnerMessage?.(p.id, ciphertext, iv);
       }, 2500);
     }

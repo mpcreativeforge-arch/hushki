@@ -4,7 +4,17 @@ Soukromé vzkazy pro páry. Webová aplikace (PWA), kterou si uživatel připne 
 
 Jeden z partnerů napíše vzkaz, druhému přijde jen diskrétní upozornění („Máš nový vzkaz 🤫“) a obsah otevře až za svým PINem. Vzkazy jsou šifrované přímo v telefonu, server vidí jen zašifrovaná data.
 
-## Co umí první verze
+## Verze 7 (komunikace jen přes samolepky)
+
+- Chat **bez klávesnice a bez fotek**. Vzkazy se posílají jen samolepkami Hushki v 5 záložkách: Ocenění, Small talk, Domluva, Dárky, Hushki pikant. Sady se řídí pohlavím (kdo pohlaví neuvedl, dostane mužskou).
+- **Hushki pikant**: samolepky s číslem. Co číslo znamená, je v **Legendě** (ikona knížky v horní liště nebo v záložce pikant). Popis je zamčený: vidět je jen začátek, zbytek odemkne 4místné heslo, které zvolí odesílatel při odeslání. Kdo číslo poslal, má ho v Legendě odemčené. Texty Legendy jsou v `src/data/legend.ts`.
+- **Hod kostkou** v záložce pikant i v Legendě vybere náhodné číslo.
+- **Vlastní texty (sloty)**: dvě univerzální ikony v záložce Domluva (označené ✎) posílají text pod ikonou. Vybírá se ze systémových textů, nebo z vlastního. Partner rozdíl nepozná. Zdarma jsou 2 (`FREE_SLOTS` v `src/data/stickers.ts`), vlastní texty se ukládají jen v telefonu.
+- **Zprávy zmizí 48 hodin po poslední zprávě**, místnost zůstává. Na serveru je maže `0008_message_ttl.sql` (pg_cron).
+- Fialový vzhled podle ikony aplikace. Odpovědi na vzkaz (citace) zůstávají. Staré textové vzkazy a fotky se dál zobrazí.
+- Demo: partner občas pošle pikantní číslo, heslo je 1234.
+
+## Co uměla první verze
 
 - Registrace a přihlášení (e-mail + heslo), pohlaví (muž / žena / nechci uvést)
 - Párování dvou uživatelů tajným kódem
@@ -41,7 +51,7 @@ npm run build
 ## Nastavení Supabase (účet klienta)
 
 1. Na [supabase.com](https://supabase.com) založit účet a projekt (region EU, např. Frankfurt). Vývojáře pozvat do organizace.
-2. **SQL Editor**: spustit postupně `supabase/migrations/0001_init.sql`, `0002_chat_photos.sql`, `0003_user_ideas.sql`, `0004_rooms.sql`, `0005_template_variants.sql`, `0006_room_expiry.sql` (vyžaduje zapnuté rozšíření pg_cron), `0007_privacy.sql` a pak `supabase/seed.sql`.
+2. **SQL Editor**: spustit postupně `supabase/migrations/0001_init.sql`, `0002_chat_photos.sql`, `0003_user_ideas.sql`, `0004_rooms.sql`, `0005_template_variants.sql`, `0006_room_expiry.sql` (vyžaduje zapnuté rozšíření pg_cron), `0007_privacy.sql`, `0008_message_ttl.sql` a pak `supabase/seed.sql`.
 3. **Authentication → Providers → Email**: zapnuto. Pro testování lze vypnout „Confirm email“.
 4. **Authentication → URL Configuration**: Site URL nastavit na adresu aplikace.
 5. **Project Settings → API**: zkopírovat Project URL a `anon` klíč.

@@ -1,17 +1,22 @@
-// Obsah vzkazu. Celý se šifruje, server nevidí ani typ (text/fotka/samolepka), ani na co se odpovídá.
+// Obsah vzkazu. Celý se šifruje, server nevidí ani typ, ani text, ani heslo k Legendě.
 import { backend } from './backend';
-import { decryptBytes, decryptText, encryptBytes, encryptText } from './crypto';
+import { decryptBytes, decryptText, encryptText } from './crypto';
+import { pikantNumber } from '../data/stickers';
 
 export interface PhotoRef { path: string; iv: string; w: number; h: number; mime: string }
 export interface ReplyRef { id: string; preview: string }
+/** Zámek pikantního čísla v Legendě: sůl a SHA-256 hesla. */
+export interface LockRef { s: string; h: string }
 
 export interface Payload {
   v: 1;
+  /** text a photo jsou jen ve starých vzkazech (verze 6 a dřív). */
   t: 'text' | 'photo' | 'sticker';
   text?: string;
   sticker?: string;
   photo?: PhotoRef;
   reply?: ReplyRef;
+  lock?: LockRef;
 }
 
 export async function encodePayload(key: CryptoKey, p: Omit<Payload, 'v'>) {
@@ -29,30 +34,32 @@ export async function decodePayload(key: CryptoKey, ciphertext: string, iv: stri
 
 export function previewOf(p: Payload): string {
   if (p.t === 'photo') return p.text ? `📷 ${p.text}` : '📷 Fotka';
-  if (p.t === 'sticker') return '✨ Samolepka';
+  if (p.t === 'sticker') {
+    const n = pikantNumber(p.sticker ?? '');
+    if (n) return `🌶 Číslo ${n}`;
+    return p.text ? `✨ ${p.text}`.slice(0, 90) : '✨ Samolepka';
+  }
   return (p.text ?? '').slice(0, 90);
 }
 
-/** Zmenší fotku (max 1600 px), převede na JPEG, zašifruje a nahraje. */
-export async function uploadPhoto(key: CryptoKey, pairId: string, file: File, maxSide = 1600): Promise<PhotoRef> {
-  const bitmap = await createImageBitmap(file);
-  const scale = Math.min(1, maxSide / Math.max(bitmap.width, bitmap.height));
-  const w = Math.round(bitmap.width * scale);
-  const h = Math.round(bitmap.height * scale);
-  const canvas = document.createElement('canvas');
-  canvas.width = w; canvas.height = h;
-  canvas.getContext('2d')!.drawImage(bitmap, 0, 0, w, h);
-  bitmap.close?.();
-  const blob: Blob = await new Promise((res, rej) => canvas.toBlob((b) => (b ? res(b) : rej(new Error('toBlob'))), 'image/jpeg', 0.82));
-  const bytes = new Uint8Array(await blob.arrayBuffer());
-  const enc = await encryptBytes(key, bytes);
-  const path = await backend.uploadPhoto(pairId, enc.data);
-  return { path, iv: enc.iv, w, h, mime: 'image/jpeg' };
+const hex = (b: ArrayBuffer) => Array.from(new Uint8Array(b), (x) => x.toString(16).padStart(2, '0')).join('');
+
+async function hashPin(salt: string, pin: string) {
+  return hex(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(`hushki-legend:${salt}:${pin}`)));
+}
+
+export async function makeLock(pin: string): Promise<LockRef> {
+  const s = hex(crypto.getRandomValues(new Uint8Array(12)).buffer);
+  return { s, h: await hashPin(s, pin) };
+}
+
+export async function checkLock(lock: LockRef, pin: string) {
+  return (await hashPin(lock.s, pin)) === lock.h;
 }
 
 const cache = new Map<string, string>();
 
-/** Stáhne a rozšifruje fotku, vrátí object URL (v paměti, nikde se neukládá). */
+/** Stáhne a rozšifruje fotku ze starého vzkazu, vrátí object URL (jen v paměti). */
 export async function photoUrl(key: CryptoKey, ref: PhotoRef): Promise<string> {
   const hit = cache.get(ref.path);
   if (hit) return hit;
