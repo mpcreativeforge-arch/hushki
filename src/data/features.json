@@ -2,16 +2,19 @@
   {
     "key": "stickers",
     "enabled": true,
-    "description": "Samolepky Hushki"
+    "description": "Samolepky Hushki",
+    "description_en": "Hushki stickers"
   },
   {
     "key": "scheduled_send",
     "enabled": false,
-    "description": "Odeslat vzkaz později (v nastavený čas)"
+    "description": "Odeslat vzkaz později (v nastavený čas)",
+    "description_en": "Send a message later (at a set time)"
   },
   {
     "key": "replies",
     "enabled": true,
-    "description": "Odpověď na vzkaz"
+    "description": "Odpověď na vzkaz",
+    "description_en": "Reply to a message"
   }
 ]

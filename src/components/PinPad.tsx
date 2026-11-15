@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { haptic } from '../lib/feedback';
+import { t } from '../lib/i18n';
 
 interface Props {
   length?: number;
@@ -42,7 +43,7 @@ export function PinPad({ length = 4, onComplete, busy }: Props) {
         ))}
         <div className="key blank" />
         <button className="key" onClick={() => press('0')}>0</button>
-        <button className="key" aria-label="Smazat" onClick={() => !locked && setPin(pin.slice(0, -1))} style={{ fontSize: 18 }}>⌫</button>
+        <button className="key" aria-label={t('Smazat', 'Delete')} onClick={() => !locked && setPin(pin.slice(0, -1))} style={{ fontSize: 18 }}>⌫</button>
       </div>
       <div className="center" style={{ marginTop: 18, minHeight: 22 }}>{locked && <span className="spinner" />}</div>
     </div>

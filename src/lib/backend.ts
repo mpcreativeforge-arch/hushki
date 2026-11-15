@@ -50,6 +50,8 @@ export interface Backend {
   listMessages(pairId: string): Promise<Message[]>;
   sendMessage(pairId: string, ciphertext: string, iv: string, meta?: Record<string, unknown>): Promise<Message>;
   markRead(id: string): Promise<void>;
+  /** Smaže vlastní vzkaz u obou (RLS dovolí jen odesílateli). */
+  deleteMessage(id: string): Promise<void>;
   subscribe(pairId: string, cb: () => void): () => void;
   templates(): Promise<Template[]>;
   flags(): Promise<Record<string, boolean>>;
@@ -189,6 +191,7 @@ function supabaseBackend(url: string, anonKey: string): Backend {
       return data!;
     },
     async markRead(id) { fail((await sb.rpc('mark_read', { p_message: id })).error); },
+    async deleteMessage(id) { fail((await sb.from('messages').delete().eq('id', id)).error); },
     subscribe(pairId, cb) {
       const ch = sb.channel('pair-' + pairId)
         .on('postgres_changes', { event: '*', schema: 'public', table: 'messages', filter: `pair_id=eq.${pairId}` }, cb)
@@ -375,6 +378,10 @@ function demoBackend(): Backend {
       const sender = s.pairs.find((p) => p.id === pair_id)?.user_b ?? PARTNER_ID;
       const m: Message = { id: id(), pair_id, sender_id: sender, ciphertext, iv, meta: {}, created_at: new Date().toISOString(), read_at: null };
       save({ ...s, messages: [...s.messages, m] });
+    },
+    async deleteMessage(mid) {
+      const s = load();
+      save({ ...s, messages: s.messages.filter((x) => !(x.id === mid && x.sender_id === s.user!.id)) });
     },
     async markRead(mid) {
       const s = load();

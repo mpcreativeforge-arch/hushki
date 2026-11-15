@@ -12,6 +12,11 @@ import { HomeScreen } from './screens/HomeScreen';
 import { SettingsScreen } from './screens/SettingsScreen';
 import { PrivacyConsent } from './components/Privacy';
 import { PRIVACY_VERSION } from './data/privacy';
+import { Splash } from './components/Splash';
+import { ProfileStep } from './components/ProfileStep';
+import { Toaster } from './components/Toast';
+import { t, useLang } from './lib/i18n';
+import { clearInvite, takeInvite } from './lib/invite';
 
 export const PIN_LENGTH = 4;
 const AUTO_LOCK_MS = 30_000;
@@ -35,6 +40,12 @@ export function App() {
   const [keys, setKeys] = useState<Record<string, CryptoKey>>({});
   const [flags, setFlags] = useState<Record<string, boolean>>({});
   const hiddenAt = useRef<number | null>(null);
+  useLang(); // po přepnutí jazyka se překreslí celá aplikace
+  const [invite, setInvite] = useState<string | null>(() => takeInvite());
+  const dropInvite = useCallback(() => { clearInvite(); setInvite(null); }, []);
+  // úvodní obrazovka jen při spuštění, ne při každém obnovení stránky
+  const [splash, setSplash] = useState(() => { try { return !sessionStorage.getItem('hushki.splash'); } catch { return true; } });
+  const endSplash = useCallback(() => { setSplash(false); try { sessionStorage.setItem('hushki.splash', '1'); } catch { /* */ } }, []);
 
   const refreshPairs = useCallback(async () => {
     const list = await backend.getPairs().catch(() => null);
@@ -51,7 +62,7 @@ export function App() {
     backend.flags().then(setFlags).catch(() => undefined);
     const list = await refreshPairs();
     const vault = loadVault(u.id);
-    if (!vault) return setStage({ name: 'pair', mode: list.length ? 'restore' : 'first' });
+    if (!vault) return setStage({ name: 'pair', mode: list.length && !takeInvite() ? 'restore' : 'first' });
     // obnovení stránky v otevřené relaci → bez PINu
     const sess = vault.v === 2 ? await loadSession(u.id) : null;
     if (sess && vault.v === 2) {
@@ -111,6 +122,18 @@ export function App() {
     return () => clearTimeout(t);
   }, [nextExpiry, refreshPairs]);
 
+  // Pozvánka odkazem: po odemčení rovnou nabídni připojení k místnosti.
+  useEffect(() => {
+    if (invite && stage.name === 'home') setStage({ name: 'pair', mode: 'add' });
+  }, [invite, stage.name]);
+
+  // Odkaz s pozvánkou otevřený v už spuštěné aplikaci
+  useEffect(() => {
+    const onHash = () => { const c = takeInvite(); if (c) setInvite(c); };
+    window.addEventListener('hashchange', onHash);
+    return () => window.removeEventListener('hashchange', onHash);
+  }, []);
+
   // Demo: partner pošle první vzkaz, jakmile se "připojí".
   useEffect(() => {
     if (backend.mode !== 'demo') return;
@@ -120,7 +143,7 @@ export function App() {
       const flag = 'hushki-demo-welcome-' + p.id;
       try { if (localStorage.getItem(flag)) continue; localStorage.setItem(flag, '1'); } catch { continue; }
       setTimeout(async () => {
-        const { ciphertext, iv } = await encodePayload(key, { t: 'sticker', sticker: p.partner_gender === 'zena' ? 'f01' : 'm01', text: 'Ahoj! Tady si píšeme jen samolepkami. Zkus mi nějakou poslat a mrkni i na Legendu. 🤫' });
+        const { ciphertext, iv } = await encodePayload(key, { t: 'sticker', sticker: p.partner_gender === 'zena' ? 'f01' : 'm01', text: t('Ahoj! Tady si píšeme jen samolepkami. Zkus mi nějakou poslat a mrkni i na Legendu. 🤫', 'Hi! Here we talk only in stickers. Send me one and check out the Legend too. 🤫') });
         await backend.demoPartnerMessage?.(p.id, ciphertext, iv);
       }, 2500);
     }
@@ -244,14 +267,16 @@ export function App() {
       screen = <div className="app"><div className="grow" style={{ display: 'grid', placeItems: 'center' }}><span className="spinner" /></div></div>;
       break;
     case 'auth':
-      screen = <AuthScreen />;
+      screen = <AuthScreen invited={!!invite} />;
       break;
     case 'pair':
       screen = (
         <PairScreen
+          key={invite ?? 'manual'}
           mode={stage.mode} existing={stage.pair ?? null} known={pairs}
-          onPaired={onPaired} onLogout={logout}
-          onBack={master ? () => setStage({ name: 'home' }) : undefined}
+          onPaired={async (c, p) => { setInvite(null); await onPaired(c, p); }} onLogout={logout}
+          onBack={master ? () => { dropInvite(); setStage({ name: 'home' }); } : undefined}
+          invite={invite} onDropInvite={() => { dropInvite(); if (master) setStage({ name: 'home' }); }}
         />
       );
       break;
@@ -298,8 +323,13 @@ export function App() {
 
   return (
     <>
-      {backend.mode === 'demo' && <div className="demo-banner">Demo režim: data zůstávají jen v tomto prohlížeči</div>}
+      {backend.mode === 'demo' && <div className="demo-banner">{t('Demo režim: data zůstávají jen v tomto prohlížeči', 'Demo mode: data stays in this browser only')}</div>}
       {screen}
+      <Toaster />
+      {splash && <Splash onDone={endSplash} />}
+      {!needsConsent && user && !user.name && (stage.name === 'room' || stage.name === 'home') && (
+        <ProfileStep user={user} onDone={(name, gender) => setUser({ ...user, name, gender })} />
+      )}
       {needsConsent && <PrivacyConsent updated={user!.privacyVersion != null} onAccept={acceptPrivacy} onDecline={logout} />}
     </>
   );

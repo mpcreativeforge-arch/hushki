@@ -1,0 +1,20 @@
+name: Test
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      # Test běží na demo verzi (bez Supabase), proto se staví bez proměnných.
+      - run: npm run build
+      - run: npx playwright install --with-deps chromium
+      - run: npm test

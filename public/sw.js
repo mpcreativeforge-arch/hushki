@@ -1,5 +1,5 @@
 // Hushki service worker: offline shell + diskrétní push upozornění.
-const CACHE = 'hushki-v1';
+const CACHE = 'hushki-v2';
 const SCOPE = self.registration.scope;
 
 self.addEventListener('install', (e) => {
@@ -9,7 +9,7 @@ self.addEventListener('install', (e) => {
 
 self.addEventListener('activate', (e) => {
   e.waitUntil(
-    caches.keys().then((keys) => Promise.all(keys.filter((k) => k !== CACHE).map((k) => caches.delete(k)))).then(() => self.clients.claim()),
+    caches.keys().then((keys) => Promise.all(keys.filter((k) => k !== CACHE && !k.startsWith('hushki-stickers')).map((k) => caches.delete(k)))).then(() => self.clients.claim()),
   );
 });
 
@@ -31,7 +31,7 @@ self.addEventListener('fetch', (e) => {
 });
 
 self.addEventListener('push', (e) => {
-  let data = { title: 'Hushki', body: 'Máš nový vzkaz', tag: 'hushki-new' };
+  let data = { title: 'Hushki', body: /^(cs|sk)/i.test(self.navigator.language || '') ? 'Máš nový vzkaz' : 'You have a new message', tag: 'hushki-new' };
   try { data = { ...data, ...e.data.json() }; } catch {}
   e.waitUntil(self.registration.showNotification(data.title, {
     body: data.body,
