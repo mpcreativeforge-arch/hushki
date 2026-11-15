@@ -11,7 +11,7 @@ export const INFO_EMAIL = 'info@hushki.cz';
 export const SUPPORT_EMAIL = 'support@hushki.cz';
 
 export const OPERATOR = {
-  name: 'Petr Baťa',
+  name: 'Mgr. Petr Baťa',
   id: '19629966',
   address: { cs: 'Podsedky 15, 625 00 Brno, Česká republika', en: 'Podsedky 15, 625 00 Brno, Czech Republic' },
   email: INFO_EMAIL,
