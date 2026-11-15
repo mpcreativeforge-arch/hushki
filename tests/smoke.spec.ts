@@ -20,7 +20,7 @@ test('registrace, místnost, samolepka, pikant, Legenda a angličtina', async ({
 
   // registrace: jen e-mail a heslo
   await p.getByLabel('E-mail').fill('test@example.com');
-  await p.getByLabel('Heslo').fill('heslo12345');
+  await p.getByLabel('Heslo', { exact: true }).fill('heslo12345');
   await p.getByRole('button', { name: 'Vytvořit účet' }).click();
   await expect(p.locator('.consent input[type=checkbox]')).toHaveCount(2);
   for (const c of await p.locator('.consent input[type=checkbox]').all()) await c.check();
@@ -88,9 +88,14 @@ test('registrace, místnost, samolepka, pikant, Legenda a angličtina', async ({
   await p.getByRole('button', { name: /^Poslat číslo/ }).click();
   await expect(p.locator('.msg.mine .num-badge')).toHaveCount(sent + 1);
 
-  // Legenda
+  // Legenda a úprava čísla (název + emoji), ikona se propíše i do samolepky
   await p.getByRole('button', { name: 'Legenda' }).first().click();
   await expect(p.getByRole('heading', { name: 'Legenda' })).toBeVisible();
+  await p.getByRole('button', { name: 'Upravit číslo 1', exact: true }).click();
+  await p.getByLabel('Název').fill('Naše tajemství');
+  await p.getByRole('button', { name: '🍓' }).click();
+  await p.getByRole('button', { name: 'Uložit pro oba' }).click();
+  await expect(p.getByText('1. Naše tajemství')).toBeVisible();
   await p.locator('.sheet-backdrop').click({ position: { x: 10, y: 10 } });
 
   // přepnutí do angličtiny
@@ -108,7 +113,7 @@ test('pozvánka odkazem vyplní kód a nabídne připojení', async ({ page: p }
   await expect(p.getByText(/Partner tě zve do Hushki/)).toBeVisible();
   expect(new URL(p.url()).hash).toBe(''); // kód nezůstane v adrese
   await p.getByLabel('E-mail').fill('pozvana@example.com');
-  await p.getByLabel('Heslo').fill('heslo12345');
+  await p.getByLabel('Heslo', { exact: true }).fill('heslo12345');
   await p.getByRole('button', { name: 'Vytvořit účet' }).click();
   await expect(p.locator('.consent input[type=checkbox]')).toHaveCount(2);
   for (const c of await p.locator('.consent input[type=checkbox]').all()) await c.check();

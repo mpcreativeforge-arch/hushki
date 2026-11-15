@@ -599,3 +599,16 @@ a.settings-item { color: inherit; text-decoration: none; }
 .credit-studio { margin-top: 8px !important; font-size: 12px; opacity: 0.75; display: flex; align-items: center; justify-content: center; gap: 6px; }
 .credit-studio img { height: auto; }
 .about > :first-child { display: block; margin: 0 auto; }
+/* Úprava Legendy */
+.dice-btn { align-items: center; justify-content: center; gap: 6px; text-align: center; }
+.legend-edit-preview { flex: none; }
+.emoji-input { margin-top: 8px; font-size: 20px; }
+.emoji-grid { display: grid; grid-template-columns: repeat(8, 1fr); gap: 6px; margin-top: 8px; }
+.emoji-btn { appearance: none; border: 1px solid rgba(244, 230, 210, 0.12); background: rgba(244, 230, 210, 0.05); border-radius: 12px; font-size: 24px; aspect-ratio: 1; cursor: pointer; padding: 0; }
+.emoji-btn.on, .sticker-mini-grid .sticker-btn.on { border-color: var(--coral); background: rgba(180, 140, 245, 0.22); }
+.sticker-mini-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(56px, 1fr)); gap: 6px; }
+.legend-edit-btn { margin-left: auto; flex: none; }
+.pw-wrap { position: relative; display: block; }
+.pw-wrap .input { width: 100%; padding-right: 52px; }
+.pw-eye { position: absolute; right: 4px; top: 50%; transform: translateY(-50%); width: 44px; height: 44px; border: 0; background: transparent; color: var(--cream-dim); display: grid; place-items: center; cursor: pointer; border-radius: 50%; }
+.pw-eye[aria-pressed="true"] { color: var(--coral-soft); }

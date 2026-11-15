@@ -9,6 +9,8 @@ import { QuickMenu } from '../components/QuickMenu';
 import { loadPartnerPin, loadRoomPin, loadUnlocked, savePartnerPin, saveRoomPin, saveUnlocked } from '../lib/slots';
 import { checkLock } from '../lib/payload';
 import { toast } from '../components/Toast';
+import { LegendContext, loadRoomLegend, saveRoomLegend, type LegendEdit, type RoomLegend } from '../lib/roomLegend';
+import { useStickerSex } from '../lib/style';
 import { LockButton } from '../components/LockButton';
 import { DiceOverlay } from '../components/D20';
 import { plural, t, useLang } from '../lib/i18n';
@@ -46,6 +48,25 @@ export function ChatScreen({ user, pair, pairKey, flags, onBack, onSettings, onL
   const [push, setPush] = useState<'unknown' | 'on' | 'off' | 'unsupported'>('unknown');
   const [unlocked, setUnlocked] = useState<number[]>(() => loadUnlocked(pair.id));
   const [roomPin, setRoomPin] = useState<string | null>(() => loadRoomPin(pair.id));
+  const [roomLegend, setRoomLegend] = useState<RoomLegend>({});
+  const sex = useStickerSex(user.id, user.gender);
+
+  // Vlastní Legenda místnosti (šifrovaná), znovu načtená při každé změně v místnosti
+  useEffect(() => {
+    let alive = true;
+    const load = () => loadRoomLegend(pairKey, pair.id).then((l) => { if (alive) setRoomLegend(l); });
+    load();
+    const off = backend.subscribe(pair.id, load);
+    return () => { alive = false; off(); };
+  }, [pair.id, pairKey]);
+
+  const saveEdit = async (n: number, e: LegendEdit | null) => {
+    const next = { ...roomLegend };
+    if (e) next[n] = e; else delete next[n];
+    await saveRoomLegend(pairKey, pair.id, next);
+    setRoomLegend(next);
+    toast(e ? t('Číslo ', 'Number ') + n + t(' je upravené pro vás oba.', ' is updated for both of you.') : t('Číslo ', 'Number ') + n + t(' má zase původní text.', ' is back to the original.'));
+  };
   const listRef = useRef<HTMLDivElement>(null);
   const cacheRef = useRef(new Map<string, Payload | null>());
   const seenRef = useRef<Set<string> | null>(null);
@@ -279,6 +300,7 @@ export function ChatScreen({ user, pair, pairKey, flags, onBack, onSettings, onL
       : last ? t('Zprávy zmizí za ', 'Messages disappear in ') + remaining(new Date(last).getTime() + TTL) : t('Šifrováno, uvidíte jen vy dva', 'Encrypted, only the two of you can see it');
 
   return (
+    <LegendContext.Provider value={roomLegend}>
     <div className="chat">
       <header className="chat-top">
         <div className="row" style={{ gap: 4, minWidth: 0 }}>
@@ -360,7 +382,7 @@ export function ChatScreen({ user, pair, pairKey, flags, onBack, onSettings, onL
 
       {sheet?.k === 'legend' && (
         <LegendSheet
-          start={sheet.n} locks={locks} unlocked={unlocked} onPin={unlockWith} meFemale={meFemale} partnerFemale={partnerFemale}
+          start={sheet.n} locks={locks} unlocked={unlocked} onPin={unlockWith} sex={sex} onSaveEdit={saveEdit} meFemale={meFemale} partnerFemale={partnerFemale}
           onDice={(prev) => setSheet({ k: 'dice', for: 'legend', prev })}
           onClose={() => setSheet(null)}
         />
@@ -383,5 +405,6 @@ export function ChatScreen({ user, pair, pairKey, flags, onBack, onSettings, onL
         </div>
       )}
     </div>
+    </LegendContext.Provider>
   );
 }

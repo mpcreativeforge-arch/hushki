@@ -6,6 +6,7 @@ import { Envelope } from '../../components/Envelope';
 import { haptic } from '../../lib/feedback';
 import { when } from '../format';
 import { plural, t } from '../../lib/i18n';
+import { useRoomLegend } from '../../lib/roomLegend';
 
 
 export type Decoded = Message & { p: Payload | null; failed?: boolean };
@@ -152,10 +153,28 @@ export function Photo({ pairKey, photo, onOpen }: { pairKey: CryptoKey; photo: P
 }
 
 /** Samolepka. Pikantní má v rohu číslo, podle kterého se hledá v Legendě. */
-export function StickerImg({ id, size, onMissing }: { id: string; size: number; onMissing?: () => void }) {
+export function StickerImg({ id, size, onMissing, plain }: { id: string; size: number; onMissing?: () => void; plain?: boolean }) {
   const [broken, setBroken] = useState(false);
-  const st = STICKERS.get(id);
   const n = pikantNumber(id);
+  const edit = useRoomLegend()[n ?? 0];
+  // vlastní ikona z Legendy místnosti: emoji nebo jiná samolepka (číslo zůstává)
+  if (n && !plain && edit?.emoji) {
+    return (
+      <span className="sticker-num" style={{ width: size, height: size }}>
+        <span className="sticker-fallback" style={{ fontSize: size * 0.62, width: size, height: size }}>{edit.emoji}</span>
+        <b className="num-badge" style={{ fontSize: Math.max(12, size * 0.15) }}>{n}</b>
+      </span>
+    );
+  }
+  if (n && !plain && edit?.sticker && STICKERS.has(edit.sticker)) {
+    return (
+      <span className="sticker-num" style={{ width: size, height: size }}>
+        <StickerImg id={edit.sticker} size={size} plain />
+        <b className="num-badge" style={{ fontSize: Math.max(12, size * 0.15) }}>{n}</b>
+      </span>
+    );
+  }
+  const st = STICKERS.get(id);
   const img = broken || !st
     ? <span className="sticker-fallback" style={{ fontSize: size * 0.62, width: size, height: size }}>{st?.fallback ?? '✨'}</span>
     : <img className="sticker" src={stickerSrc(id)} width={size} height={size} alt={n ? `${t('Číslo', 'Number')} ${n}` : st.label} draggable={false} onError={() => { setBroken(true); onMissing?.(); }} />;
