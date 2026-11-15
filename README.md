@@ -4,6 +4,16 @@ Soukromé vzkazy pro páry. Webová aplikace (PWA), kterou si uživatel připne 
 
 Jeden z partnerů napíše vzkaz, druhému přijde jen diskrétní upozornění („Máš nový vzkaz 🤫“) a obsah otevře až za svým PINem. Vzkazy jsou šifrované přímo v telefonu, server vidí jen zašifrovaná data.
 
+## Verze 7.1
+
+- Záložky seřazené podle používanosti: Pokec, Domluva, Ocenění, Dárky, Hushki pikant. Každá záložka má místo pro 30 samolepek (16–30 se ukážou, až bude v `public/stickers/` jejich obrázek).
+- Úvodní obrazovka s načítací lištou při spuštění (`src/components/Splash.tsx`).
+- Kostka D20 v samostatném animovaném okně (`src/components/D20.tsx`), pikantních čísel je 20.
+- Nápověda v menu a v Nastavení (`src/components/Help.tsx`).
+- Přepínání čeština / angličtina (`src/lib/i18n.ts`, texty se píšou jako `t('česky', 'English')`).
+- GDPR v Nastavení: stažení vlastních údajů (JSON), smazání účtu, kontakty info@hushki.cz a support@hushki.cz. Verze zásad je 2, uživatelé je potvrdí znovu.
+- Rozložení pro počítač (od šířky 760 px).
+
 ## Verze 7 (komunikace jen přes samolepky)
 
 - Chat **bez klávesnice a bez fotek**. Vzkazy se posílají jen samolepkami Hushki v 5 záložkách: Ocenění, Small talk, Domluva, Dárky, Hushki pikant. Sady se řídí pohlavím (kdo pohlaví neuvedl, dostane mužskou).

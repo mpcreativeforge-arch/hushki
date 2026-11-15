@@ -12,6 +12,8 @@ import { HomeScreen } from './screens/HomeScreen';
 import { SettingsScreen } from './screens/SettingsScreen';
 import { PrivacyConsent } from './components/Privacy';
 import { PRIVACY_VERSION } from './data/privacy';
+import { Splash } from './components/Splash';
+import { t, useLang } from './lib/i18n';
 
 export const PIN_LENGTH = 4;
 const AUTO_LOCK_MS = 30_000;
@@ -35,6 +37,10 @@ export function App() {
   const [keys, setKeys] = useState<Record<string, CryptoKey>>({});
   const [flags, setFlags] = useState<Record<string, boolean>>({});
   const hiddenAt = useRef<number | null>(null);
+  useLang(); // po přepnutí jazyka se překreslí celá aplikace
+  // úvodní obrazovka jen při spuštění, ne při každém obnovení stránky
+  const [splash, setSplash] = useState(() => { try { return !sessionStorage.getItem('hushki.splash'); } catch { return true; } });
+  const endSplash = useCallback(() => { setSplash(false); try { sessionStorage.setItem('hushki.splash', '1'); } catch { /* */ } }, []);
 
   const refreshPairs = useCallback(async () => {
     const list = await backend.getPairs().catch(() => null);
@@ -120,7 +126,7 @@ export function App() {
       const flag = 'hushki-demo-welcome-' + p.id;
       try { if (localStorage.getItem(flag)) continue; localStorage.setItem(flag, '1'); } catch { continue; }
       setTimeout(async () => {
-        const { ciphertext, iv } = await encodePayload(key, { t: 'sticker', sticker: p.partner_gender === 'zena' ? 'f01' : 'm01', text: 'Ahoj! Tady si píšeme jen samolepkami. Zkus mi nějakou poslat a mrkni i na Legendu. 🤫' });
+        const { ciphertext, iv } = await encodePayload(key, { t: 'sticker', sticker: p.partner_gender === 'zena' ? 'f01' : 'm01', text: t('Ahoj! Tady si píšeme jen samolepkami. Zkus mi nějakou poslat a mrkni i na Legendu. 🤫', 'Hi! Here we talk only in stickers. Send me one and check out the Legend too. 🤫') });
         await backend.demoPartnerMessage?.(p.id, ciphertext, iv);
       }, 2500);
     }
@@ -298,8 +304,9 @@ export function App() {
 
   return (
     <>
-      {backend.mode === 'demo' && <div className="demo-banner">Demo režim: data zůstávají jen v tomto prohlížeči</div>}
+      {backend.mode === 'demo' && <div className="demo-banner">{t('Demo režim: data zůstávají jen v tomto prohlížeči', 'Demo mode: data stays in this browser only')}</div>}
       {screen}
+      {splash && <Splash onDone={endSplash} />}
       {needsConsent && <PrivacyConsent updated={user!.privacyVersion != null} onAccept={acceptPrivacy} onDecline={logout} />}
     </>
   );

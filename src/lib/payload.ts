@@ -2,6 +2,7 @@
 import { backend } from './backend';
 import { decryptBytes, decryptText, encryptText } from './crypto';
 import { pikantNumber } from '../data/stickers';
+import { t } from './i18n';
 
 export interface PhotoRef { path: string; iv: string; w: number; h: number; mime: string }
 export interface ReplyRef { id: string; preview: string }
@@ -33,11 +34,11 @@ export async function decodePayload(key: CryptoKey, ciphertext: string, iv: stri
 }
 
 export function previewOf(p: Payload): string {
-  if (p.t === 'photo') return p.text ? `📷 ${p.text}` : '📷 Fotka';
+  if (p.t === 'photo') return p.text ? `📷 ${p.text}` : '📷 ' + t('Fotka', 'Photo');
   if (p.t === 'sticker') {
     const n = pikantNumber(p.sticker ?? '');
-    if (n) return `🌶 Číslo ${n}`;
-    return p.text ? `✨ ${p.text}`.slice(0, 90) : '✨ Samolepka';
+    if (n) return `🌶 ${t('Číslo', 'Number')} ${n}`;
+    return p.text ? `✨ ${p.text}`.slice(0, 90) : '✨ ' + t('Samolepka', 'Sticker');
   }
   return (p.text ?? '').slice(0, 90);
 }

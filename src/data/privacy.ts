@@ -1,41 +1,53 @@
-// Zásady ochrany osobních údajů. Při podstatné změně textu zvyš PRIVACY_VERSION,
+// Zásady ochrany osobních údajů (česky i anglicky). Při podstatné změně textu zvyš PRIVACY_VERSION,
 // uživatelé pak souhlas uvidí znovu.
 // Údaje v [hranatých závorkách] doplní provozovatel. Text je návrh, před spuštěním ho má zkontrolovat právník.
+import { isEn } from '../lib/i18n';
 
-export const PRIVACY_VERSION = 1;
-export const PRIVACY_UPDATED = '10. 11. 2026';
+export const PRIVACY_VERSION = 2;
+const UPDATED = { cs: '15. 11. 2026', en: 15 + ' November 2026' };
+
+/** Kontakty provozovatele. */
+export const INFO_EMAIL = 'info@hushki.cz';
+export const SUPPORT_EMAIL = 'support@hushki.cz';
 
 export const OPERATOR = {
   name: '[Název provozovatele / jméno a příjmení]',
   id: '[IČO]',
   address: '[Sídlo / adresa]',
-  email: '[kontaktní e-mail]',
+  email: INFO_EMAIL,
 };
 
 export interface PrivacySection { title: string; body: string[] }
 
-export const PRIVACY_SUMMARY = [
-  'Vzkazy, fotky a samolepky šifrujeme přímo v telefonu. Nikdo jiný než vy dva je nepřečte, ani my.',
-  'Ukládáme jen to, co aplikace nutně potřebuje: e-mail, přezdívku, pohlaví a technické údaje o místnostech.',
-  'Údaje neprodáváme a nepoužíváme k reklamě. Účet i všechna data můžeš kdykoli smazat v Nastavení.',
+export const privacyUpdated = () => (isEn() ? UPDATED.en : UPDATED.cs);
+
+const SUMMARY_CS = [
+  'Vzkazy a samolepky šifrujeme přímo v telefonu. Nikdo jiný než vy dva je nepřečte, ani my.',
+  'Ukládáme jen to, co aplikace nutně potřebuje: e-mail, přezdívku, pohlaví a technické údaje o místnostech. Zprávy se samy mažou 48 hodin po té poslední.',
+  'Údaje neprodáváme a nepoužíváme k reklamě. V Nastavení si je můžeš kdykoli stáhnout nebo smazat celý účet.',
+];
+const SUMMARY_EN = [
+  'Messages and stickers are encrypted on your phone. Nobody but the two of you can read them, not even us.',
+  'We only store what the app strictly needs: e-mail, nickname, gender and technical room data. Messages delete themselves 48 hours after the last one.',
+  'We never sell your data or use it for advertising. In Settings you can download it or delete your whole account at any time.',
 ];
 
-export const PRIVACY_SECTIONS: PrivacySection[] = [
+const SECTIONS_CS: PrivacySection[] = [
   {
     title: '1. Kdo údaje zpracovává',
     body: [
-      `Správcem osobních údajů je ${OPERATOR.name}, IČO ${OPERATOR.id}, ${OPERATOR.address} (dále „my“). S čímkoli ohledně soukromí nám napiš na ${OPERATOR.email}.`,
+      `Správcem osobních údajů je ${OPERATOR.name}, IČO ${OPERATOR.id}, ${OPERATOR.address} (dále „my“). S čímkoli ohledně soukromí nám napiš na ${INFO_EMAIL}. S technickými potížemi pomůže ${SUPPORT_EMAIL}.`,
       'Aplikace Hushki je určena jen osobám starším 18 let.',
     ],
   },
   {
     title: '2. Jaké údaje zpracováváme',
     body: [
-      'Účet: e-mail, heslo (ukládá se jen v zahashované podobě), přezdívka a pohlaví, pokud ho uvedeš.',
-      'Místnosti: kdo je s kým spojený, kdy byla místnost založena a nastavení jejího automatického smazání.',
-      'Vzkazy: obsah vzkazů, fotek, samolepek a vlastních nápadů je zašifrovaný v tvém zařízení klíčem, který známe jen vy dva (vzniká z párovacího kódu). Na serveru je uložen jen jako nečitelná šifrovaná data. Vidíme pouze technická metadata: čas odeslání, odesílatele a zda byl vzkaz přečten.',
-      'Upozornění: pokud je zapneš, ukládáme technickou adresu pro doručení push upozornění. Upozornění neobsahuje žádný obsah ani jméno, jen „Máš nový vzkaz“.',
-      'V zařízení: zamčený klíč (chráněný tvým PINem) a nastavení zvuků a vibrací. Tyto údaje zůstávají jen v tvém telefonu.',
+      'Účet: e-mail, heslo (ukládá se jen v zahashované podobě), přezdívka, pohlaví, pokud ho uvedeš, a datum souhlasu se zásadami.',
+      'Místnosti: kdo je s kým spojený a kdy byla místnost založena.',
+      'Vzkazy: obsah vzkazů, samolepek, popisků a hesel k pikantním číslům je zašifrovaný v tvém zařízení klíčem, který znáte jen vy dva (vzniká z párovacího kódu). Na serveru je uložen jen jako nečitelná šifrovaná data. Vidíme pouze technická metadata: čas odeslání, odesílatele a zda byl vzkaz přečten.',
+      'Upozornění: pokud je zapneš, ukládáme technickou adresu pro doručení push upozornění. Upozornění neobsahuje žádný obsah ani jméno.',
+      'V zařízení: zamčený klíč (chráněný tvým PINem), vlastní texty k samolepkám, odemčená čísla Legendy, jazyk a nastavení zvuků a vibrací. Tyto údaje zůstávají jen v tvém telefonu.',
     ],
   },
   {
@@ -50,18 +62,18 @@ export const PRIVACY_SECTIONS: PrivacySection[] = [
   {
     title: '4. Kdo další k údajům přistupuje',
     body: [
-      'Supabase Inc. — databáze, přihlášení a úložiště (servery v EU, [region doplnit]). Ukládá i šifrovaná data vzkazů a fotek, která nedokáže přečíst.',
-      'Poskytovatel hostingu webové aplikace ([doplnit]).',
-      'Služby push upozornění Apple, Google nebo Mozilla — doručují jen obecné upozornění bez obsahu.',
-      'Pokud v budoucnu zapneme volitelnou funkci Gentleman (úprava textu pomocí AI), text, který do ní sám vložíš, se odešle ke zpracování společnosti Anthropic. Funkce je vypnutá a před zapnutím tě na to upozorníme.',
+      'Supabase Inc.: databáze, přihlášení a úložiště (servery v EU, [region doplnit]). Ukládá i šifrovaná data vzkazů, která nedokáže přečíst.',
+      'Poskytovatel hostingu webové aplikace (Webglobe, s.r.o., Česká republika).',
+      'Služby push upozornění Apple, Google nebo Mozilla: doručují jen obecné upozornění bez obsahu.',
       'Při předání mimo EU používáme standardní smluvní doložky schválené Evropskou komisí.',
     ],
   },
   {
     title: '5. Jak dlouho údaje uchováváme',
     body: [
+      'Vzkazy: 48 hodin po posledním vzkazu v místnosti se všechny vzkazy v ní automaticky smažou.',
+      'Místnost do doby, než ji jeden z vás zruší.',
       'Účet a profil do doby, než účet smažeš.',
-      'Místnost a všechny její vzkazy a fotky do doby, než ji jeden z vás zruší, nebo než vyprší nastavené automatické smazání.',
       'Ze záloh se smazaná data odstraní nejpozději do [30] dnů.',
     ],
   },
@@ -73,17 +85,86 @@ export const PRIVACY_SECTIONS: PrivacySection[] = [
     ],
   },
   {
-    title: '7. Tvoje práva',
+    title: '7. Tvoje práva a jak je uplatnit',
     body: [
       'Máš právo na přístup ke svým údajům, jejich opravu, výmaz, omezení zpracování, přenositelnost a právo vznést námitku. Souhlas můžeš kdykoli odvolat.',
-      'Účet se všemi údaji smažeš sám v Nastavení → Smazat účet. Ostatní žádosti posílej na ' + OPERATOR.email + ', vyřídíme je do 30 dnů.',
+      'Přímo v aplikaci (Nastavení → Soukromí a moje údaje): opravíš přezdívku a pohlaví, stáhneš si kopii svých údajů (přístup a přenositelnost) a smažeš účet se všemi daty (výmaz a odvolání souhlasu).',
+      `Ostatní žádosti posílej na ${INFO_EMAIL}, vyřídíme je do 30 dnů.`,
       'Pokud se domníváš, že s údaji nakládáme špatně, můžeš podat stížnost u Úřadu pro ochranu osobních údajů (www.uoou.cz).',
     ],
   },
   {
     title: '8. Změny zásad',
-    body: [
-      'Když zásady podstatně změníme, aplikace ti nové znění ukáže a požádá o potvrzení.',
-    ],
+    body: ['Když zásady podstatně změníme, aplikace ti nové znění ukáže a požádá o potvrzení.'],
   },
 ];
+
+const SECTIONS_EN: PrivacySection[] = [
+  {
+    title: '1. Who processes your data',
+    body: [
+      `The data controller is ${OPERATOR.name}, company ID ${OPERATOR.id}, ${OPERATOR.address} (“we”). For anything about privacy write to ${INFO_EMAIL}. For technical problems contact ${SUPPORT_EMAIL}.`,
+      'Hushki is intended only for people aged 18 and over.',
+    ],
+  },
+  {
+    title: '2. What data we process',
+    body: [
+      'Account: e-mail, password (stored only as a hash), nickname, gender if you provide it, and the date you accepted this policy.',
+      'Rooms: who is connected with whom and when the room was created.',
+      'Messages: the content of messages, stickers, captions and passwords for spicy numbers is encrypted on your device with a key only the two of you know (derived from the pairing code). The server stores it only as unreadable encrypted data. We only see technical metadata: time sent, sender and whether it was read.',
+      'Notifications: if you turn them on, we store a technical address to deliver push notifications. A notification contains no content and no name.',
+      'On your device: the locked key (protected by your PIN), your own sticker captions, unlocked Legend numbers, language and sound and vibration settings. These stay on your phone only.',
+    ],
+  },
+  {
+    title: '3. Why and on what legal basis',
+    body: [
+      'To provide the app, i.e. to perform our contract with you (Art. 6(1)(b) GDPR): account, rooms, delivery of messages and notifications.',
+      'Message content may relate to your intimate life. We never see it in readable form. Even so, we process it only with your explicit consent (Art. 9(2)(a) GDPR), given at sign-up, which you can withdraw at any time by deleting your account.',
+      'Security of the service, legitimate interest (Art. 6(1)(f) GDPR): basic technical logs needed to run the service and detect abuse.',
+      'We use no third-party advertising or analytics tools and we do not sell data.',
+    ],
+  },
+  {
+    title: '4. Who else has access',
+    body: [
+      'Supabase Inc.: database, sign-in and storage (servers in the EU, [region to be added]). It also stores encrypted message data it cannot read.',
+      'The web hosting provider (Webglobe, s.r.o., Czech Republic).',
+      'Apple, Google or Mozilla push services: they deliver only a generic notification without content.',
+      'For transfers outside the EU we use the European Commission’s standard contractual clauses.',
+    ],
+  },
+  {
+    title: '5. How long we keep data',
+    body: [
+      'Messages: 48 hours after the last message in a room, all its messages are deleted automatically.',
+      'A room until one of you closes it.',
+      'Account and profile until you delete your account.',
+      'Deleted data is removed from backups within [30] days at the latest.',
+    ],
+  },
+  {
+    title: '6. Security',
+    body: [
+      'Messages are encrypted with AES-256-GCM. The room key is derived from the pairing code and locked on your phone with your PIN. The connection to the server is encrypted (HTTPS).',
+      'We do not know your pairing code or PIN and cannot recover them. If you lose the code, you cannot open old messages on a new device.',
+    ],
+  },
+  {
+    title: '7. Your rights and how to use them',
+    body: [
+      'You have the right to access, rectify and erase your data, to restrict processing, to data portability and to object. You can withdraw consent at any time.',
+      'Directly in the app (Settings → Privacy and my data): correct your nickname and gender, download a copy of your data (access and portability) and delete your account with all data (erasure and withdrawal of consent).',
+      `Send any other request to ${INFO_EMAIL}; we will handle it within 30 days.`,
+      'If you believe we handle your data incorrectly, you can complain to the Czech Office for Personal Data Protection (www.uoou.cz) or your local supervisory authority.',
+    ],
+  },
+  {
+    title: '8. Changes to this policy',
+    body: ['If we change this policy substantially, the app will show you the new version and ask you to confirm it.'],
+  },
+];
+
+export const privacySummary = () => (isEn() ? SUMMARY_EN : SUMMARY_CS);
+export const privacySections = () => (isEn() ? SECTIONS_EN : SECTIONS_CS);

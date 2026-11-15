@@ -31,7 +31,7 @@ self.addEventListener('fetch', (e) => {
 });
 
 self.addEventListener('push', (e) => {
-  let data = { title: 'Hushki', body: 'Máš nový vzkaz', tag: 'hushki-new' };
+  let data = { title: 'Hushki', body: /^(cs|sk)/i.test(self.navigator.language || '') ? 'Máš nový vzkaz' : 'You have a new message', tag: 'hushki-new' };
   try { data = { ...data, ...e.data.json() }; } catch {}
   e.waitUntil(self.registration.showNotification(data.title, {
     body: data.body,
