@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import { type User } from '../../lib/backend';
-import { SLOT_ICONS, STICKERS, pikantNumber, sexOf, slotIndex, tabTitle, tabsFor, type TabId } from '../../data/stickers';
+import { SLOT_ICONS, STICKERS, pikantNumber, slotIndex, tabTitle, tabsFor, type TabId } from '../../data/stickers';
+import { useStickerSex } from '../../lib/style';
 import { t } from '../../lib/i18n';
 
 import { StickerImg } from './Bubble';
@@ -10,7 +11,8 @@ type Tab = TabId | 'recent';
 export function StickerPicker({ user, recent, disabled, onPick, onDice, onLegend }: {
   user: User; recent: string[]; disabled: boolean; onPick: (id: string) => void; onDice: () => void; onLegend: () => void;
 }) {
-  const tabs = useMemo(() => tabsFor(user.gender), [user.gender]);
+  const sex = useStickerSex(user.id, user.gender);
+  const tabs = useMemo(() => tabsFor(sex === 'zena' ? 'zena' : 'muz'), [sex]);
   const [tab, setTab] = useState<Tab>(() => { try { return (sessionStorage.getItem('hushki.tab') as Tab) || 'pokec'; } catch { return 'pokec'; } });
   // samolepky druhé sady, ke kterým zatím chybí obrázek, se v nabídce nezobrazí
   const [missing, setMissing] = useState<Set<string>>(() => new Set());
@@ -19,7 +21,7 @@ export function StickerPicker({ user, recent, disabled, onPick, onDice, onLegend
   const cur: Tab = tab === 'recent' && !recentList.length ? 'pokec' : (tab === 'recent' || tabs.some((x) => x.id === tab) ? tab : 'pokec');
   const curTab = tabs.find((x) => x.id === cur);
   const choose = (id: Tab) => { setTab(id); try { sessionStorage.setItem('hushki.tab', id); } catch { /* */ } };
-  const textIcon = SLOT_ICONS[sexOf(user.gender)][0];
+  const textIcon = SLOT_ICONS[sex][0];
   const list = cur === 'recent' ? recentList : (curTab?.stickers.map((s) => s.id) ?? []).filter((id) => !missing.has(id));
   return (
     <div className={disabled ? 'picker-off' : ''}>

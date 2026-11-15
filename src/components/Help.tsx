@@ -6,29 +6,29 @@ const SECTIONS = (): { icon: string; title: string; body: string }[] => [
   {
     icon: '🔑', title: t('Jak začít', 'Getting started'),
     body: t(
-      'Jeden z vás založí místnost a pošle druhému tajný kód. Druhý ho zadá v Hushki přes „+ Nová místnost“ → „Mám kód“. Kód si schovejte, je to klíč k vašim vzkazům.',
-      'One of you creates a room and sends the secret code to the other. They enter it in Hushki via “+ New room” → “I have a code”. Keep the code safe, it is the key to your messages.',
+      'Jeden z vás založí místnost a tlačítkem „Poslat pozvánku“ pošle druhému odkaz. Po otevření odkazu se kód vyplní sám. Kód jde zadat i ručně přes „+ Nová místnost“ → „Mám kód“. Kód si schovejte, je to klíč k vašim vzkazům.',
+      'One of you creates a room and sends the other an invite link with “Send invite”. Opening the link fills in the code. You can also type the code via “+ New room” → “I have a code”. Keep the code safe, it is the key to your messages.',
     ),
   },
   {
     icon: '🐾', title: t('Samolepky a záložky', 'Stickers and tabs'),
     body: t(
-      'Píše se jen samolepkami. Dole vybereš záložku (Pokec, Domluva, Ocenění, Dárky, Hushki pikant) a ťuknutím na samolepku ji hned pošleš.',
-      'You chat with stickers only. Pick a tab at the bottom (Chat, Plans, Praise, Gifts, Hushki spicy) and tap a sticker to send it right away.',
+      'Píše se jen samolepkami. Dole vybereš záložku (Pokec, Domluva, Ocenění, Dárky, Hushki pikant) a ťuknutím na samolepku ji hned pošleš. Hodiny 🕘 vlevo ukážou naposledy použité. Přetažením vzkazu doprava na něj odpovíš, podržením svého vzkazu ho smažeš u obou.',
+      'You chat with stickers only. Pick a tab at the bottom (Chat, Plans, Praise, Gifts, Hushki spicy) and tap a sticker to send it right away. The clock 🕘 on the left shows recently used ones. Swipe a message to the right to reply, press and hold your own message to delete it for both of you.',
     ),
   },
   {
     icon: '✎', title: t('Samolepky s textem', 'Stickers with text'),
     body: t(
-      'Samolepky s tužkou (✎) v Domluvě pošleš s textem. Vybereš jeden z hotových, nebo si napíšeš vlastní. Partner nepozná, který je tvůj.',
-      'Stickers marked with a pencil (✎) in Plans are sent with a caption. Choose a ready-made one or write your own. Your partner can’t tell which one is yours.',
+      'První dlaždice „+ text“ v každé záložce pošle samolepku s textem. Vybereš jednu ze dvou ikon a jeden z hotových textů, nebo si napíšeš vlastní. Partner nepozná, který je tvůj.',
+      'The first tile “+ text” in each tab sends a sticker with a caption. Pick one of two icons and a ready-made text, or write your own. Your partner can’t tell which one is yours.',
     ),
   },
   {
     icon: '🌶', title: t('Hushki pikant a heslo', 'Hushki spicy and the password'),
     body: t(
-      'Pikantní samolepky mají číslo. Při odeslání zvolíš 4místné heslo. Partner si číslo najde v Legendě a popis si přečte, až mu heslo prozradíš.',
-      'Spicy stickers carry a number. When sending one you choose a 4-digit password. Your partner looks the number up in the Legend and can read it once you tell them the password.',
+      'Pikantní samolepky mají číslo. Při prvním odeslání zvolíš 4místné heslo pro celou místnost, dál se už jen předvyplní (změnit ho můžeš kdykoli). Partner si číslo najde v Legendě a popis si přečte, až mu heslo jednou prozradíš.',
+      'Spicy stickers carry a number. The first time you send one you choose a 4-digit password for the whole room; after that it is filled in for you (you can change it any time). Your partner looks the number up in the Legend and can read it once you tell them the password.',
     ),
   },
   {
@@ -41,8 +41,8 @@ const SECTIONS = (): { icon: string; title: string; body: string }[] => [
   {
     icon: '📖', title: t('Legenda', 'Legend'),
     body: t(
-      'Ikona knížky nahoře otevře Legendu všech pikantních čísel. Začátek je vidět vždy, zbytek se odemkne heslem od toho, kdo číslo poslal.',
-      'The book icon at the top opens the Legend of all spicy numbers. The start is always visible, the rest unlocks with the password from whoever sent the number.',
+      'Ikona knížky nahoře otevře Legendu všech pikantních čísel. Číslo na ikoně ukazuje, kolik čísel od partnera čeká na odemčení. Začátek popisu je vidět vždy, zbytek odemkne heslo od partnera.',
+      'The book icon at the top opens the Legend of all spicy numbers. The count on the icon shows how many numbers from your partner are waiting to be unlocked. The start of each description is always visible, the rest unlocks with your partner’s password.',
     ),
   },
   {

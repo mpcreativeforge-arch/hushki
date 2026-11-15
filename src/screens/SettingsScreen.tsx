@@ -10,6 +10,7 @@ import { LangSwitch } from '../components/LangSwitch';
 import { INFO_EMAIL, SUPPORT_EMAIL } from '../data/privacy';
 import { exportMyData } from '../lib/export';
 import { isEn, t } from '../lib/i18n';
+import { setStickerSex, useStickerSex } from '../lib/style';
 
 interface Props {
   user: User; flags: Record<string, boolean>;
@@ -58,6 +59,7 @@ export function SettingsScreen({ user, flags, onBack, onProfile, onChangePin, on
   };
 
   const upcoming = features.filter((f) => !flags[f.key]);
+  const style = useStickerSex(user.id, user.gender);
 
   return (
     <div className="app">
@@ -66,16 +68,25 @@ export function SettingsScreen({ user, flags, onBack, onProfile, onChangePin, on
         <span className="brand">{t('Nastavení', 'Settings')}</span>
       </div>
 
-      <div className="stack">
-        <label className="field"><span>{t('Tvoje jméno pro partnera/partnerku', 'Your name for your partner')}</span>
-          <input className="input" value={name} maxLength={40} onChange={(e) => setName(e.target.value)} />
-        </label>
-        <GenderPicker value={gender} onChange={setGender} />
-        <button className="btn small" onClick={saveName} disabled={!name.trim() || (name === user.name && gender === user.gender)}>{saved ? t('Uloženo', 'Saved') : t('Uložit', 'Save')}</button>
-      </div>
+      <section className="settings-group">
+        <h2>{t('Profil', 'Profile')}</h2>
+        <div className="stack">
+          <label className="field"><span>{t('Tvoje jméno pro partnera/partnerku', 'Your name for your partner')}</span>
+            <input className="input" value={name} maxLength={40} onChange={(e) => setName(e.target.value)} />
+          </label>
+          <GenderPicker value={gender} onChange={setGender} />
+          <button className="btn small" onClick={saveName} disabled={!name.trim() || (name === user.name && gender === user.gender)}>{saved ? t('Uloženo', 'Saved') : t('Uložit', 'Save')}</button>
+        </div>
+        <div className="settings-item"><span>{t('Styl samolepek', 'Sticker style')}</span>
+          <div className="chips" role="radiogroup" aria-label={t('Styl samolepek', 'Sticker style')}>
+            <button role="radio" aria-checked={style === 'muz'} className={'chip' + (style === 'muz' ? ' on' : '')} onClick={() => setStickerSex(user.id, 'muz')}>{t('Kluk', 'Guy')}</button>
+            <button role="radio" aria-checked={style === 'zena'} className={'chip' + (style === 'zena' ? ' on' : '')} onClick={() => setStickerSex(user.id, 'zena')}>{t('Holka', 'Girl')}</button>
+          </div>
+        </div>
+      </section>
 
-      <div style={{ marginTop: 26 }}>
-        <div className="settings-item"><span>{t('Účet', 'Account')}</span><span className="small muted">{user.email}</span></div>
+      <section className="settings-group">
+        <h2>{t('Aplikace', 'App')}</h2>
         <div className="settings-item"><span>{t('Jazyk', 'Language')}</span><LangSwitch /></div>
         {backend.mode !== 'demo' && pushSupported() && (
           <div className="settings-item"><span>{t('Tichá upozornění', 'Silent notifications')}</span><button className="btn small" onClick={push}>{t('Zapnout', 'Turn on')}</button></div>
@@ -87,13 +98,13 @@ export function SettingsScreen({ user, flags, onBack, onProfile, onChangePin, on
         <div className="settings-item"><span>{t('Haptická odezva', 'Haptics')}</span>
           <button className={'chip' + (fx.haptics ? ' on' : '')} onClick={() => toggle('haptics')}>{fx.haptics ? t('Zapnuto', 'On') : t('Vypnuto', 'Off')}</button>
         </div>
-        <div className="settings-item"><span>{t('Změnit PIN', 'Change PIN')}</span><button className="btn small" onClick={onChangePin}>{t('Změnit', 'Change')}</button></div>
         <button className="settings-item menu-link" onClick={() => setHelp(true)}><span><span className="help-q" aria-hidden>?</span> {t('Nápověda', 'Help')}</span><span aria-hidden>›</span></button>
-      </div>
+      </section>
 
-      <div style={{ marginTop: 26 }}>
+      <section className="settings-group">
         <h2>{t('Soukromí a moje údaje', 'Privacy and my data')}</h2>
         <p className="small muted" style={{ marginTop: 0 }}>{t('Tvoje práva podle GDPR můžeš uplatnit přímo tady.', 'You can exercise your GDPR rights right here.')}</p>
+        <div className="settings-item"><span>{t('Změnit PIN', 'Change PIN')}</span><button className="btn small" onClick={onChangePin}>{t('Změnit', 'Change')}</button></div>
         <button className="settings-item menu-link" onClick={() => setPrivacy(true)}><span>{t('Zásady ochrany osobních údajů', 'Privacy policy')}</span><span aria-hidden>›</span></button>
         <button className="settings-item menu-link" disabled={exporting} onClick={download}>
           <span>{t('Stáhnout moje údaje', 'Download my data')}<br /><span className="small muted">{t('Kopie účtu a místností (JSON)', 'Copy of your account and rooms (JSON)')}</span></span>
@@ -106,7 +117,7 @@ export function SettingsScreen({ user, flags, onBack, onProfile, onChangePin, on
         <a className="settings-item menu-link" href={`mailto:${SUPPORT_EMAIL}?subject=${encodeURIComponent(isEn() ? 'Hushki – support' : 'Hushki – podpora')}`}>
           <span>{t('Podpora', 'Support')}<br /><span className="small muted">{SUPPORT_EMAIL}</span></span><span aria-hidden>✉</span>
         </a>
-      </div>
+      </section>
 
       {upcoming.length > 0 && (
         <div style={{ marginTop: 26 }}>
@@ -117,7 +128,11 @@ export function SettingsScreen({ user, flags, onBack, onProfile, onChangePin, on
         </div>
       )}
 
-      <div className="stack" style={{ marginTop: 30 }}>
+      <section className="settings-group">
+        <h2>{t('Účet', 'Account')}</h2>
+        <div className="settings-item"><span>E-mail</span><span className="small muted">{user.email}</span></div>
+      </section>
+      <div className="stack" style={{ marginTop: 14 }}>
         <button className="btn ghost" onClick={onLogout}>{t('Odhlásit se', 'Sign out')}</button>
         {!confirmDelete ? (
           <button className="link-btn" onClick={() => setConfirmDelete(true)}>{t('Smazat účet a všechna data', 'Delete account and all data')}</button>

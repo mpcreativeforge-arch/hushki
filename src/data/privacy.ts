@@ -47,7 +47,7 @@ const SECTIONS_CS: PrivacySection[] = [
       'Místnosti: kdo je s kým spojený a kdy byla místnost založena.',
       'Vzkazy: obsah vzkazů, samolepek, popisků a hesel k pikantním číslům je zašifrovaný v tvém zařízení klíčem, který znáte jen vy dva (vzniká z párovacího kódu). Na serveru je uložen jen jako nečitelná šifrovaná data. Vidíme pouze technická metadata: čas odeslání, odesílatele a zda byl vzkaz přečten.',
       'Upozornění: pokud je zapneš, ukládáme technickou adresu pro doručení push upozornění. Upozornění neobsahuje žádný obsah ani jméno.',
-      'V zařízení: zamčený klíč (chráněný tvým PINem), vlastní texty k samolepkám, odemčená čísla Legendy, jazyk a nastavení zvuků a vibrací. Tyto údaje zůstávají jen v tvém telefonu.',
+      'V zařízení: zamčený klíč (chráněný tvým PINem), vlastní texty k samolepkám, odemčená čísla Legendy, heslo k Legendě této místnosti, jazyk a nastavení zvuků a vibrací. Tyto údaje zůstávají jen v tvém telefonu.',
     ],
   },
   {
@@ -114,7 +114,7 @@ const SECTIONS_EN: PrivacySection[] = [
       'Rooms: who is connected with whom and when the room was created.',
       'Messages: the content of messages, stickers, captions and passwords for spicy numbers is encrypted on your device with a key only the two of you know (derived from the pairing code). The server stores it only as unreadable encrypted data. We only see technical metadata: time sent, sender and whether it was read.',
       'Notifications: if you turn them on, we store a technical address to deliver push notifications. A notification contains no content and no name.',
-      'On your device: the locked key (protected by your PIN), your own sticker captions, unlocked Legend numbers, language and sound and vibration settings. These stay on your phone only.',
+      'On your device: the locked key (protected by your PIN), your own sticker captions, unlocked Legend numbers, the Legend password for the room, language and sound and vibration settings. These stay on your phone only.',
     ],
   },
   {

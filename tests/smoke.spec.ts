@@ -12,9 +12,13 @@ test('registrace, místnost, samolepka, pikant, Legenda a angličtina', async ({
   await p.locator('.splash').click(); // úvod jde přeskočit ťuknutím
   await expect(p.locator('.splash')).toHaveCount(0);
 
-  // registrace
-  await p.getByLabel(/Jak ti má/).fill('Test');
-  await p.getByRole('radio', { name: 'Muž' }).click();
+  // úvodní karty
+  await expect(p.getByRole('heading', { name: 'Jen samolepky, jen vy dva' })).toBeVisible();
+  await p.getByRole('button', { name: 'Další' }).click();
+  await p.getByRole('button', { name: 'Další' }).click();
+  await p.getByRole('button', { name: 'Začít' }).click();
+
+  // registrace: jen e-mail a heslo
   await p.getByLabel('E-mail').fill('test@example.com');
   await p.getByLabel('Heslo').fill('heslo12345');
   await p.getByRole('button', { name: 'Vytvořit účet' }).click();
@@ -28,6 +32,12 @@ test('registrace, místnost, samolepka, pikant, Legenda a angličtina', async ({
   await p.getByRole('button', { name: 'Pokračovat' }).click();
   await pin(p, '1234');
   await pin(p, '1234');
+
+  // jméno a pohlaví až po spárování
+  await p.getByLabel(/Jak ti má/).fill('Test');
+  await p.getByRole('radio', { name: 'Muž' }).click();
+  await p.getByRole('button', { name: 'Hotovo' }).click();
+  await expect(p.locator('.profile-step')).toHaveCount(0);
 
   // chat: demo partner se připojí a pošle uvítání
   await expect(p.locator('.picker-tabs')).toBeVisible();
@@ -72,6 +82,11 @@ test('registrace, místnost, samolepka, pikant, Legenda a angličtina', async ({
   await p.getByRole('button', { name: 'Poslat toto číslo' }).click();
   await pin(p, '5678');
   await expect(p.locator('.msg.mine .num-badge').last()).toBeVisible();
+  // druhé číslo: heslo místnosti je předvyplněné, stačí poslat
+  const sent = await p.locator('.msg.mine .num-badge').count();
+  await p.locator('.picker-grid .sticker-btn').nth(4).click();
+  await p.getByRole('button', { name: /^Poslat číslo/ }).click();
+  await expect(p.locator('.msg.mine .num-badge')).toHaveCount(sent + 1);
 
   // Legenda
   await p.getByRole('button', { name: 'Legenda' }).first().click();
@@ -92,8 +107,6 @@ test('pozvánka odkazem vyplní kód a nabídne připojení', async ({ page: p }
   await p.locator('.splash').click();
   await expect(p.getByText(/Partner tě zve do Hushki/)).toBeVisible();
   expect(new URL(p.url()).hash).toBe(''); // kód nezůstane v adrese
-  await p.getByLabel(/Jak ti má/).fill('Test');
-  await p.getByRole('radio', { name: 'Žena' }).click();
   await p.getByLabel('E-mail').fill('pozvana@example.com');
   await p.getByLabel('Heslo').fill('heslo12345');
   await p.getByRole('button', { name: 'Vytvořit účet' }).click();

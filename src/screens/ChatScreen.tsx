@@ -6,7 +6,9 @@ import { PIKANT_COUNT, SLOT_ICONS, pikantId, pikantNumber, sexOf, slotIndex, slo
 import { Envelope } from '../components/Envelope';
 import { feedback, haptic } from '../lib/feedback';
 import { QuickMenu } from '../components/QuickMenu';
-import { loadUnlocked, saveUnlocked } from '../lib/slots';
+import { loadPartnerPin, loadRoomPin, loadUnlocked, savePartnerPin, saveRoomPin, saveUnlocked } from '../lib/slots';
+import { checkLock } from '../lib/payload';
+import { toast } from '../components/Toast';
 import { LockButton } from '../components/LockButton';
 import { DiceOverlay } from '../components/D20';
 import { plural, t, useLang } from '../lib/i18n';
@@ -43,6 +45,7 @@ export function ChatScreen({ user, pair, pairKey, flags, onBack, onSettings, onL
   const [error, setError] = useState('');
   const [push, setPush] = useState<'unknown' | 'on' | 'off' | 'unsupported'>('unknown');
   const [unlocked, setUnlocked] = useState<number[]>(() => loadUnlocked(pair.id));
+  const [roomPin, setRoomPin] = useState<string | null>(() => loadRoomPin(pair.id));
   const listRef = useRef<HTMLDivElement>(null);
   const cacheRef = useRef(new Map<string, Payload | null>());
   const seenRef = useRef<Set<string> | null>(null);
@@ -134,9 +137,35 @@ export function ChatScreen({ user, pair, pairKey, flags, onBack, onSettings, onL
     return map;
   }, [items, user.id]);
 
-  const unlock = (n: number) => {
-    setUnlocked((cur) => { const next = [...cur, n]; saveUnlocked(pair.id, next); return next; });
+  const unlock = (n: number | number[]) => {
+    const add = Array.isArray(n) ? n : [n];
+    if (!add.length) return;
+    setUnlocked((cur) => { const next = Array.from(new Set([...cur, ...add])); saveUnlocked(pair.id, next); return next; });
   };
+
+  /** Heslo platí pro celou místnost: odemkne všechna čísla zamčená stejným heslem. */
+  const unlockWith = async (pin: string, only?: number) => {
+    const hit: number[] = [];
+    for (const [n, refs] of locks) {
+      for (const l of refs) if (await checkLock(l, pin)) { hit.push(n); break; }
+    }
+    if (only && !hit.includes(only)) return false;
+    if (hit.length) {
+      savePartnerPin(pair.id, pin);
+      const fresh = hit.filter((n) => !unlocked.includes(n));
+      unlock(hit);
+      if (fresh.length) toast(t('Odemčeno v Legendě: ', 'Unlocked in the Legend: ') + fresh.sort((a, b) => a - b).join(', '));
+    }
+    return hit.length > 0;
+  };
+
+  // Nová čísla od partnera se zkusí odemknout heslem, které už jednou platilo.
+  useEffect(() => {
+    const pin = loadPartnerPin(pair.id);
+    if (!pin || ![...locks.keys()].some((n) => !unlocked.includes(n))) return;
+    unlockWith(pin);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [locks]);
 
   const send = async (p: Omit<Payload, 'v'>) => {
     setBusy(true); setError('');
@@ -167,7 +196,10 @@ export function ChatScreen({ user, pair, pairKey, flags, onBack, onSettings, onL
 
   const sendPikant = async (n: number, pin: string) => {
     const ok = await send({ t: 'sticker', sticker: pikantId(n), lock: await makeLock(pin) });
-    if (ok) { unlock(n); setSheet(null); }
+    if (ok) {
+      if (pin !== roomPin) toast(roomPin ? t('Nové heslo místnosti je uložené.', 'New room password saved.') : t('Heslo místnosti je uložené. Příště se vyplní samo.', 'Room password saved. Next time it fills in by itself.'));
+      unlock(n); saveRoomPin(pair.id, pin); setRoomPin(pin); setSheet(null);
+    }
     return ok;
   };
 
@@ -201,6 +233,8 @@ export function ChatScreen({ user, pair, pairKey, flags, onBack, onSettings, onL
     feedback('open');
     setOpened((cur) => { const next = new Set(cur); ids.forEach((x) => next.add(x)); return next; });
     for (const x of ids) backend.markRead(x).catch(() => undefined);
+    // otevřené vzkazy jsou vyšší než obálka, posuň na konec
+    requestAnimationFrame(() => { const el = listRef.current; if (el) el.scrollTo({ top: el.scrollHeight, behavior: 'smooth' }); });
   };
 
   const remove = async (m: Decoded) => {
@@ -208,6 +242,7 @@ export function ChatScreen({ user, pair, pairKey, flags, onBack, onSettings, onL
     setSelected(null);
     if (replyTo?.id === m.id) setReplyTo(null);
     setItems((cur) => cur?.filter((x) => x.id !== m.id) ?? cur);
+    toast(t('Vzkaz je smazaný u vás obou.', 'Message deleted for both of you.'));
   };
 
   const reply = (m: Decoded) => { setReplyTo(m); setSelected(null); if (swipeHint) hideSwipeHint(); };
@@ -325,12 +360,12 @@ export function ChatScreen({ user, pair, pairKey, flags, onBack, onSettings, onL
 
       {sheet?.k === 'legend' && (
         <LegendSheet
-          start={sheet.n} locks={locks} unlocked={unlocked} onUnlock={unlock} meFemale={meFemale} partnerFemale={partnerFemale}
+          start={sheet.n} locks={locks} unlocked={unlocked} onPin={unlockWith} meFemale={meFemale} partnerFemale={partnerFemale}
           onDice={(prev) => setSheet({ k: 'dice', for: 'legend', prev })}
           onClose={() => setSheet(null)}
         />
       )}
-      {sheet?.k === 'pikant' && <PikantSheet n={sheet.n} dice={sheet.dice} busy={busy} onSend={(pin) => sendPikant(sheet.n, pin)} onReroll={() => setSheet({ k: 'dice', for: 'send', prev: sheet.n })} onClose={() => setSheet(null)} />}
+      {sheet?.k === 'pikant' && <PikantSheet n={sheet.n} dice={sheet.dice} busy={busy} roomPin={roomPin} meFemale={meFemale} onSend={(pin) => sendPikant(sheet.n, pin)} onReroll={() => setSheet({ k: 'dice', for: 'send', prev: sheet.n })} onClose={() => setSheet(null)} />}
       {sheet?.k === 'dice' && (
         <DiceOverlay
           max={PIKANT_COUNT} prev={sheet.prev}

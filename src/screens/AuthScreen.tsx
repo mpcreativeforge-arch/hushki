@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import { Wordmark } from '../components/Logo';
 import { PrivacySheetScreen } from '../components/Privacy';
-import { backend, BackendError, type Gender } from '../lib/backend';
-import { GenderPicker } from '../components/GenderPicker';
+import { backend, BackendError } from '../lib/backend';
+import { Intro, introSeen } from '../components/Intro';
 import { LangSwitch } from '../components/LangSwitch';
 import { t, useLang } from '../lib/i18n';
 
@@ -11,8 +11,7 @@ export function AuthScreen({ invited }: { invited?: boolean }) {
   const [privacy, setPrivacy] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [name, setName] = useState('');
-  const [gender, setGender] = useState<Gender | null>(null);
+  const [intro, setIntro] = useState(() => !invited && !introSeen());
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [info, setInfo] = useState('');
@@ -20,11 +19,10 @@ export function AuthScreen({ invited }: { invited?: boolean }) {
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (mode === 'signup' && !gender) { setError(t('Vyber prosím, kdo jsi.', 'Please choose who you are.')); return; }
     setError(''); setInfo(''); setBusy(true);
     try {
       if (mode === 'signup') {
-        const { needsConfirm } = await backend.signUp(email.trim(), password, name.trim(), gender!);
+        const { needsConfirm } = await backend.signUp(email.trim(), password, '', 'neuvedeno');
         if (needsConfirm) setInfo(t('Poslali jsme ti e-mail. Potvrď ho a pak se tady přihlas.', 'We sent you an e-mail. Confirm it and then sign in here.'));
       } else {
         await backend.signIn(email.trim(), password);
@@ -37,6 +35,8 @@ export function AuthScreen({ invited }: { invited?: boolean }) {
     }
   };
 
+  if (intro) return <Intro onDone={() => setIntro(false)} />;
+
   return (
     <div className="app">
       <div className="row" style={{ justifyContent: 'flex-end' }}><LangSwitch /></div>
@@ -46,12 +46,6 @@ export function AuthScreen({ invited }: { invited?: boolean }) {
 
       {invited && <div className="notice center" style={{ marginTop: 8 }}>💌 {t('Partner tě zve do Hushki. Vytvoř si účet a hned budete spojení.', 'Your partner invited you to Hushki. Create an account and you’ll be connected right away.')}</div>}
       <form className="stack" onSubmit={submit} style={{ marginTop: 10 }}>
-        {mode === 'signup' && (
-          <label className="field"><span>{t('Jak ti má partner/ka říkat', 'What should your partner call you')}</span>
-            <input className="input" value={name} onChange={(e) => setName(e.target.value)} required maxLength={40} autoComplete="nickname" />
-          </label>
-        )}
-        {mode === 'signup' && <GenderPicker value={gender} onChange={setGender} />}
         <label className="field"><span>E-mail</span>
           <input className="input" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required autoComplete="email" />
         </label>

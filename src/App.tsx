@@ -13,6 +13,8 @@ import { SettingsScreen } from './screens/SettingsScreen';
 import { PrivacyConsent } from './components/Privacy';
 import { PRIVACY_VERSION } from './data/privacy';
 import { Splash } from './components/Splash';
+import { ProfileStep } from './components/ProfileStep';
+import { Toaster } from './components/Toast';
 import { t, useLang } from './lib/i18n';
 import { clearInvite, takeInvite } from './lib/invite';
 
@@ -323,7 +325,11 @@ export function App() {
     <>
       {backend.mode === 'demo' && <div className="demo-banner">{t('Demo režim: data zůstávají jen v tomto prohlížeči', 'Demo mode: data stays in this browser only')}</div>}
       {screen}
+      <Toaster />
       {splash && <Splash onDone={endSplash} />}
+      {!needsConsent && user && !user.name && (stage.name === 'room' || stage.name === 'home') && (
+        <ProfileStep user={user} onDone={(name, gender) => setUser({ ...user, name, gender })} />
+      )}
       {needsConsent && <PrivacyConsent updated={user!.privacyVersion != null} onAccept={acceptPrivacy} onDecline={logout} />}
     </>
   );

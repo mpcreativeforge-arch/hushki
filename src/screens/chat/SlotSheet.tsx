@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { type User } from '../../lib/backend';
-import { FREE_SLOTS, SLOT_ICONS, sexOf, slotIndex, slotTexts } from '../../data/stickers';
+import { FREE_SLOTS, SLOT_ICONS, slotIndex, slotTexts } from '../../data/stickers';
+import { stickerSex } from '../../lib/style';
 import { Sheet } from '../../components/Sheet';
 import { loadSlots, saveSlots } from '../../lib/slots';
 import { t } from '../../lib/i18n';
@@ -12,7 +13,7 @@ const SLOT_MAX = 120;
 export function SlotSheet({ user, id: start, busy, onSend, onClose }: { user: User; id: string; busy: boolean; onSend: (id: string, text: string) => void; onClose: () => void }) {
   const [id, setId] = useState(start);
   const idx = slotIndex(id);
-  const icons = SLOT_ICONS[sexOf(user.gender)];
+  const icons = SLOT_ICONS[stickerSex(user.id, user.gender)];
   const [slots, setSlots] = useState(() => loadSlots(user.id));
   const [edit, setEdit] = useState<string | null>(null);
   const own = idx < FREE_SLOTS ? slots[idx] ?? '' : '';
