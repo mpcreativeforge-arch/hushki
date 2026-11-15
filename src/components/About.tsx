@@ -36,7 +36,7 @@ export function AboutSheet({ onClose }: { onClose: () => void }) {
 
       <div className="about-block about-studio">
         <span className="small muted">{t('Návrh a vývoj', 'Design and development')}</span>
-        <img src={`${import.meta.env.BASE_URL}mp-logo.png`} alt="MP Creative Forge Studio" width={120} height={53} />
+        <img src={`${import.meta.env.BASE_URL}mp-logo.png`} alt="MP Creative Forge Studio" width={102} height={45} />
         <span>{t('Navrhl', 'Designed by')} <b>{OPERATOR.name}</b> {t('ve spolupráci s', 'in collaboration with')} <b>MP Creative Forge Studio</b>.</span>
         <span className="small muted">{t('Vlastníkem práv k aplikaci, jejímu názvu, maskotovi a samolepkám je', 'The rights to the app, its name, mascot and stickers belong to')} {OPERATOR.name}.</span>
       </div>
