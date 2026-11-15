@@ -41,6 +41,11 @@ export function AboutSheet({ onClose }: { onClose: () => void }) {
         <span><a href={`mailto:${INFO_EMAIL}`}>{INFO_EMAIL}</a> · <a href={`mailto:${SUPPORT_EMAIL}`}>{SUPPORT_EMAIL}</a></span>
       </div>
 
+      <a className="about-more" href="https://podpisnamiru.cz" target="_blank" rel="noopener noreferrer">
+        <span className="small muted">{t('Další služba autora', 'Another service by the author')}</span>
+        <span>podpisnamiru.cz <span aria-hidden>↗</span></span>
+      </a>
+
       <CreditLine logo />
     </Sheet>
   );
