@@ -1,9 +1,9 @@
 // Zásady ochrany osobních údajů (česky i anglicky). Při podstatné změně textu zvyš PRIVACY_VERSION,
 // uživatelé pak souhlas uvidí znovu.
-// Údaje v [hranatých závorkách] doplní provozovatel. Text je návrh, před spuštěním ho má zkontrolovat právník.
+// Text je návrh, před spuštěním ho má zkontrolovat právník. Údaje v [hranatých závorkách] ještě chybí.
 import { isEn } from '../lib/i18n';
 
-export const PRIVACY_VERSION = 2;
+export const PRIVACY_VERSION = 3;
 const UPDATED = { cs: '15. 11. 2026', en: 15 + ' November 2026' };
 
 /** Kontakty provozovatele. */
@@ -11,11 +11,15 @@ export const INFO_EMAIL = 'info@hushki.cz';
 export const SUPPORT_EMAIL = 'support@hushki.cz';
 
 export const OPERATOR = {
-  name: '[Název provozovatele / jméno a příjmení]',
-  id: '[IČO]',
-  address: '[Sídlo / adresa]',
+  name: 'Mgr.\u00a0Petr Baťa',
+  id: '19629966',
+  address: { cs: 'Podsedky 15, 625 00 Brno, Česká republika', en: 'Podsedky 15, 625 00 Brno, Czech Republic' },
   email: INFO_EMAIL,
 };
+export const operatorAddress = () => (isEn() ? OPERATOR.address.en : OPERATOR.address.cs);
+/** Rok pro © v aplikaci. */
+export const COPYRIGHT_YEAR = 2026;
+export const APP_VERSION = '7.2';
 
 export interface PrivacySection { title: string; body: string[] }
 
@@ -36,7 +40,7 @@ const SECTIONS_CS: PrivacySection[] = [
   {
     title: '1. Kdo údaje zpracovává',
     body: [
-      `Správcem osobních údajů je ${OPERATOR.name}, IČO ${OPERATOR.id}, ${OPERATOR.address} (dále „my“). S čímkoli ohledně soukromí nám napiš na ${INFO_EMAIL}. S technickými potížemi pomůže ${SUPPORT_EMAIL}.`,
+      `Správcem osobních údajů a provozovatelem aplikace Hushki je ${OPERATOR.name}, IČO ${OPERATOR.id}, se sídlem ${OPERATOR.address.cs} (dále „my“). S čímkoli ohledně soukromí nám napiš na ${INFO_EMAIL}. S technickými potížemi pomůže ${SUPPORT_EMAIL}.`,
       'Aplikace Hushki je určena jen osobám starším 18 let.',
     ],
   },
@@ -103,7 +107,7 @@ const SECTIONS_EN: PrivacySection[] = [
   {
     title: '1. Who processes your data',
     body: [
-      `The data controller is ${OPERATOR.name}, company ID ${OPERATOR.id}, ${OPERATOR.address} (“we”). For anything about privacy write to ${INFO_EMAIL}. For technical problems contact ${SUPPORT_EMAIL}.`,
+      `The data controller and operator of the Hushki app is ${OPERATOR.name}, company ID (IČO) ${OPERATOR.id}, registered at ${OPERATOR.address.en} (“we”). For anything about privacy write to ${INFO_EMAIL}. For technical problems contact ${SUPPORT_EMAIL}.`,
       'Hushki is intended only for people aged 18 and over.',
     ],
   },

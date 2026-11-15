@@ -1,6 +1,7 @@
 import { Sheet } from './Sheet';
 import { t } from '../lib/i18n';
 import { SUPPORT_EMAIL } from '../data/privacy';
+import { CreditLine } from './About';
 
 const SECTIONS = (): { icon: string; title: string; body: string }[] => [
   {
@@ -87,6 +88,7 @@ export function HelpSheet({ onClose }: { onClose: () => void }) {
         {t('Něco nefunguje? Napiš nám na ', 'Something not working? Write to ')}
         <a href={`mailto:${SUPPORT_EMAIL}`}>{SUPPORT_EMAIL}</a>.
       </p>
+      <CreditLine />
     </Sheet>
   );
 }
