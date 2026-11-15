@@ -91,11 +91,14 @@ test('registrace, místnost, samolepka, pikant, Legenda a angličtina', async ({
   // Legenda a úprava čísla (název + emoji), ikona se propíše i do samolepky
   await p.getByRole('button', { name: 'Legenda' }).first().click();
   await expect(p.getByRole('heading', { name: 'Legenda' })).toBeVisible();
-  await p.getByRole('button', { name: 'Upravit číslo 1', exact: true }).click();
+  // demo partner občas pošle zamčené číslo, to upravit nejde: vezmi první upravitelné
+  const editBtn = p.locator('.legend-edit-btn').first();
+  const num = (await editBtn.getAttribute('aria-label'))!.replace(/\D+/g, '');
+  await editBtn.click();
   await p.getByLabel('Název').fill('Naše tajemství');
   await p.getByRole('button', { name: '🍓' }).click();
   await p.getByRole('button', { name: 'Uložit pro oba' }).click();
-  await expect(p.getByText('1. Naše tajemství')).toBeVisible();
+  await expect(p.getByText(`${num}. Naše tajemství`)).toBeVisible();
   await p.locator('.sheet-backdrop').click({ position: { x: 10, y: 10 } });
 
   // přepnutí do angličtiny
