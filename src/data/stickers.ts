@@ -1,4 +1,4 @@
-// Samolepky Hushki (verze 7.1). Obrázky patří do public/stickers/<id>.png.
+// Samolepky Hushki (verze 7.1). Obrázky patří do public/stickers/<id>.webp (256 × 256 px).
 // Druhá sada (16–30) se v nabídce ukáže, až bude obrázek nahraný; do té doby je skrytá.
 // Pikantní čísla bez obrázku ukazují náhradní emoji s číslem.
 //
@@ -132,4 +132,4 @@ export const slotIndex = (id: string) => {
   return -1;
 };
 
-export const stickerSrc = (id: string) => `${import.meta.env.BASE_URL}stickers/${id}.png`;
+export const stickerSrc = (id: string) => `${import.meta.env.BASE_URL}stickers/${id}.webp`;

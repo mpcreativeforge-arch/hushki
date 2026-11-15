@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Brand } from '../components/Logo';
 import { backend, BackendError, type Pair } from '../lib/backend';
 import { t } from '../lib/i18n';
+import { clearInvite, shareInvite } from '../lib/invite';
 import { derivePairKey, generatePairCode, inviteHash, isValidCode, keyCheck, normalizeCode } from '../lib/crypto';
 
 interface Props {
@@ -12,6 +13,9 @@ interface Props {
   onPaired: (code: string, pair: Pair) => Promise<void> | void;
   onLogout: () => void;
   onBack?: () => void;
+  /** kód z pozvánky (odkazu) */
+  invite?: string | null;
+  onDropInvite?: () => void;
 }
 
 const ERRORS = (): Record<string, string> => ({
@@ -22,11 +26,12 @@ const ERRORS = (): Record<string, string> => ({
   demo_join: t('V demo režimu se nejde připojit k cizímu kódu. Zvol „Nová místnost“.', 'In demo mode you can’t join someone else’s code. Choose “Create room”.'),
 });
 
-export function PairScreen({ mode, existing, known, onPaired, onLogout, onBack }: Props) {
-  const restore = mode === 'restore';
-  const [tab, setTab] = useState<'create' | 'join'>(restore ? 'join' : 'create');
+export function PairScreen({ mode, existing, known, onPaired, onLogout, onBack, invite, onDropInvite }: Props) {
+  const restore = mode === 'restore' && !invite;
+  const [tab, setTab] = useState<'create' | 'join'>(restore || invite ? 'join' : 'create');
+  const [shareNote, setShareNote] = useState('');
   const [continuing, setContinuing] = useState(false);
-  const [code, setCode] = useState('');
+  const [code, setCode] = useState(invite ?? '');
   const [created, setCreated] = useState<{ code: string; pair: Pair } | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
@@ -54,6 +59,7 @@ export function PairScreen({ mode, existing, known, onPaired, onLogout, onBack }
       if (existing && existing.key_check !== check) throw new BackendError('key_mismatch');
       const pair = await backend.joinPair(await inviteHash(c));
       if (pair.key_check !== check) throw new BackendError('key_mismatch');
+      clearInvite();
       await onPaired(c, pair);
     } catch (e) {
       setError(ERRORS()[(e as BackendError).code] ?? t('Připojení se nepovedlo.', 'Joining failed.'));
@@ -62,27 +68,24 @@ export function PairScreen({ mode, existing, known, onPaired, onLogout, onBack }
 
   const share = async () => {
     if (!created) return;
-    const text = t('Pojď se mnou do Hushki. Náš párovací kód: ', 'Join me on Hushki. Our pairing code: ') + created.code;
-    try {
-      if (navigator.share) await navigator.share({ text });
-      else await navigator.clipboard.writeText(created.code);
-    } catch { /* zrušeno */ }
+    const r = await shareInvite(created.code);
+    setShareNote(r === 'copied' ? t('Pozvánka je zkopírovaná, vlož ji partnerovi do zprávy.', 'Invite copied, paste it into a message to your partner.') : r === 'failed' ? t('Sdílení se nepovedlo. Pošli partnerovi kód níže.', 'Sharing failed. Send your partner the code below.') : '');
   };
 
   if (created) {
     return (
       <div className="app">
         <div className="topbar"><Brand /></div>
-        <h1>{t('Váš ', 'Your ')}<em>{t('tajný', 'secret')}</em>{t(' kód', ' code')}</h1>
-        <p className="muted">{t('Pošli ho partnerovi/partnerce. Zadá ho v Hushki (po registraci, nebo přes + Nová místnost) a budete spojení.', 'Send it to your partner. They enter it in Hushki (after signing up, or via + New room) and you’re connected.')}</p>
-        <div className="pair-code" style={{ margin: '18px 0' }}>{created.code}</div>
+        <h1>{t('Pozvi ', 'Invite ')}<em>{t('partnera', 'your partner')}</em></h1>
+        <p className="muted">{t('Pošli mu pozvánku. Ťukne na odkaz, zaregistruje se a budete spojení. Nic nemusí opisovat.', 'Send them the invite. They tap the link, sign up and you’re connected. Nothing to type.')}</p>
+        <button className="btn primary" style={{ margin: '14px 0 6px' }} onClick={share}>💌 {t('Poslat pozvánku partnerovi', 'Send the invite to your partner')}</button>
+        {shareNote && <p className="small muted center" style={{ margin: '4px 0 0' }}>{shareNote}</p>}
+        <p className="small muted" style={{ margin: '18px 0 6px' }}>{t('Nebo mu nadiktuj kód, zadá ho přes „Mám kód“:', 'Or read out the code, they enter it via “I have a code”:')}</p>
+        <div className="pair-code" style={{ margin: '0 0 18px' }}>{created.code}</div>
         <div className="notice" style={{ marginBottom: 18 }}>
           {t('Kód si někam bezpečně ulož. Je to zároveň klíč k vašim vzkazům. Bez něj je na novém telefonu neotevřeš a nikdo (ani my) ho neumí obnovit.', 'Store the code somewhere safe. It is also the key to your messages. Without it you can’t open them on a new phone and nobody (not even us) can recover it.')}
         </div>
-        <div className="stack">
-          <button className="btn" onClick={share}>{t('Sdílet kód', 'Share code')}</button>
-          <button className="btn primary" disabled={continuing} onClick={async () => { setContinuing(true); await onPaired(created.code, created.pair); }}>{continuing ? <span className="spinner" /> : t('Pokračovat', 'Continue')}</button>
-        </div>
+        <button className="btn" disabled={continuing} onClick={async () => { setContinuing(true); await onPaired(created.code, created.pair); }}>{continuing ? <span className="spinner" /> : t('Pokračovat', 'Continue')}</button>
       </div>
     );
   }
@@ -93,7 +96,12 @@ export function PairScreen({ mode, existing, known, onPaired, onLogout, onBack }
         {onBack ? <button className="btn ghost small" onClick={onBack}>← {t('Zpět', 'Back')}</button> : <Brand />}
         {!onBack && <button className="btn ghost small" onClick={onLogout}>{t('Odhlásit', 'Sign out')}</button>}
       </div>
-      {restore && existing ? (
+      {invite && !existing ? (
+        <>
+          <h1>{t('Máš ', 'You have an ')}<em>{t('pozvánku', 'invite')}</em></h1>
+          <p className="muted">{t('Partner tě zve do vaší společné místnosti. Stačí ťuknout na Připojit se.', 'Your partner invited you to your shared room. Just tap Join.')}</p>
+        </>
+      ) : restore && existing ? (
         <>
           <h1>{t('Odemkni ', 'Unlock the ')}<em>{t('místnost', 'room')}</em></h1>
           <p className="muted">{t('Na tomto zařízení zatím nemáš klíč k místnosti', 'This device doesn’t have the key to the room')} {existing.partner_name ? <b>{existing.partner_name}</b> : ''}. {t('Zadej její párovací kód.', 'Enter its pairing code.')}</p>
@@ -114,7 +122,7 @@ export function PairScreen({ mode, existing, known, onPaired, onLogout, onBack }
         </>
       )}
 
-      {tab === 'create' && !restore ? (
+      {tab === 'create' && !restore && !invite ? (
         <div className="stack">
           <p>{t('Vytvoříme vám tajný kód. Z něj se v telefonu odvodí klíč, kterým se vzkazy šifrují.', 'We’ll create a secret code for you. Your phone derives the key that encrypts your messages from it.')}</p>
           {error && <p className="error">{error}</p>}
@@ -128,6 +136,7 @@ export function PairScreen({ mode, existing, known, onPaired, onLogout, onBack }
           </label>
           {error && <p className="error">{error}</p>}
           <button className="btn primary" disabled={busy}>{busy ? <span className="spinner" /> : restore ? t('Obnovit klíč', 'Restore key') : t('Připojit se', 'Join')}</button>
+          {invite && onDropInvite && <button type="button" className="link-btn" onClick={onDropInvite}>{t('Pozvánku nechci použít', 'Don’t use this invite')}</button>}
         </form>
       )}
     </div>

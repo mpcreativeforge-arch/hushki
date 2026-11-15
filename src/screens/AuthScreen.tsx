@@ -6,7 +6,7 @@ import { GenderPicker } from '../components/GenderPicker';
 import { LangSwitch } from '../components/LangSwitch';
 import { t, useLang } from '../lib/i18n';
 
-export function AuthScreen() {
+export function AuthScreen({ invited }: { invited?: boolean }) {
   const [mode, setMode] = useState<'login' | 'signup'>('signup');
   const [privacy, setPrivacy] = useState(false);
   const [email, setEmail] = useState('');
@@ -44,6 +44,7 @@ export function AuthScreen() {
       <h1 className="center">{t('Něco jen ', 'Something just ')}<em>{t('pro vás dva', 'for the two of you')}</em>.</h1>
       <p className="muted center">{t('Vzkazy, které nikdo jiný neuvidí. Druhému z vás přijde jen nenápadné upozornění a vzkaz si otevře až po zadání svého PINu.', 'Messages nobody else will see. Your partner gets only a discreet notification and opens the message with their own PIN.')}</p>
 
+      {invited && <div className="notice center" style={{ marginTop: 8 }}>💌 {t('Partner tě zve do Hushki. Vytvoř si účet a hned budete spojení.', 'Your partner invited you to Hushki. Create an account and you’ll be connected right away.')}</div>}
       <form className="stack" onSubmit={submit} style={{ marginTop: 10 }}>
         {mode === 'signup' && (
           <label className="field"><span>{t('Jak ti má partner/ka říkat', 'What should your partner call you')}</span>

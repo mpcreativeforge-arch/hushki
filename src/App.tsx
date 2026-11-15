@@ -14,6 +14,7 @@ import { PrivacyConsent } from './components/Privacy';
 import { PRIVACY_VERSION } from './data/privacy';
 import { Splash } from './components/Splash';
 import { t, useLang } from './lib/i18n';
+import { clearInvite, takeInvite } from './lib/invite';
 
 export const PIN_LENGTH = 4;
 const AUTO_LOCK_MS = 30_000;
@@ -38,6 +39,8 @@ export function App() {
   const [flags, setFlags] = useState<Record<string, boolean>>({});
   const hiddenAt = useRef<number | null>(null);
   useLang(); // po přepnutí jazyka se překreslí celá aplikace
+  const [invite, setInvite] = useState<string | null>(() => takeInvite());
+  const dropInvite = useCallback(() => { clearInvite(); setInvite(null); }, []);
   // úvodní obrazovka jen při spuštění, ne při každém obnovení stránky
   const [splash, setSplash] = useState(() => { try { return !sessionStorage.getItem('hushki.splash'); } catch { return true; } });
   const endSplash = useCallback(() => { setSplash(false); try { sessionStorage.setItem('hushki.splash', '1'); } catch { /* */ } }, []);
@@ -57,7 +60,7 @@ export function App() {
     backend.flags().then(setFlags).catch(() => undefined);
     const list = await refreshPairs();
     const vault = loadVault(u.id);
-    if (!vault) return setStage({ name: 'pair', mode: list.length ? 'restore' : 'first' });
+    if (!vault) return setStage({ name: 'pair', mode: list.length && !takeInvite() ? 'restore' : 'first' });
     // obnovení stránky v otevřené relaci → bez PINu
     const sess = vault.v === 2 ? await loadSession(u.id) : null;
     if (sess && vault.v === 2) {
@@ -116,6 +119,18 @@ export function App() {
     const t = setTimeout(() => { refreshPairs(); }, Math.min(ms, 2_000_000_000));
     return () => clearTimeout(t);
   }, [nextExpiry, refreshPairs]);
+
+  // Pozvánka odkazem: po odemčení rovnou nabídni připojení k místnosti.
+  useEffect(() => {
+    if (invite && stage.name === 'home') setStage({ name: 'pair', mode: 'add' });
+  }, [invite, stage.name]);
+
+  // Odkaz s pozvánkou otevřený v už spuštěné aplikaci
+  useEffect(() => {
+    const onHash = () => { const c = takeInvite(); if (c) setInvite(c); };
+    window.addEventListener('hashchange', onHash);
+    return () => window.removeEventListener('hashchange', onHash);
+  }, []);
 
   // Demo: partner pošle první vzkaz, jakmile se "připojí".
   useEffect(() => {
@@ -250,14 +265,16 @@ export function App() {
       screen = <div className="app"><div className="grow" style={{ display: 'grid', placeItems: 'center' }}><span className="spinner" /></div></div>;
       break;
     case 'auth':
-      screen = <AuthScreen />;
+      screen = <AuthScreen invited={!!invite} />;
       break;
     case 'pair':
       screen = (
         <PairScreen
+          key={invite ?? 'manual'}
           mode={stage.mode} existing={stage.pair ?? null} known={pairs}
-          onPaired={onPaired} onLogout={logout}
-          onBack={master ? () => setStage({ name: 'home' }) : undefined}
+          onPaired={async (c, p) => { setInvite(null); await onPaired(c, p); }} onLogout={logout}
+          onBack={master ? () => { dropInvite(); setStage({ name: 'home' }); } : undefined}
+          invite={invite} onDropInvite={() => { dropInvite(); if (master) setStage({ name: 'home' }); }}
         />
       );
       break;

@@ -1,7 +1,7 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { backend, type Message, type Pair, type User } from '../lib/backend';
 import { checkLock, decodePayload, encodePayload, makeLock, photoUrl, previewOf, type LockRef, type Payload, type PhotoRef } from '../lib/payload';
-import { enablePush, isIOS, isStandalone, pushEnabled, pushSupported } from '../lib/push';
+import { enablePush, pushEnabled, pushSupported } from '../lib/push';
 import {
   FREE_SLOTS, PIKANT_COUNT, SLOT_ICONS, STICKERS, pikantId, pikantNumber, sexOf, slotIndex, slotTexts, stickerSrc, tabTitle, tabsFor, type TabId,
 } from '../data/stickers';
@@ -16,6 +16,10 @@ import { when } from './format';
 import { LockButton } from '../components/LockButton';
 import { DiceOverlay } from '../components/D20';
 import { isEn, plural, t, useLang } from '../lib/i18n';
+import { shareInvite } from '../lib/invite';
+import { useOnline } from '../lib/online';
+import { shouldOfferInstall } from '../lib/install';
+import { InstallSheet } from '../components/InstallSheet';
 
 interface Props {
   user: User; pair: Pair; pairKey: CryptoKey; flags: Record<string, boolean>;
@@ -44,7 +48,9 @@ export function ChatScreen({ user, pair, pairKey, flags, onBack, onSettings, onL
   const seenRef = useRef<Set<string> | null>(null);
   const liveRef = useRef(new Set<string>());
   const [menu, setMenu] = useState(false);
+  const [install, setInstall] = useState(false);
   useLang();
+  const online = useOnline();
 
   const partner = pair.partner_name || (pair.partner_gender === 'zena' ? t('Partnerka', 'Partner') : pair.partner_gender === 'muz' ? 'Partner' : t('Partner/ka', 'Partner'));
   const waiting = !pair.user_b;
@@ -99,6 +105,13 @@ export function ChatScreen({ user, pair, pairKey, flags, onBack, onSettings, onL
     pushEnabled().then((on) => setPush(on ? 'on' : 'off'));
   }, []);
 
+  // Po spárování jednou nabídni přidání na plochu
+  useEffect(() => {
+    if (waiting || !shouldOfferInstall()) return;
+    const tm = setTimeout(() => setInstall(true), 2500);
+    return () => clearTimeout(tm);
+  }, [waiting]);
+
   // Posun na konec při nové zprávě
   const count = items?.length ?? 0;
   useLayoutEffect(() => {
@@ -134,7 +147,7 @@ export function ChatScreen({ user, pair, pairKey, flags, onBack, onSettings, onL
       return true;
     } catch {
       haptic('error');
-      setError(t('Odeslání se nepovedlo. Zkontroluj připojení.', 'Sending failed. Check your connection.'));
+      setError(navigator.onLine ? t('Odeslání se nepovedlo. Zkus to prosím znovu.', 'Sending failed. Please try again.') : t('Jsi bez připojení. Vzkaz odešleš, až budeš zase online.', 'You are offline. You can send it once you are back online.'));
       return false;
     } finally { setBusy(false); }
   };
@@ -217,10 +230,8 @@ export function ChatScreen({ user, pair, pairKey, flags, onBack, onSettings, onL
         </div>
       </header>
 
+      {!online && <div className="offline-bar" role="status">{t('Jsi bez připojení. Až se připojíš, vzkazy se načtou samy.', 'You are offline. Messages will load once you reconnect.')}</div>}
       <div className="chat-list" ref={listRef} onClick={() => setSelected(null)}>
-        {isIOS() && !isStandalone() && (
-          <div className="notice small">{t('V Safari klepni na Sdílet → Přidat na plochu. Hushki se pak otevírá jako aplikace a může posílat upozornění.', 'In Safari tap Share → Add to Home Screen. Hushki then opens like an app and can send notifications.')}</div>
-        )}
         {push === 'off' && !waiting && (
           <div className="notice row between small">
             <span>{t('Zapni si tichá upozornění na nové vzkazy.', 'Turn on silent notifications for new messages.')}</span>
@@ -235,6 +246,7 @@ export function ChatScreen({ user, pair, pairKey, flags, onBack, onSettings, onL
             <div className="envelope-wrap"><Envelope size={110} className="wobble" /></div>
             <p>{t('Zatím tu nic není.', 'Nothing here yet.')}</p>
             <p className="small muted">{waiting ? t('Až se partner/ka připojí s vaším kódem, můžete si posílat vzkazy.', 'Once your partner joins with your code, you can send each other messages.') : t('Vyber dole samolepku a pošli první vzkaz. Zprávy zmizí 48 hodin po té poslední.', 'Pick a sticker below and send the first message. Messages disappear 48 hours after the last one.')}</p>
+            {waiting && <InviteAgain getCode={getCode} />}
           </div>
         ) : (
           items.map((m, i) => m.meta?.sys ? (
@@ -266,7 +278,7 @@ export function ChatScreen({ user, pair, pairKey, flags, onBack, onSettings, onL
             <button className="chip" onClick={openAll}>✉ {t('Otevřít vše', 'Open all')} ({unread})</button>
           </div>
         )}
-        <StickerPicker user={user} disabled={waiting || busy} onPick={pickSticker} onDice={() => setSheet({ k: 'dice', for: 'send' })} onLegend={() => setSheet({ k: 'legend' })} />
+        <StickerPicker user={user} disabled={waiting || busy || !online} onPick={pickSticker} onDice={() => setSheet({ k: 'dice', for: 'send' })} onLegend={() => setSheet({ k: 'legend' })} />
       </footer>
 
       {sheet?.k === 'legend' && (
@@ -286,6 +298,7 @@ export function ChatScreen({ user, pair, pairKey, flags, onBack, onSettings, onL
         />
       )}
       {sheet?.k === 'slot' && <SlotSheet user={user} id={sheet.id} busy={busy} onSend={async (text) => { if (await send({ t: 'sticker', sticker: sheet.id, text })) setSheet(null); }} onClose={() => setSheet(null)} />}
+      {install && !sheet && !menu && <InstallSheet onClose={() => setInstall(false)} />}
       {menu && <QuickMenu extra={<RoomCode getCode={getCode} />} onClose={() => setMenu(false)} onSettings={() => { setMenu(false); onSettings(); }} onLogout={onLogout} onLeave={onLeave} />}
       {viewer && (
         <div className="viewer" onClick={() => setViewer(null)}>
@@ -605,6 +618,23 @@ function SystemNote({ m, mine, me, pair, partner }: { m: Decoded; mine: boolean;
   return <div className="sys-note">⏳ {text} <span className="sys-time">{when(m.created_at)}</span></div>;
 }
 
+/** Pozvánka znovu (prázdná místnost čekající na partnera). */
+function InviteAgain({ getCode }: { getCode: () => Promise<string | null> }) {
+  const [note, setNote] = useState('');
+  const go = async () => {
+    const code = await getCode();
+    if (!code) return setNote(t('Kód této místnosti v telefonu není. Najdeš ho tam, kde jsi místnost zakládal/a.', 'This room’s code isn’t on this phone. Look on the device where you created the room.'));
+    const r = await shareInvite(code);
+    setNote(r === 'copied' ? t('Pozvánka je zkopírovaná.', 'Invite copied.') : r === 'failed' ? t('Sdílení se nepovedlo.', 'Sharing failed.') : '');
+  };
+  return (
+    <div style={{ marginTop: 14 }}>
+      <button className="btn primary" style={{ width: 'auto', padding: '12px 22px' }} onClick={go}>💌 {t('Poslat pozvánku znovu', 'Send the invite again')}</button>
+      {note && <p className="small muted" style={{ marginTop: 8 }}>{note}</p>}
+    </div>
+  );
+}
+
 /** Kód místnosti: uložený v telefonu zašifrovaně, ukáže se až na klepnutí. */
 function RoomCode({ getCode }: { getCode: () => Promise<string | null> }) {
   const [code, setCode] = useState<string | null | undefined>(undefined);
@@ -625,7 +655,9 @@ function RoomCode({ getCode }: { getCode: () => Promise<string | null> }) {
     <div className="settings-item" style={{ display: 'block' }}>
       {code ? (
         <>
-          <div className="row between"><span>{t('Kód místnosti', 'Room code')}</span><button className="chip" onClick={copy}>{note || t('Zkopírovat', 'Copy')}</button></div>
+          <div className="row between"><span>{t('Kód místnosti', 'Room code')}</span>
+            <span className="row" style={{ gap: 6 }}><button className="chip" onClick={() => shareInvite(code)}>💌 {t('Pozvat', 'Invite')}</button><button className="chip" onClick={copy}>{note || t('Zkopírovat', 'Copy')}</button></span>
+          </div>
           <div className="pair-code" style={{ margin: '12px 0 6px' }}>{code}</div>
           <p className="small muted" style={{ margin: 0 }}>{t('Kód je klíč k vašim vzkazům. Pošli ho jen partnerovi a schovej si ho pro nový telefon.', 'The code is the key to your messages. Send it only to your partner and keep it for a new phone.')}</p>
         </>

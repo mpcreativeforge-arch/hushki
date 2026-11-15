@@ -24,6 +24,10 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
+      # Kouřový test na demo verzi; když neprojde, nic se nenasadí.
+      - run: npm run build
+      - run: npx playwright install --with-deps chromium
+      - run: npm test
       - run: npm run build
         env:
           # Pro vlastní doménu nastav proměnnou BASE_PATH na "/"
