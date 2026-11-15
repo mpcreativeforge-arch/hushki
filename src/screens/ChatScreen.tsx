@@ -1,25 +1,26 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { backend, type Message, type Pair, type User } from '../lib/backend';
-import { checkLock, decodePayload, encodePayload, makeLock, photoUrl, previewOf, type LockRef, type Payload, type PhotoRef } from '../lib/payload';
+import { decodePayload, encodePayload, makeLock, previewOf, type LockRef, type Payload } from '../lib/payload';
 import { enablePush, pushEnabled, pushSupported } from '../lib/push';
-import {
-  FREE_SLOTS, PIKANT_COUNT, SLOT_ICONS, STICKERS, pikantId, pikantNumber, sexOf, slotIndex, slotTexts, stickerSrc, tabTitle, tabsFor, type TabId,
-} from '../data/stickers';
-import { legend, legendText } from '../data/legend';
+import { PIKANT_COUNT, SLOT_ICONS, pikantId, pikantNumber, sexOf, slotIndex, slotTexts, tabsFor } from '../data/stickers';
 import { Envelope } from '../components/Envelope';
 import { feedback, haptic } from '../lib/feedback';
-import { Sheet } from '../components/Sheet';
 import { QuickMenu } from '../components/QuickMenu';
-import { PinPad } from '../components/PinPad';
-import { loadSlots, loadUnlocked, saveSlots, saveUnlocked } from '../lib/slots';
-import { when } from './format';
+import { loadUnlocked, saveUnlocked } from '../lib/slots';
 import { LockButton } from '../components/LockButton';
 import { DiceOverlay } from '../components/D20';
-import { isEn, plural, t, useLang } from '../lib/i18n';
-import { shareInvite } from '../lib/invite';
+import { plural, t, useLang } from '../lib/i18n';
 import { useOnline } from '../lib/online';
 import { shouldOfferInstall } from '../lib/install';
 import { InstallSheet } from '../components/InstallSheet';
+
+import { Bubble } from './chat/Bubble';
+import { StickerPicker } from './chat/StickerPicker';
+import { PikantSheet } from './chat/PikantSheet';
+import { SlotSheet } from './chat/SlotSheet';
+import { LegendSheet } from './chat/LegendSheet';
+import { remaining, SystemNote, InviteAgain, RoomCode } from './chat/RoomBits';
+import type { Decoded } from './chat/Bubble';
 
 interface Props {
   user: User; pair: Pair; pairKey: CryptoKey; flags: Record<string, boolean>;
@@ -27,11 +28,9 @@ interface Props {
   getCode: () => Promise<string | null>;
 }
 
-type Decoded = Message & { p: Payload | null; failed?: boolean };
 
 /** Zprávy zmizí 48 hodin po poslední zprávě v místnosti. */
 const TTL = 48 * 3600_000;
-const SLOT_MAX = 120;
 
 export function ChatScreen({ user, pair, pairKey, flags, onBack, onSettings, onLock, onLogout, onLeave, getCode }: Props) {
   const [items, setItems] = useState<Decoded[] | null>(null);
@@ -304,365 +303,6 @@ export function ChatScreen({ user, pair, pairKey, flags, onBack, onSettings, onL
         <div className="viewer" onClick={() => setViewer(null)}>
           <img src={viewer} alt={t('Fotka', 'Photo')} />
         </div>
-      )}
-    </div>
-  );
-}
-
-/** Zamčená část popisu: písmena se nahradí jinými, aby nešla přečíst ani ze zdrojového kódu stránky. */
-function scramble(t: string) {
-  const abc = 'aeiounrstlkmdpvjzcbh';
-  let x = t.length;
-  return t.replace(/\p{L}/gu, () => { x = (x * 31 + 7) % 997; return abc[x % abc.length]; });
-}
-
-// ---------------------------------------------------------------------------
-
-function Bubble({ m, live, mine, partner, pairKey, showTime, selected, onSelect, onOpen, onReply, onPhoto }: {
-  m: Decoded; live: boolean; mine: boolean; partner: string; pairKey: CryptoKey; showTime: boolean; selected: boolean;
-  onSelect: () => void; onOpen: () => void; onReply?: () => void; onPhoto: (url: string) => void;
-}) {
-  const sealed = !mine && !m.read_at;
-  const [revealed, setRevealed] = useState(!sealed);
-  const pressRef = useRef<{ t: number; x: number; y: number } | null>(null);
-
-  if (sealed && !revealed) {
-    return (
-      <div className="msg theirs">
-        {showTime && <div className="msg-time">{when(m.created_at)}</div>}
-        <button className="sealed" data-haptic="off" onClick={(e) => { e.stopPropagation(); setRevealed(true); onOpen(); }}>
-          <Envelope size={52} />
-          <div>
-            <div className="who">{t('Nový vzkaz od:', 'New message from:')} {partner}</div>
-            <div className="small muted">{t('Klepni a otevři', 'Tap to open')}</div>
-          </div>
-        </button>
-      </div>
-    );
-  }
-
-  const p = m.p;
-  const isSticker = p?.t === 'sticker';
-  // podržení prstu (jako ve WhatsAppu) nabídne odpověď
-  function startPress(e: React.PointerEvent) {
-    if (!onReply) return;
-    const t = window.setTimeout(() => { pressRef.current = null; haptic('tap'); onSelect(); }, 420);
-    pressRef.current = { t, x: e.clientX, y: e.clientY };
-  }
-  function cancelPress() {
-    if (pressRef.current) { clearTimeout(pressRef.current.t); pressRef.current = null; }
-  }
-  return (
-    <div className={'msg ' + (mine ? 'mine' : 'theirs')}>
-      {showTime && <div className="msg-time">{when(m.created_at)}</div>}
-      <div
-        className={'bubble-wrap' + (selected ? ' selected' : '')}
-        onPointerDown={startPress} onPointerUp={cancelPress} onPointerLeave={cancelPress} onPointerCancel={cancelPress}
-        onPointerMove={(e) => { if (pressRef.current && (Math.abs(e.clientX - pressRef.current.x) > 10 || Math.abs(e.clientY - pressRef.current.y) > 10)) cancelPress(); }}
-        onContextMenu={(e) => e.preventDefault()}
-        onClick={(e) => e.stopPropagation()}
-      >
-        {p?.reply && <div className="quote">↩ {p.reply.preview}</div>}
-        {m.failed || !p ? (
-          <div className="bubble"><i>{t('Vzkaz nejde rozšifrovat.', 'This message cannot be decrypted.')}</i></div>
-        ) : isSticker ? (
-          <div className={'sticker-msg' + ((revealed && sealed) || live ? ' pop' : '')}>
-            <StickerImg id={p.sticker!} size={128} />
-            {p.text && <div className="bubble sticker-caption">{p.text}</div>}
-          </div>
-        ) : p.t === 'photo' ? (
-          <div className="bubble photo">
-            <Photo pairKey={pairKey} photo={p.photo!} onOpen={onPhoto} />
-            {p.text && <div className="caption">{p.text}</div>}
-          </div>
-        ) : (
-          <div className={'bubble' + ((revealed && sealed) || live ? ' unfold' : '')}>{p.text}</div>
-        )}
-      </div>
-      {mine && <div className="msg-status">{m.read_at ? t('přečteno', 'read') : t('doručeno', 'delivered')}</div>}
-      {selected && onReply && (
-        <div className="msg-actions">
-          <button className="chip" onClick={(e) => { e.stopPropagation(); onReply(); }}>↩ {t('Odpovědět', 'Reply')}</button>
-        </div>
-      )}
-    </div>
-  );
-}
-
-function Photo({ pairKey, photo, onOpen }: { pairKey: CryptoKey; photo: PhotoRef; onOpen: (url: string) => void }) {
-  const [url, setUrl] = useState<string | null>(null);
-  const [failed, setFailed] = useState(false);
-  useEffect(() => {
-    photoUrl(pairKey, photo).then(setUrl).catch(() => setFailed(true));
-  }, [pairKey, photo]);
-  const ratio = photo.h / photo.w;
-  return (
-    <div className="photo-box" style={{ aspectRatio: `${photo.w} / ${photo.h}`, maxHeight: ratio > 1.3 ? 320 : undefined }}>
-      {url ? <img src={url} alt={t('Fotka', 'Photo')} onClick={(e) => { e.stopPropagation(); onOpen(url); }} />
-        : failed ? <span className="small muted">{t('Fotku nejde načíst', 'Photo cannot be loaded')}</span> : <span className="spinner" />}
-    </div>
-  );
-}
-
-/** Samolepka. Pikantní má v rohu číslo, podle kterého se hledá v Legendě. */
-export function StickerImg({ id, size, onMissing }: { id: string; size: number; onMissing?: () => void }) {
-  const [broken, setBroken] = useState(false);
-  const st = STICKERS.get(id);
-  const n = pikantNumber(id);
-  const img = broken || !st
-    ? <span className="sticker-fallback" style={{ fontSize: size * 0.62, width: size, height: size }}>{st?.fallback ?? '✨'}</span>
-    : <img className="sticker" src={stickerSrc(id)} width={size} height={size} alt={n ? `${t('Číslo', 'Number')} ${n}` : st.label} draggable={false} onError={() => { setBroken(true); onMissing?.(); }} />;
-  if (!n) return img;
-  return (
-    <span className="sticker-num" style={{ width: size, height: size }}>
-      {img}
-      <b className="num-badge" style={{ fontSize: Math.max(11, size * 0.15) }}>{n}</b>
-    </span>
-  );
-}
-
-function StickerPicker({ user, disabled, onPick, onDice, onLegend }: { user: User; disabled: boolean; onPick: (id: string) => void; onDice: () => void; onLegend: () => void }) {
-  const tabs = useMemo(() => tabsFor(user.gender), [user.gender]);
-  const [tab, setTab] = useState<TabId>(() => { try { return (sessionStorage.getItem('hushki.tab') as TabId) || 'pokec'; } catch { return 'pokec'; } });
-  // samolepky druhé sady, ke kterým zatím chybí obrázek, se v nabídce nezobrazí
-  const [missing, setMissing] = useState<Set<string>>(() => new Set());
-  const hide = (id: string) => setMissing((m) => new Set(m).add(id));
-  const cur = tabs.find((x) => x.id === tab) ?? tabs[0];
-  const choose = (id: TabId) => { setTab(id); try { sessionStorage.setItem('hushki.tab', id); } catch { /* */ } };
-  return (
-    <div className={disabled ? 'picker-off' : ''}>
-      <div className="picker-tabs" role="tablist">
-        {tabs.map((x) => (
-          <button key={x.id} role="tab" aria-selected={cur.id === x.id} className={'chip' + (cur.id === x.id ? ' on' : '')} onClick={() => choose(x.id)}>
-            {tabTitle(x.id)}{x.id === 'pikant' ? ' 🌶' : ''}
-          </button>
-        ))}
-      </div>
-      <div className="picker-grid">
-        {cur.id === 'pikant' && (
-          <>
-            <button className="sticker-btn dice-btn" aria-label={t('Hod kostkou', 'Roll the dice')} disabled={disabled} onClick={onDice}>
-              <span className="dice">🎲</span><span className="small">{t('Kostka', 'Dice')}</span>
-            </button>
-            <button className="sticker-btn dice-btn" aria-label={t('Otevřít Legendu', 'Open the Legend')} onClick={onLegend}>
-              <span className="dice">📖</span><span className="small">{t('Legenda', 'Legend')}</span>
-            </button>
-          </>
-        )}
-        {cur.stickers.filter((s) => !missing.has(s.id)).map((s) => (
-          <button key={s.id} className="sticker-btn" aria-label={s.label} disabled={disabled} onClick={() => onPick(s.id)}>
-            <StickerImg id={s.id} size={64} onMissing={pikantNumber(s.id) ? undefined : () => hide(s.id)} />
-            {slotIndex(s.id) >= 0 && <span className="slot-mark" aria-hidden>✎</span>}
-          </button>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-function PikantSheet({ n, dice, busy, onSend, onReroll, onClose }: {
-  n: number; dice?: boolean; busy: boolean; onSend: (pin: string) => Promise<boolean>; onReroll: () => void; onClose: () => void;
-}) {
-  return (
-    <Sheet onClose={onClose}>
-      <div className="center">
-        {dice && <p className="small muted" style={{ marginBottom: 4 }}>{t('Kostka rozhodla za vás', 'The dice decided for you')}</p>}
-        <div className="pop" style={{ display: 'inline-block' }}><StickerImg id={pikantId(n)} size={120} /></div>
-        <h2 style={{ margin: '6px 0 4px' }}>{t('Číslo', 'Number')} {n}</h2>
-        <p className="small muted">{t(
-          'Co číslo znamená, si partner najde v Legendě. Popis bude zamčený heslem. Zvol 4 číslice a řekni mu je, až budeš chtít.',
-          'Your partner finds what the number means in the Legend. The description will be locked with a password. Choose 4 digits and tell them when you want to.',
-        )}</p>
-      </div>
-      <PinPad length={4} busy={busy} onComplete={onSend} />
-      <button className="btn ghost small" style={{ width: '100%' }} onClick={onReroll}>🎲 {dice ? t('Hodit znovu', 'Roll again') : t('Hodit kostkou', 'Roll the dice')}</button>
-    </Sheet>
-  );
-}
-
-function SlotSheet({ user, id, busy, onSend, onClose }: { user: User; id: string; busy: boolean; onSend: (text: string) => void; onClose: () => void }) {
-  const idx = slotIndex(id);
-  const [slots, setSlots] = useState(() => loadSlots(user.id));
-  const [edit, setEdit] = useState<string | null>(null);
-  const own = idx < FREE_SLOTS ? slots[idx] ?? '' : '';
-  const save = () => {
-    const next = [...slots]; while (next.length < FREE_SLOTS) next.push('');
-    next[idx] = (edit ?? '').trim();
-    saveSlots(user.id, next); setSlots(next); setEdit(null);
-  };
-  if (edit !== null) {
-    return (
-      <Sheet onClose={onClose}>
-        <div className="stack">
-          <button className="btn ghost small" onClick={() => setEdit(null)}>← {t('Zpět', 'Back')}</button>
-          <h2 style={{ margin: 0 }}>{t('Vlastní text', 'Your own text')}</h2>
-          <p className="small muted" style={{ margin: 0 }}>{t('Partner uvidí text pod ikonou stejně jako ostatní. Nepozná, že je tvůj.', 'Your partner sees the text under the icon like any other. They can’t tell it is yours.')}</p>
-          <textarea className="textarea" style={{ minHeight: 100 }} autoFocus value={edit} maxLength={SLOT_MAX} onChange={(e) => setEdit(e.target.value)} placeholder={t('Třeba: Dnes večer jsi jen můj/moje.', 'For example: Tonight you are all mine.')} />
-          <div className="small muted" style={{ textAlign: 'right' }}>{edit.length} / {SLOT_MAX}</div>
-          <button className="btn primary" onClick={save}>{t('Uložit', 'Save')}</button>
-        </div>
-      </Sheet>
-    );
-  }
-  const texts = slotTexts(idx);
-  return (
-    <Sheet onClose={onClose}>
-      <div className="row" style={{ marginBottom: 10 }}>
-        <StickerImg id={id} size={64} />
-        <p className="small muted" style={{ margin: 0 }}>{t('Vyber text, který přijde pod ikonou.', 'Choose the text that goes under the icon.')}</p>
-      </div>
-      {own && (
-        <button className="idea mine" disabled={busy} onClick={() => onSend(own)}>
-          <b>{t('Můj text', 'My text')}</b><span>{own}</span>
-        </button>
-      )}
-      {texts.map((t) => (
-        <button key={t} className="idea" disabled={busy} onClick={() => onSend(t)}><span>{t}</span></button>
-      ))}
-      <button className="chip add" style={{ marginTop: 8 }} onClick={() => setEdit(own)}>{own ? '✎ ' + t('Upravit můj text', 'Edit my text') : '+ ' + t('Vlastní text', 'Own text')}</button>
-    </Sheet>
-  );
-}
-
-function LegendSheet({ start, locks, unlocked, onUnlock, meFemale, partnerFemale, onDice, onClose }: {
-  start?: number; locks: Map<number, LockRef[]>; unlocked: number[]; onUnlock: (n: number) => void;
-  meFemale: boolean; partnerFemale: boolean; onDice: (prev?: number) => void; onClose: () => void;
-}) {
-  const [focus, setFocus] = useState<number | null>(start ?? null);
-  const [pinFor, setPinFor] = useState<number | null>(null);
-  const refs = useRef(new Map<number, HTMLDivElement>());
-  useEffect(() => {
-    if (focus) refs.current.get(focus)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-  }, [focus, pinFor]);
-
-  if (pinFor) {
-    const tryPin = async (pin: string) => {
-      for (const l of locks.get(pinFor) ?? []) {
-        if (await checkLock(l, pin)) { feedback('open'); onUnlock(pinFor); setFocus(pinFor); setPinFor(null); return true; }
-      }
-      return false;
-    };
-    return (
-      <Sheet onClose={onClose}>
-        <button className="btn ghost small" onClick={() => setPinFor(null)}>← {t('Zpět do Legendy', 'Back to the Legend')}</button>
-        <div className="center" style={{ marginTop: 8 }}>
-          <StickerImg id={pikantId(pinFor)} size={84} />
-          <h2 style={{ margin: '6px 0 4px' }}>{t('Heslo k číslu', 'Password for number')} {pinFor}</h2>
-          <p className="small muted">{t('Heslo ti musí prozradit ten, kdo číslo poslal. Klidně si o něj řekni.', 'The password has to come from whoever sent the number. Feel free to ask for it.')}{backend.mode === 'demo' ? ' (Demo: 1234)' : ''}</p>
-        </div>
-        <PinPad length={4} onComplete={tryPin} />
-      </Sheet>
-    );
-  }
-
-  return (
-    <Sheet onClose={onClose}>
-      <div className="row between" style={{ marginBottom: 6 }}>
-        <h2 style={{ margin: 0 }}>{t('Legenda', 'Legend')}</h2>
-        <button className="chip" onClick={() => onDice(focus ?? undefined)}>🎲 {t('Kostka D20', 'D20 dice')}</button>
-      </div>
-      <p className="small muted">{t('Najdi číslo ze samolepky. Popisy jsou zamčené heslem od toho, kdo číslo poslal.', 'Find the number from the sticker. Descriptions are locked with a password from whoever sent the number.')}</p>
-      <div className="num-grid">
-        {legend().map((it) => (
-          <button key={it.n} className={'num-chip' + (focus === it.n ? ' on' : '') + (unlocked.includes(it.n) ? ' open' : '') + (locks.has(it.n) ? ' got' : '')} onClick={() => setFocus(it.n)}>{it.n}</button>
-        ))}
-      </div>
-      {legend().map((it) => {
-        const open = unlocked.includes(it.n);
-        const got = locks.has(it.n);
-        const text = legendText(it, got ? partnerFemale : meFemale);
-        const cut = Math.min(text.length, Math.max(18, text.indexOf(' ', 22)));
-        return (
-          <div key={it.n} ref={(el) => { if (el) refs.current.set(it.n, el); }} className={'legend-item' + (focus === it.n ? ' focus' : '')}>
-            <StickerImg id={pikantId(it.n)} size={56} />
-            <div style={{ minWidth: 0, flex: 1 }}>
-              <b>{it.n}. {it.title}</b>
-              {open ? <p>{text}</p> : (
-                <>
-                  <p>{text.slice(0, cut)}<span className="blurred" aria-hidden> {scramble(text.slice(cut))}</span></p>
-                  {got
-                    ? <button className="chip lock" onClick={() => setPinFor(it.n)}>🔒 {t('Zadat heslo', 'Enter password')}</button>
-                    : <span className="small muted">🔒 {t('Zamčeno. Odemkne se, až ti tohle číslo někdo pošle.', 'Locked. It unlocks when someone sends you this number.')}</span>}
-                </>
-              )}
-            </div>
-          </div>
-        );
-      })}
-    </Sheet>
-  );
-}
-
-// --- Systémové hlášky ze starší verze (ruční smazání místnosti) ---------------
-
-function remaining(at: number) {
-  const ms = at - Date.now();
-  if (ms <= 0) return t('chvíli', 'a moment');
-  const h = ms / 3600_000;
-  if (h < 1) return `${Math.max(1, Math.round(ms / 60_000))} min`;
-  return `${Math.round(h)} h`;
-}
-
-const verb = (g: string, base: string) => (g === 'zena' ? base + 'a' : g === 'muz' ? base : base + '/a');
-
-function SystemNote({ m, mine, me, pair, partner }: { m: Decoded; mine: boolean; me: User; pair: Pair; partner: string }) {
-  const seconds = m.meta.seconds as number | null;
-  const g = mine ? me.gender : pair.partner_gender;
-  const who = mine ? '' : partner + ' ';
-  const label = seconds && seconds % 86400 === 0 ? `${seconds / 86400} dní` : `${Math.round((seconds ?? 0) / 3600)} h`;
-  let text = seconds === null
-    ? `${who}${verb(g, mine ? 'Vypnul' : 'vypnul')}${mine ? ' jsi' : ''} automatické smazání místnosti.`
-    : `${who}${verb(g, mine ? 'Nastavil' : 'nastavil')}${mine ? ' jsi' : ''} smazání místnosti za ${label}.`;
-  if (isEn()) text = seconds === null ? `${mine ? 'You' : partner} turned off automatic room deletion.` : `${mine ? 'You' : partner} set the room to delete in ${seconds % 86400 === 0 ? `${seconds / 86400} days` : `${Math.round(seconds / 3600)} h`}.`;
-  text = text.charAt(0).toUpperCase() + text.slice(1);
-  return <div className="sys-note">⏳ {text} <span className="sys-time">{when(m.created_at)}</span></div>;
-}
-
-/** Pozvánka znovu (prázdná místnost čekající na partnera). */
-function InviteAgain({ getCode }: { getCode: () => Promise<string | null> }) {
-  const [note, setNote] = useState('');
-  const go = async () => {
-    const code = await getCode();
-    if (!code) return setNote(t('Kód této místnosti v telefonu není. Najdeš ho tam, kde jsi místnost zakládal/a.', 'This room’s code isn’t on this phone. Look on the device where you created the room.'));
-    const r = await shareInvite(code);
-    setNote(r === 'copied' ? t('Pozvánka je zkopírovaná.', 'Invite copied.') : r === 'failed' ? t('Sdílení se nepovedlo.', 'Sharing failed.') : '');
-  };
-  return (
-    <div style={{ marginTop: 14 }}>
-      <button className="btn primary" style={{ width: 'auto', padding: '12px 22px' }} onClick={go}>💌 {t('Poslat pozvánku znovu', 'Send the invite again')}</button>
-      {note && <p className="small muted" style={{ marginTop: 8 }}>{note}</p>}
-    </div>
-  );
-}
-
-/** Kód místnosti: uložený v telefonu zašifrovaně, ukáže se až na klepnutí. */
-function RoomCode({ getCode }: { getCode: () => Promise<string | null> }) {
-  const [code, setCode] = useState<string | null | undefined>(undefined);
-  const [note, setNote] = useState('');
-  const show = async () => setCode(await getCode());
-  const copy = async () => {
-    if (!code) return;
-    try { await navigator.clipboard.writeText(code); setNote(t('Zkopírováno.', 'Copied.')); } catch { setNote(''); }
-  };
-  if (code === undefined) {
-    return (
-      <div className="settings-item"><span>{t('Kód místnosti', 'Room code')}</span>
-        <button className="chip" onClick={show}>{t('Zobrazit', 'Show')}</button>
-      </div>
-    );
-  }
-  return (
-    <div className="settings-item" style={{ display: 'block' }}>
-      {code ? (
-        <>
-          <div className="row between"><span>{t('Kód místnosti', 'Room code')}</span>
-            <span className="row" style={{ gap: 6 }}><button className="chip" onClick={() => shareInvite(code)}>💌 {t('Pozvat', 'Invite')}</button><button className="chip" onClick={copy}>{note || t('Zkopírovat', 'Copy')}</button></span>
-          </div>
-          <div className="pair-code" style={{ margin: '12px 0 6px' }}>{code}</div>
-          <p className="small muted" style={{ margin: 0 }}>{t('Kód je klíč k vašim vzkazům. Pošli ho jen partnerovi a schovej si ho pro nový telefon.', 'The code is the key to your messages. Send it only to your partner and keep it for a new phone.')}</p>
-        </>
-      ) : (
-        <p className="small muted" style={{ margin: 0 }}>{t('Kód této místnosti v telefonu uložený není, protože místnost vznikla ve starší verzi aplikace. Nové místnosti si ho pamatují.', 'This room’s code is not stored on the phone because the room was created in an older version. New rooms remember it.')}</p>
       )}
     </div>
   );
