@@ -14,7 +14,8 @@ import { useOnline } from '../lib/online';
 import { shouldOfferInstall } from '../lib/install';
 import { InstallSheet } from '../components/InstallSheet';
 
-import { Bubble } from './chat/Bubble';
+import { Bubble, GroupEnvelope } from './chat/Bubble';
+import { loadRecent, pushRecent } from '../lib/recent';
 import { StickerPicker } from './chat/StickerPicker';
 import { PikantSheet } from './chat/PikantSheet';
 import { SlotSheet } from './chat/SlotSheet';
@@ -48,6 +49,10 @@ export function ChatScreen({ user, pair, pairKey, flags, onBack, onSettings, onL
   const liveRef = useRef(new Set<string>());
   const [menu, setMenu] = useState(false);
   const [install, setInstall] = useState(false);
+  const [recent, setRecent] = useState<string[]>(() => loadRecent(user.id));
+  const [opened, setOpened] = useState<Set<string>>(() => new Set());
+  const [swipeHint, setSwipeHint] = useState(() => { try { return !localStorage.getItem('hushki.hint.swipe'); } catch { return false; } });
+  const hideSwipeHint = () => { setSwipeHint(false); try { localStorage.setItem('hushki.hint.swipe', '1'); } catch { /* */ } };
   useLang();
   const online = useOnline();
 
@@ -141,6 +146,7 @@ export function ChatScreen({ user, pair, pairKey, flags, onBack, onSettings, onL
       const msg = await backend.sendMessage(pair.id, ciphertext, iv);
       backend.notifyPartner(msg.id);
       setReplyTo(null);
+      if (p.t === 'sticker' && p.sticker) setRecent(pushRecent(user.id, p.sticker));
       feedback('sticker');
       if (backend.mode === 'demo') demoReply();
       return true;
@@ -190,17 +196,48 @@ export function ChatScreen({ user, pair, pairKey, flags, onBack, onSettings, onL
     if (m.sender_id !== user.id && !m.read_at) backend.markRead(m.id).catch(() => undefined);
   };
 
-  const openAll = () => {
+  // Otevření skupiny obálek: vzkazy se hned ukážou (s animací), na server jde přečteno.
+  const openGroup = (ids: string[]) => {
     feedback('open');
-    for (const m of items ?? []) if (m.sender_id !== user.id && !m.read_at) backend.markRead(m.id).catch(() => undefined);
+    setOpened((cur) => { const next = new Set(cur); ids.forEach((x) => next.add(x)); return next; });
+    for (const x of ids) backend.markRead(x).catch(() => undefined);
   };
+
+  const remove = async (m: Decoded) => {
+    await backend.deleteMessage(m.id);
+    setSelected(null);
+    if (replyTo?.id === m.id) setReplyTo(null);
+    setItems((cur) => cur?.filter((x) => x.id !== m.id) ?? cur);
+  };
+
+  const reply = (m: Decoded) => { setReplyTo(m); setSelected(null); if (swipeHint) hideSwipeHint(); };
 
   const turnOnPush = async () => {
     const r = await enablePush().catch(() => 'denied' as const);
     setPush(r === 'ok' ? 'on' : r === 'unsupported' ? 'unsupported' : 'off');
   };
 
-  const unread = items?.filter((m) => m.sender_id !== user.id && !m.read_at).length ?? 0;
+  const unread = items?.filter((m) => m.sender_id !== user.id && !m.read_at && !opened.has(m.id)).length ?? 0;
+  // Legenda: čísla od partnera, která ještě nemám odemčená
+  const lockedCount = [...locks.keys()].filter((n) => !unlocked.includes(n)).length;
+  const lastMine = items ? [...items].reverse().find((m) => m.sender_id === user.id && !m.meta?.sys)?.id : undefined;
+  const hasTheirs = !!items?.some((m) => m.sender_id !== user.id && !m.meta?.sys && (m.read_at || opened.has(m.id)));
+
+  // Několik neotevřených vzkazů za sebou se schová do jedné obálky.
+  type Row = { k: 'm'; m: Decoded; i: number } | { k: 'g'; ids: string[]; i: number; at: string };
+  const rows: Row[] = [];
+  if (items) {
+    for (let i = 0; i < items.length; i++) {
+      const m = items[i];
+      const sealedIn = (x: Decoded) => !x.meta?.sys && x.sender_id !== user.id && !x.read_at && !opened.has(x.id) && !liveRef.current.has(x.id);
+      if (sealedIn(m)) {
+        let j = i; while (j + 1 < items.length && sealedIn(items[j + 1])) j++;
+        if (j > i) { rows.push({ k: 'g', ids: items.slice(i, j + 1).map((x) => x.id), i, at: m.created_at }); i = j; continue; }
+      }
+      rows.push({ k: 'm', m, i });
+    }
+  }
+  const gap = (i: number) => !items || i === 0 || new Date(items[i].created_at).getTime() - new Date(items[i - 1].created_at).getTime() > 15 * 60_000;
   const last = items?.length ? items[items.length - 1].created_at : null;
   const status = waiting ? t('Čekáme na připojení partnera', 'Waiting for your partner to join')
     : unread ? `${unread} ${plural(unread, 'nový vzkaz', 'nové vzkazy', 'nových vzkazů', 'new message', 'new messages')}`
@@ -219,7 +256,8 @@ export function ChatScreen({ user, pair, pairKey, flags, onBack, onSettings, onL
           </div>
         </div>
         <div className="row" style={{ gap: 0 }}>
-          <button className="icon-btn" aria-label={t('Legenda', 'Legend')} onClick={() => setSheet({ k: 'legend' })}>
+          <button className="icon-btn" aria-label={t('Legenda', 'Legend') + (lockedCount ? ` (${lockedCount} ${t('zamčeno', 'locked')})` : '')} onClick={() => setSheet({ k: 'legend' })}>
+            {lockedCount > 0 && <b className="icon-badge" aria-hidden>{lockedCount}</b>}
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M5 4.5h10a3 3 0 013 3v12H8a3 3 0 01-3-3z" /><path d="M5 16.5a3 3 0 013-3h10" /><path d="M9 8h5" /></svg>
           </button>
           <LockButton onLock={onLock} />
@@ -248,19 +286,29 @@ export function ChatScreen({ user, pair, pairKey, flags, onBack, onSettings, onL
             {waiting && <InviteAgain getCode={getCode} />}
           </div>
         ) : (
-          items.map((m, i) => m.meta?.sys ? (
-            <SystemNote key={m.id} m={m} mine={m.sender_id === user.id} me={user} pair={pair} partner={partner} />
+          rows.map((r) => r.k === 'g' ? (
+            <GroupEnvelope key={'g' + r.ids[0]} count={r.ids.length} partner={partner} at={r.at} showTime={gap(r.i)} onOpen={() => openGroup(r.ids)} />
+          ) : r.m.meta?.sys ? (
+            <SystemNote key={r.m.id} m={r.m} mine={r.m.sender_id === user.id} me={user} pair={pair} partner={partner} />
           ) : (
             <Bubble
-              key={m.id} m={m} live={liveRef.current.has(m.id)} mine={m.sender_id === user.id} partner={partner} pairKey={pairKey}
-              showTime={i === 0 || new Date(m.created_at).getTime() - new Date(items[i - 1].created_at).getTime() > 15 * 60_000}
-              selected={selected === m.id}
-              onSelect={() => setSelected(m.id)}
-              onOpen={() => open(m)}
-              onReply={canReply ? () => { setReplyTo(m); setSelected(null); } : undefined}
+              key={r.m.id} m={opened.has(r.m.id) && !r.m.read_at ? { ...r.m, read_at: new Date().toISOString() } : r.m}
+              live={liveRef.current.has(r.m.id) || opened.has(r.m.id)} mine={r.m.sender_id === user.id} partner={partner} pairKey={pairKey}
+              showTime={gap(r.i)} showStatus={r.m.id === lastMine}
+              selected={selected === r.m.id}
+              onSelect={() => setSelected(r.m.id)}
+              onOpen={() => open(r.m)}
+              onReply={canReply ? () => reply(r.m) : undefined}
+              onDelete={r.m.sender_id === user.id ? () => remove(r.m) : undefined}
               onPhoto={setViewer}
             />
           ))
+        )}
+        {swipeHint && canReply && hasTheirs && (
+          <div className="notice row between small swipe-hint">
+            <span>{t('Tip: přetáhni vzkaz doprava a odpovíš na něj. Podržením svého vzkazu ho smažeš.', 'Tip: swipe a message to the right to reply. Press and hold your own message to delete it.')}</span>
+            <button className="icon-btn" aria-label={t('Zavřít tip', 'Close tip')} onClick={(e) => { e.stopPropagation(); hideSwipeHint(); }}>✕</button>
+          </div>
         )}
       </div>
 
@@ -272,12 +320,7 @@ export function ChatScreen({ user, pair, pairKey, flags, onBack, onSettings, onL
             <button className="icon-btn" aria-label={t('Zrušit odpověď', 'Cancel reply')} onClick={() => setReplyTo(null)}>✕</button>
           </div>
         )}
-        {unread > 1 && (
-          <div className="chips" style={{ marginBottom: 8 }}>
-            <button className="chip" onClick={openAll}>✉ {t('Otevřít vše', 'Open all')} ({unread})</button>
-          </div>
-        )}
-        <StickerPicker user={user} disabled={waiting || busy || !online} onPick={pickSticker} onDice={() => setSheet({ k: 'dice', for: 'send' })} onLegend={() => setSheet({ k: 'legend' })} />
+        <StickerPicker user={user} recent={recent} disabled={waiting || busy || !online} onPick={pickSticker} onDice={() => setSheet({ k: 'dice', for: 'send' })} onLegend={() => setSheet({ k: 'legend' })} />
       </footer>
 
       {sheet?.k === 'legend' && (
@@ -296,7 +339,7 @@ export function ChatScreen({ user, pair, pairKey, flags, onBack, onSettings, onL
           onClose={() => setSheet(sheet.for === 'legend' ? { k: 'legend', n: sheet.prev } : null)}
         />
       )}
-      {sheet?.k === 'slot' && <SlotSheet user={user} id={sheet.id} busy={busy} onSend={async (text) => { if (await send({ t: 'sticker', sticker: sheet.id, text })) setSheet(null); }} onClose={() => setSheet(null)} />}
+      {sheet?.k === 'slot' && <SlotSheet user={user} id={sheet.id} busy={busy} onSend={async (id, text) => { if (await send({ t: 'sticker', sticker: id, text })) setSheet(null); }} onClose={() => setSheet(null)} />}
       {install && !sheet && !menu && <InstallSheet onClose={() => setInstall(false)} />}
       {menu && <QuickMenu extra={<RoomCode getCode={getCode} />} onClose={() => setMenu(false)} onSettings={() => { setMenu(false); onSettings(); }} onLogout={onLogout} onLeave={onLeave} />}
       {viewer && (

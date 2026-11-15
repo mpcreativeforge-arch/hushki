@@ -1,16 +1,18 @@
 import { useState } from 'react';
 import { type User } from '../../lib/backend';
-import { FREE_SLOTS, slotIndex, slotTexts } from '../../data/stickers';
+import { FREE_SLOTS, SLOT_ICONS, sexOf, slotIndex, slotTexts } from '../../data/stickers';
 import { Sheet } from '../../components/Sheet';
 import { loadSlots, saveSlots } from '../../lib/slots';
 import { t } from '../../lib/i18n';
 
-
-const SLOT_MAX = 120;
 import { StickerImg } from './Bubble';
 
-export function SlotSheet({ user, id, busy, onSend, onClose }: { user: User; id: string; busy: boolean; onSend: (text: string) => void; onClose: () => void }) {
+const SLOT_MAX = 120;
+
+export function SlotSheet({ user, id: start, busy, onSend, onClose }: { user: User; id: string; busy: boolean; onSend: (id: string, text: string) => void; onClose: () => void }) {
+  const [id, setId] = useState(start);
   const idx = slotIndex(id);
+  const icons = SLOT_ICONS[sexOf(user.gender)];
   const [slots, setSlots] = useState(() => loadSlots(user.id));
   const [edit, setEdit] = useState<string | null>(null);
   const own = idx < FREE_SLOTS ? slots[idx] ?? '' : '';
@@ -36,17 +38,21 @@ export function SlotSheet({ user, id, busy, onSend, onClose }: { user: User; id:
   const texts = slotTexts(idx);
   return (
     <Sheet onClose={onClose}>
-      <div className="row" style={{ marginBottom: 10 }}>
-        <StickerImg id={id} size={64} />
-        <p className="small muted" style={{ margin: 0 }}>{t('Vyber text, který přijde pod ikonou.', 'Choose the text that goes under the icon.')}</p>
+      <p className="small muted" style={{ margin: '0 0 8px' }}>{t('Vyber ikonu a text, který přijde pod ní.', 'Pick an icon and the text that goes under it.')}</p>
+      <div className="row slot-icons" role="radiogroup" aria-label={t('Ikona', 'Icon')} style={{ marginBottom: 10 }}>
+        {icons.map((ic) => (
+          <button key={ic} role="radio" aria-checked={ic === id} className={'slot-icon' + (ic === id ? ' on' : '')} onClick={() => setId(ic)}>
+            <StickerImg id={ic} size={56} />
+          </button>
+        ))}
       </div>
       {own && (
-        <button className="idea mine" disabled={busy} onClick={() => onSend(own)}>
+        <button className="idea mine" disabled={busy} onClick={() => onSend(id, own)}>
           <b>{t('Můj text', 'My text')}</b><span>{own}</span>
         </button>
       )}
-      {texts.map((t) => (
-        <button key={t} className="idea" disabled={busy} onClick={() => onSend(t)}><span>{t}</span></button>
+      {texts.map((txt) => (
+        <button key={txt} className="idea" disabled={busy} onClick={() => onSend(id, txt)}><span>{txt}</span></button>
       ))}
       <button className="chip add" style={{ marginTop: 8 }} onClick={() => setEdit(own)}>{own ? '✎ ' + t('Upravit můj text', 'Edit my text') : '+ ' + t('Vlastní text', 'Own text')}</button>
     </Sheet>

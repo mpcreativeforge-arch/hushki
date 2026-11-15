@@ -114,7 +114,7 @@ export function tabsFor(gender: Gender): StickerTab[] {
   const old = (f ? holka : kluk).filter((x) => !SLOT_ICONS[f ? 'zena' : 'muz'].includes(x.id));
   return [
     { id: 'pokec', title: 'Pokec', stickers: pick(range(f ? 't' : 's')) },
-    { id: 'domluva', title: 'Domluva', stickers: [...pick(SLOT_ICONS[f ? 'zena' : 'muz']), ...pick(range(f ? 'e' : 'd'))] },
+    { id: 'domluva', title: 'Domluva', stickers: pick(range(f ? 'e' : 'd')) },
     { id: 'oceneni', title: 'Ocenění', stickers: [...pick(range(f ? 'r' : 'o')), ...old] },
     { id: 'darky', title: 'Dárky', stickers: pick(range('g')) },
     { id: 'pikant', title: 'Hushki pikant', stickers: pick(range('p', PIKANT.length)) },

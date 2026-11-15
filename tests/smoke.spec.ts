@@ -35,6 +35,36 @@ test('registrace, místnost, samolepka, pikant, Legenda a angličtina', async ({
   await p.locator('.picker-grid .sticker-btn').nth(1).click();
   await expect(p.locator('.msg.mine').last()).toBeVisible();
 
+  // samolepka s vlastním textem: dlaždice „+ text“ a výběr ikony
+  await p.getByRole('button', { name: 'Samolepka s textem' }).click();
+  await p.getByRole('radio').nth(1).click();
+  await p.locator('.sheet .idea').first().click();
+  await expect(p.locator('.msg.mine .sticker-caption').last()).toBeVisible();
+  // stav jen u posledního vlastního vzkazu, naposledy použité jako první záložka
+  await expect(p.locator('.msg-status')).toHaveCount(1);
+  await expect(p.getByRole('tab', { name: 'Naposledy použité' })).toBeVisible();
+
+  // smazání vlastního vzkazu podržením
+  const mine = await p.locator('.msg.mine').count();
+  const box = (await p.locator('.msg.mine .bubble-wrap').last().boundingBox())!;
+  await p.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+  await p.mouse.down(); await p.waitForTimeout(650); await p.mouse.up();
+  await p.getByRole('button', { name: /Smazat/ }).click();
+  await p.getByRole('button', { name: /Opravdu smazat/ }).click();
+  await expect(p.locator('.msg.mine')).toHaveCount(mine - 1);
+
+  // dva vzkazy od partnera, když chat není otevřený → jedna obálka
+  await p.getByRole('tab', { name: 'Pokec' }).click();
+  await p.locator('.picker-grid .sticker-btn').nth(2).click();
+  await p.locator('.picker-grid .sticker-btn').nth(3).click();
+  await p.getByRole('button', { name: 'Zpět na místnosti' }).click();
+  await p.waitForTimeout(6000);
+  await p.locator('.room').first().click();
+  const group = p.locator('.sealed.group').last();
+  await expect(group).toBeVisible();
+  await group.click();
+  await expect(p.locator('.sealed.group')).toHaveCount(0);
+
   // pikant: kostka a odeslání čísla
   await p.getByRole('tab', { name: /pikant/ }).click();
   await p.getByRole('button', { name: 'Hod kostkou' }).click();
