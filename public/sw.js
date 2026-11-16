@@ -1,5 +1,5 @@
 // Hushki service worker: offline shell + diskrétní push upozornění.
-const CACHE = 'hushki-v2';
+const CACHE = 'hushki-v3';
 const SCOPE = self.registration.scope;
 
 self.addEventListener('install', (e) => {
@@ -36,8 +36,8 @@ self.addEventListener('push', (e) => {
   e.waitUntil(self.registration.showNotification(data.title, {
     body: data.body,
     tag: data.tag,
-    icon: SCOPE + 'icons/icon-192.png',
-    badge: SCOPE + 'icons/icon-192.png',
+    icon: SCOPE + 'app-icons/icon-192.png',
+    badge: SCOPE + 'app-icons/icon-192.png',
   }));
 });
 
