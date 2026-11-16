@@ -18,8 +18,8 @@ self.addEventListener('fetch', (e) => {
   if (req.method !== 'GET') return;
   const url = new URL(req.url);
   if (url.origin !== location.origin) return; // Supabase apod. nikdy necachovat
-  if (req.mode === 'navigate') {
-    e.respondWith(fetch(req).catch(() => caches.match(SCOPE)));
+  if (req.mode === 'navigate' || url.pathname.endsWith('.webmanifest')) {
+    e.respondWith(fetch(req).catch(() => caches.match(req.mode === 'navigate' ? SCOPE : req)));
     return;
   }
   e.respondWith(
