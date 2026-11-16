@@ -36,6 +36,10 @@ export interface Backend {
   signUp(email: string, password: string, name: string, gender: Gender): Promise<{ needsConfirm: boolean }>;
   signIn(email: string, password: string): Promise<void>;
   signOut(): Promise<void>;
+  /** Pošle e-mail s odkazem na nastavení nového hesla. */
+  resetPassword(email: string): Promise<void>;
+  /** Nastaví nové heslo přihlášenému uživateli (po odkazu z e-mailu). */
+  updatePassword(password: string): Promise<void>;
   /** Uloží souhlas se zásadami ochrany soukromí. */
   acceptPrivacy(version: number): Promise<void>;
   /** Smaže účet a všechna data (GDPR). */
@@ -138,6 +142,14 @@ function supabaseBackend(url: string, anonKey: string): Backend {
       if (error) throw new BackendError('auth', error.message);
     },
     async signOut() { await sb.auth.signOut(); },
+    async resetPassword(email) {
+      const { error } = await sb.auth.resetPasswordForEmail(email, { redirectTo: location.origin + import.meta.env.BASE_URL });
+      if (error) throw new BackendError('auth', error.message);
+    },
+    async updatePassword(password) {
+      const { error } = await sb.auth.updateUser({ password });
+      if (error) throw new BackendError('auth', error.message);
+    },
     async acceptPrivacy(version) {
       const { error } = await sb.from('profiles').update({ privacy_version: version, privacy_accepted_at: new Date().toISOString() }).eq('id', await uid());
       fail(error);
@@ -312,6 +324,8 @@ function demoBackend(): Backend {
       save({ ...s, user: s.user ?? s.account ?? { id: 'demo-me', email, name: email.split('@')[0], gender: 'neuvedeno' }, account: null });
       authListeners.forEach((l) => l());
     },
+    async resetPassword() { await wait(); },
+    async updatePassword() { await wait(); },
     async signOut() {
       // Jako u skutečného serveru: odhlášení nic nemaže, místnosti počkají na další přihlášení.
       const s = load();
@@ -433,5 +447,8 @@ function demoBackend(): Backend {
 
 const url = import.meta.env.VITE_SUPABASE_URL as string | undefined;
 const key = import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined;
+
+/** Stránka otevřená z e-mailu pro obnovu hesla (zjistit dřív, než Supabase adresu vyčistí). */
+export const recoveryLink = typeof location !== 'undefined' && /type=recovery/.test(location.hash);
 
 export const backend: Backend = url && key ? supabaseBackend(url, key) : demoBackend();
