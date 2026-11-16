@@ -1,4 +1,7 @@
 # Webglobe (Apache): HTTPS, jednostránková aplikace, service worker bez mezipaměti
+# Správný typ manifestu, jinak Chrome nenabídne instalaci s ikonou
+AddType application/manifest+json .webmanifest
+
 RewriteEngine On
 RewriteCond %{HTTPS} !=on
 RewriteCond %{HTTP:X-Forwarded-Proto} !=https
