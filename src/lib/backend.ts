@@ -214,7 +214,8 @@ function supabaseBackend(url: string, anonKey: string): Backend {
     async markRead(id) { fail((await sb.rpc('mark_read', { p_message: id })).error); },
     async deleteMessage(id) { fail((await sb.from('messages').delete().eq('id', id)).error); },
     subscribe(pairId, cb) {
-      const ch = sb.channel('pair-' + pairId)
+      // Jedinečný název: odhlášení starého kanálu je asynchronní a stejný název by vrátil ještě přihlášený kanál.
+      const ch = sb.channel(`pair-${pairId}-${crypto.randomUUID()}`)
         .on('postgres_changes', { event: '*', schema: 'public', table: 'messages', filter: `pair_id=eq.${pairId}` }, cb)
         .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'pairs', filter: `id=eq.${pairId}` }, cb)
         .subscribe();
