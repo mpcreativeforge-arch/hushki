@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { type User } from '../../lib/backend';
-import { SLOT_ICONS, STICKERS, pikantNumber, slotIndex, tabTitle, tabsFor, type TabId } from '../../data/stickers';
+import { STICKERS, pikantNumber, tabTitle, tabsFor, type TabId } from '../../data/stickers';
 import { useStickerSex } from '../../lib/style';
 import { t } from '../../lib/i18n';
 
@@ -8,8 +8,8 @@ import { StickerImg } from './Bubble';
 
 type Tab = TabId | 'recent';
 
-export function StickerPicker({ user, recent, disabled, onPick, onDice, onLegend }: {
-  user: User; recent: string[]; disabled: boolean; onPick: (id: string) => void; onDice: () => void; onLegend: () => void;
+export function StickerPicker({ user, recent, disabled, onPick, onDice, onLegend, lockedCount = 0 }: {
+  user: User; recent: string[]; disabled: boolean; onPick: (id: string) => void; onDice: () => void; onLegend: () => void; lockedCount?: number;
 }) {
   const sex = useStickerSex(user.id, user.gender);
   const tabs = useMemo(() => tabsFor(sex === 'zena' ? 'zena' : 'muz'), [sex]);
@@ -21,11 +21,13 @@ export function StickerPicker({ user, recent, disabled, onPick, onDice, onLegend
   const cur: Tab = tab === 'recent' && !recentList.length ? 'pokec' : (tab === 'recent' || tabs.some((x) => x.id === tab) ? tab : 'pokec');
   const curTab = tabs.find((x) => x.id === cur);
   const choose = (id: Tab) => { setTab(id); try { sessionStorage.setItem('hushki.tab', id); } catch { /* */ } };
-  const textIcon = SLOT_ICONS[sex][0];
   const list = cur === 'recent' ? recentList : (curTab?.stickers.map((s) => s.id) ?? []).filter((id) => !missing.has(id));
   return (
     <div className={disabled ? 'picker-off' : ''}>
       <div className="picker-tabs" role="tablist">
+        <button className="chip legend-chip" aria-label={t('Legenda', 'Legend') + (lockedCount ? ` (${lockedCount} ${t('zamčeno', 'locked')})` : '')} onClick={onLegend}>
+          📖{lockedCount > 0 && <b className="icon-badge" aria-hidden>{lockedCount}</b>}
+        </button>
         {recentList.length > 0 && (
           <button role="tab" aria-selected={cur === 'recent'} aria-label={t('Naposledy použité', 'Recently used')} className={'chip' + (cur === 'recent' ? ' on' : '')} onClick={() => choose('recent')}>🕘</button>
         )}
@@ -45,16 +47,10 @@ export function StickerPicker({ user, recent, disabled, onPick, onDice, onLegend
               <span className="dice">📖</span><span className="small">{t('Legenda', 'Legend')}</span>
             </button>
           </>
-        ) : cur !== 'recent' && (
-          <button className="sticker-btn text-tile" aria-label={t('Samolepka s textem', 'Sticker with text')} disabled={disabled} onClick={() => onPick(textIcon)}>
-            <StickerImg id={textIcon} size={44} />
-            <span className="small">+ {t('text', 'text')}</span>
-          </button>
-        )}
+        ) : null}
         {list.map((id) => (
           <button key={id} className="sticker-btn" aria-label={STICKERS.get(id)?.label ?? id} disabled={disabled} onClick={() => onPick(id)}>
             <StickerImg id={id} size={64} onMissing={pikantNumber(id) ? undefined : () => hide(id)} />
-            {slotIndex(id) >= 0 && <span className="slot-mark" aria-hidden>✎</span>}
           </button>
         ))}
       </div>

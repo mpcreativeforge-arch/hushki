@@ -45,11 +45,10 @@ test('registrace, místnost, samolepka, pikant, Legenda a angličtina', async ({
   await p.locator('.picker-grid .sticker-btn').nth(1).click();
   await expect(p.locator('.msg.mine').last()).toBeVisible();
 
-  // samolepka s vlastním textem: dlaždice „+ text“ a výběr ikony
-  await p.getByRole('button', { name: 'Samolepka s textem' }).click();
-  await p.getByRole('radio').nth(1).click();
-  await p.locator('.sheet .idea').first().click();
-  await expect(p.locator('.msg.mine .sticker-caption').last()).toBeVisible();
+  // otazník jako první samolepka Pokecu, dlaždice „+ text“ už není
+  await expect(p.getByRole('button', { name: 'Samolepka s textem' })).toHaveCount(0);
+  await p.getByRole('button', { name: '?', exact: true }).click();
+  await expect(p.locator('.msg.mine')).toHaveCount(2);
   // stav jen u posledního vlastního vzkazu, naposledy použité jako první záložka
   await expect(p.locator('.msg-status')).toHaveCount(1);
   await expect(p.getByRole('tab', { name: 'Naposledy použité' })).toBeVisible();

@@ -1,5 +1,5 @@
 // Vlastní texty u univerzálních ikon (sloty). Ukládají se jen v tomto telefonu.
-import { FREE_SLOTS } from '../data/stickers';
+const FREE_SLOTS = 2;
 
 const key = (userId: string) => `hushki.slots.${userId}`;
 

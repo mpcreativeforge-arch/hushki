@@ -14,15 +14,8 @@ const SECTIONS = (): { icon: string; title: string; body: string }[] => [
   {
     icon: '🐾', title: t('Samolepky a záložky', 'Stickers and tabs'),
     body: t(
-      'Píše se jen samolepkami. Dole vybereš záložku (Pokec, Domluva, Ocenění, Dárky, Hushki pikant) a ťuknutím na samolepku ji hned pošleš. Hodiny 🕘 vlevo ukážou naposledy použité. Přetažením vzkazu doprava na něj odpovíš, podržením svého vzkazu ho smažeš u obou.',
-      'You chat with stickers only. Pick a tab at the bottom (Chat, Plans, Praise, Gifts, Hushki spicy) and tap a sticker to send it right away. The clock 🕘 on the left shows recently used ones. Swipe a message to the right to reply, press and hold your own message to delete it for both of you.',
-    ),
-  },
-  {
-    icon: '✎', title: t('Samolepky s textem', 'Stickers with text'),
-    body: t(
-      'První dlaždice „+ text“ v každé záložce pošle samolepku s textem. Vybereš jednu ze dvou ikon a jeden z hotových textů, nebo si napíšeš vlastní. Partner nepozná, který je tvůj.',
-      'The first tile “+ text” in each tab sends a sticker with a caption. Pick one of two icons and a ready-made text, or write your own. Your partner can’t tell which one is yours.',
+      'Píše se jen samolepkami. Dole vybereš záložku (Pokec, Domluva, Ocenění, Dárky, Hushki pikant) a ťuknutím na samolepku ji hned pošleš. Knížka 📖 vlevo otevře Legendu, hodiny 🕘 vedle ní naposledy použité. Přetažením vzkazu doprava na něj odpovíš, podržením svého vzkazu ho smažeš u obou.',
+      'You chat with stickers only. Pick a tab at the bottom (Chat, Plans, Praise, Gifts, Hushki spicy) and tap a sticker to send it right away. The book 📖 on the left opens the Legend, the clock 🕘 next to it shows recently used ones. Swipe a message to the right to reply, press and hold your own message to delete it for both of you.',
     ),
   },
   {
@@ -35,15 +28,15 @@ const SECTIONS = (): { icon: string; title: string; body: string }[] => [
   {
     icon: '🎲', title: t('Kostka D20', 'D20 dice'),
     body: t(
-      'Nevíte, co dnes večer? V záložce Hushki pikant ťukni na Kostku a pak na kostku samotnou. Padne číslo 1 až 20 a můžeš ho rovnou poslat.',
-      'Can’t decide about tonight? In the Hushki spicy tab tap Dice, then tap the dice itself. It lands on 1 to 20 and you can send that number straight away.',
+      'Nevíte, co dnes večer? V záložce Hushki pikant ťukni na Kostku a pak na kostku samotnou. Padne číslo 1 až 20 a můžeš ho rovnou poslat. Partner u vzkazu uvidí, že padlo na kostce. Čísla 21 až 35 vybereš přímo v záložce.',
+      'Can’t decide about tonight? In the Hushki spicy tab tap Dice, then tap the dice itself. It lands on 1 to 20 and you can send that number straight away. Your partner sees it came from the dice. Numbers 21 to 35 are picked straight from the tab.',
     ),
   },
   {
     icon: '📖', title: t('Legenda', 'Legend'),
     body: t(
-      'Ikona knížky nahoře otevře Legendu všech pikantních čísel. Číslo na ikoně ukazuje, kolik čísel od partnera čeká na odemčení. Začátek popisu je vidět vždy, zbytek odemkne heslo od partnera.',
-      'The book icon at the top opens the Legend of all spicy numbers. The count on the icon shows how many numbers from your partner are waiting to be unlocked. The start of each description is always visible, the rest unlocks with your partner’s password.',
+      'Knížka 📖 dole vedle hodin otevře Legendu všech pikantních čísel. Číslo u ní ukazuje, kolik čísel od partnera čeká na odemčení. Začátek popisu je vidět vždy, zbytek odemkne heslo od partnera.',
+      'The book 📖 at the bottom next to the clock opens the Legend of all spicy numbers. The count next to it shows how many numbers from your partner are waiting to be unlocked. The start of each description is always visible, the rest unlocks with your partner’s password.',
     ),
   },
   {
@@ -84,6 +77,11 @@ export function HelpSheet({ onClose }: { onClose: () => void }) {
           </div>
         ))}
       </div>
+      <h3 style={{ margin: '18px 0 8px' }}>{t('Ukázka', 'Preview')}</h3>
+      <p className="small muted" style={{ margin: '0 0 6px' }}>{t('Takhle vypadá pozvánka, kterou partner dostane:', 'This is the invite your partner receives:')}</p>
+      <div className="demo-invite">{t('Pojď se mnou do Hushki, jen pro nás dva. 🤫 Ťukni na odkaz:', 'Join me on Hushki, just for the two of us. 🤫 Tap the link:')} <u>hushki.cz/#join=…</u></div>
+      <p className="small muted" style={{ margin: '12px 0 6px' }}>{t('A takhle upozornění na nový vzkaz (obsah nikdy neprozradí):', 'And this is a new message notification (it never reveals the content):')}</p>
+      <div className="demo-notif"><img src={`${import.meta.env.BASE_URL}icons/icon-192.png`} alt="" width={36} height={36} /><div><b>Hushki</b><span className="small muted" style={{ float: 'right' }}>{t('teď', 'now')}</span><br />{t('Máš nový vzkaz 🤫', 'You have a new message 🤫')}</div></div>
       <p className="small muted" style={{ marginTop: 14 }}>
         {t('Něco nefunguje? Napiš nám na ', 'Something not working? Write to ')}
         <a href={`mailto:${SUPPORT_EMAIL}`}>{SUPPORT_EMAIL}</a>.

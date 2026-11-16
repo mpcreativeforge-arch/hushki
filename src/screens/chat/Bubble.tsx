@@ -92,6 +92,7 @@ export function Bubble({ m, live, mine, partner, pairKey, showTime, showStatus, 
           <div className="bubble"><i>{t('Vzkaz nejde rozšifrovat.', 'This message cannot be decrypted.')}</i></div>
         ) : isSticker ? (
           <div className={'sticker-msg' + ((revealed && sealed) || live ? ' pop' : '')}>
+            {p.dice && <div className="dice-tag">🎲 {t('Padlo na kostce', 'Rolled on the dice')}</div>}
             <StickerImg id={p.sticker!} size={128} />
             {p.text && <div className="bubble sticker-caption">{p.text}</div>}
           </div>

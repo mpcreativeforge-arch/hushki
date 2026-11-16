@@ -18,6 +18,8 @@ export interface Payload {
   photo?: PhotoRef;
   reply?: ReplyRef;
   lock?: LockRef;
+  /** Číslo vybrala kostka (ukáže se oběma). */
+  dice?: boolean;
 }
 
 export async function encodePayload(key: CryptoKey, p: Omit<Payload, 'v'>) {
