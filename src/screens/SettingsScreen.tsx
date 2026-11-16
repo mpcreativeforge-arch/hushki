@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { backend, type Gender, type User } from '../lib/backend';
 import { GenderPicker } from '../components/GenderPicker';
 import features from '../data/features.json';
-import { enablePush, pushEnabled, pushSupported } from '../lib/push';
+import { disablePush, enablePush, pushEnabled, pushSupported } from '../lib/push';
 import { feedback, getPrefs, setPrefs } from '../lib/feedback';
 import { PrivacySheetScreen } from '../components/Privacy';
 import { HelpSheet } from '../components/Help';
@@ -58,6 +58,14 @@ export function SettingsScreen({ user, flags, onBack, onProfile, onChangePin, on
           : t('Prohlížeč upozornění nezapnul. Zkus to v Google Chrome.', 'The browser did not turn notifications on. Try Google Chrome.'));
   };
 
+  const pushOff = async () => {
+    try {
+      await disablePush();
+      setPushOn(false);
+      setPushMsg(t('Upozornění jsou vypnutá.', 'Notifications are off.'));
+    } catch { setPushMsg(t('Vypnutí se nepovedlo. Zkontroluj připojení.', 'Could not turn off. Check your connection.')); }
+  };
+
   const download = async () => {
     setExporting(true); setExportMsg('');
     try { await exportMyData(user); setExportMsg(t('Soubor s tvými údaji se stahuje.', 'Your data file is downloading.')); }
@@ -97,7 +105,7 @@ export function SettingsScreen({ user, flags, onBack, onProfile, onChangePin, on
         <div className="settings-item"><span>{t('Jazyk', 'Language')}</span><LangSwitch /></div>
         {backend.mode !== 'demo' && pushSupported() && (
           <div className="settings-item"><span>{t('Tichá upozornění', 'Silent notifications')}</span>{pushOn
-            ? <button className="chip on" onClick={push}>{t('Zapnuto', 'On')}</button>
+            ? <button className="chip on" onClick={pushOff}>{t('Zapnuto', 'On')}</button>
             : <button className="btn small" onClick={push}>{t('Zapnout', 'Turn on')}</button>}</div>
         )}
         {pushMsg && <p className="small muted" style={{ marginTop: 8 }}>{pushMsg}</p>}

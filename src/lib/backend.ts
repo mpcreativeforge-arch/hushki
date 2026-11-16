@@ -67,6 +67,7 @@ export interface Backend {
   uploadPhoto(pairId: string, data: Uint8Array): Promise<string>;
   downloadPhoto(path: string): Promise<Uint8Array>;
   savePushSubscription(sub: PushSubscriptionJSON): Promise<void>;
+  removePushSubscription(endpoint: string): Promise<void>;
   notifyPartner(messageId: string): Promise<void>;
   /** Vlastní nápady uživatele, zašifrované. Vidí je jen on sám. */
   getIdeas(): Promise<{ ciphertext: string; iv: string } | null>;
@@ -243,6 +244,10 @@ function supabaseBackend(url: string, anonKey: string): Backend {
       const { error } = await sb.from('push_subscriptions').upsert({
         user_id: await uid(), endpoint: sub.endpoint, p256dh: sub.keys?.p256dh, auth: sub.keys?.auth,
       }, { onConflict: 'endpoint' });
+      fail(error);
+    },
+    async removePushSubscription(endpoint) {
+      const { error } = await sb.from('push_subscriptions').delete().eq('endpoint', endpoint);
       fail(error);
     },
     async notifyPartner(message_id) {
@@ -442,6 +447,7 @@ function demoBackend(): Backend {
       try { localStorage.setItem(DEMO_IDEAS, JSON.stringify({ ciphertext, iv })); } catch { throw new BackendError('storage'); }
     },
     async savePushSubscription() { /* demo */ },
+    async removePushSubscription() { /* demo */ },
     async notifyPartner() { /* demo */ },
   };
 }

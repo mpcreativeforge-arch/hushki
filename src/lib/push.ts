@@ -53,3 +53,11 @@ export async function pushEnabled(): Promise<boolean> {
   const reg = await navigator.serviceWorker.getRegistration();
   return !!(await reg?.pushManager.getSubscription());
 }
+
+export async function disablePush() {
+  const reg = await navigator.serviceWorker.getRegistration();
+  const sub = await reg?.pushManager.getSubscription();
+  if (!sub) return;
+  await backend.removePushSubscription(sub.endpoint);
+  await sub.unsubscribe();
+}
