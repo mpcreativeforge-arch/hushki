@@ -2,7 +2,7 @@ import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { backend, type Message, type Pair, type User } from '../lib/backend';
 import { decodePayload, encodePayload, makeLock, previewOf, type LockRef, type Payload } from '../lib/payload';
 import { enablePush, pushEnabled, pushSupported } from '../lib/push';
-import { PIKANT_COUNT, SLOT_ICONS, pikantId, pikantNumber, sexOf, slotIndex, slotTexts, tabsFor } from '../data/stickers';
+import { DICE_MAX, pikantId, pikantNumber, sexOf, tabsFor } from '../data/stickers';
 import { Envelope } from '../components/Envelope';
 import { feedback, haptic } from '../lib/feedback';
 import { QuickMenu } from '../components/QuickMenu';
@@ -22,7 +22,6 @@ import { Bubble, GroupEnvelope } from './chat/Bubble';
 import { loadRecent, pushRecent } from '../lib/recent';
 import { StickerPicker } from './chat/StickerPicker';
 import { PikantSheet } from './chat/PikantSheet';
-import { SlotSheet } from './chat/SlotSheet';
 import { LegendSheet } from './chat/LegendSheet';
 import { remaining, SystemNote, InviteAgain, RoomCode } from './chat/RoomBits';
 import type { Decoded } from './chat/Bubble';
@@ -41,7 +40,7 @@ export function ChatScreen({ user, pair, pairKey, flags, onBack, onSettings, onL
   const [items, setItems] = useState<Decoded[] | null>(null);
   const [replyTo, setReplyTo] = useState<Decoded | null>(null);
   const [selected, setSelected] = useState<string | null>(null);
-  const [sheet, setSheet] = useState<null | { k: 'legend'; n?: number } | { k: 'pikant'; n: number; dice?: boolean } | { k: 'slot'; id: string } | { k: 'dice'; for: 'send' | 'legend'; prev?: number }>(null);
+  const [sheet, setSheet] = useState<null | { k: 'legend'; n?: number } | { k: 'pikant'; n: number; dice?: boolean } | { k: 'dice'; for: 'send' | 'legend'; prev?: number }>(null);
   const [viewer, setViewer] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
@@ -211,12 +210,11 @@ export function ChatScreen({ user, pair, pairKey, flags, onBack, onSettings, onL
     if (busy || waiting) return;
     const n = pikantNumber(id);
     if (n) return setSheet({ k: 'pikant', n });
-    if (slotIndex(id) >= 0) return setSheet({ k: 'slot', id });
     send({ t: 'sticker', sticker: id });
   };
 
-  const sendPikant = async (n: number, pin: string) => {
-    const ok = await send({ t: 'sticker', sticker: pikantId(n), lock: await makeLock(pin) });
+  const sendPikant = async (n: number, pin: string, dice?: boolean) => {
+    const ok = await send({ t: 'sticker', sticker: pikantId(n), lock: await makeLock(pin), ...(dice ? { dice: true } : {}) });
     if (ok) {
       if (pin !== roomPin) toast(roomPin ? t('Nové heslo místnosti je uložené.', 'New room password saved.') : t('Heslo místnosti je uložené. Příště se vyplní samo.', 'Room password saved. Next time it fills in by itself.'));
       unlock(n); saveRoomPin(pair.id, pin); setRoomPin(pin); setSheet(null);
@@ -230,11 +228,7 @@ export function ChatScreen({ user, pair, pairKey, flags, onBack, onSettings, onL
       const tabs = tabsFor(pair.partner_gender === 'zena' ? 'zena' : 'muz');
       let p: Omit<Payload, 'v'>;
       if (Math.random() < 0.3) {
-        p = { t: 'sticker', sticker: pikantId(1 + Math.floor(Math.random() * PIKANT_COUNT)), lock: await makeLock('1234') };
-      } else if (Math.random() < 0.3) {
-        const sl = Math.floor(Math.random() * 2);
-        const texts = slotTexts(sl);
-        p = { t: 'sticker', sticker: SLOT_ICONS[pair.partner_gender === 'zena' ? 'zena' : 'muz'][sl], text: texts[Math.floor(Math.random() * texts.length)] };
+        p = { t: 'sticker', sticker: pikantId(1 + Math.floor(Math.random() * DICE_MAX)), lock: await makeLock('1234'), dice: true };
       } else {
         const tab = tabs[Math.floor(Math.random() * 4)];
         p = { t: 'sticker', sticker: tab.stickers[Math.floor(Math.random() * tab.stickers.length)].id };
@@ -313,10 +307,6 @@ export function ChatScreen({ user, pair, pairKey, flags, onBack, onSettings, onL
           </div>
         </div>
         <div className="row" style={{ gap: 0 }}>
-          <button className="icon-btn" aria-label={t('Legenda', 'Legend') + (lockedCount ? ` (${lockedCount} ${t('zamčeno', 'locked')})` : '')} onClick={() => setSheet({ k: 'legend' })}>
-            {lockedCount > 0 && <b className="icon-badge" aria-hidden>{lockedCount}</b>}
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M5 4.5h10a3 3 0 013 3v12H8a3 3 0 01-3-3z" /><path d="M5 16.5a3 3 0 013-3h10" /><path d="M9 8h5" /></svg>
-          </button>
           <LockButton onLock={onLock} />
           <button className="icon-btn" aria-label="Menu" onClick={() => setMenu(true)}>
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"><path d="M4 7h16M4 12h16M4 17h10" /></svg>
@@ -377,7 +367,7 @@ export function ChatScreen({ user, pair, pairKey, flags, onBack, onSettings, onL
             <button className="icon-btn" aria-label={t('Zrušit odpověď', 'Cancel reply')} onClick={() => setReplyTo(null)}>✕</button>
           </div>
         )}
-        <StickerPicker user={user} recent={recent} disabled={waiting || busy || !online} onPick={pickSticker} onDice={() => setSheet({ k: 'dice', for: 'send' })} onLegend={() => setSheet({ k: 'legend' })} />
+        <StickerPicker user={user} recent={recent} disabled={waiting || busy || !online} onPick={pickSticker} onDice={() => setSheet({ k: 'dice', for: 'send' })} onLegend={() => setSheet({ k: 'legend' })} lockedCount={lockedCount} />
       </footer>
 
       {sheet?.k === 'legend' && (
@@ -387,16 +377,15 @@ export function ChatScreen({ user, pair, pairKey, flags, onBack, onSettings, onL
           onClose={() => setSheet(null)}
         />
       )}
-      {sheet?.k === 'pikant' && <PikantSheet n={sheet.n} dice={sheet.dice} busy={busy} roomPin={roomPin} meFemale={meFemale} onSend={(pin) => sendPikant(sheet.n, pin)} onReroll={() => setSheet({ k: 'dice', for: 'send', prev: sheet.n })} onClose={() => setSheet(null)} />}
+      {sheet?.k === 'pikant' && <PikantSheet n={sheet.n} dice={sheet.dice} busy={busy} roomPin={roomPin} meFemale={meFemale} onSend={(pin) => sendPikant(sheet.n, pin, sheet.dice)} onReroll={() => setSheet({ k: 'dice', for: 'send', prev: sheet.n })} onClose={() => setSheet(null)} />}
       {sheet?.k === 'dice' && (
         <DiceOverlay
-          max={PIKANT_COUNT} prev={sheet.prev}
+          max={DICE_MAX} prev={sheet.prev}
           actionLabel={sheet.for === 'send' ? t('Poslat toto číslo', 'Send this number') : t('Ukázat v Legendě', 'Show in the Legend')}
           onResult={(n) => setSheet(sheet.for === 'send' ? { k: 'pikant', n, dice: true } : { k: 'legend', n })}
           onClose={() => setSheet(sheet.for === 'legend' ? { k: 'legend', n: sheet.prev } : null)}
         />
       )}
-      {sheet?.k === 'slot' && <SlotSheet user={user} id={sheet.id} busy={busy} onSend={async (id, text) => { if (await send({ t: 'sticker', sticker: id, text })) setSheet(null); }} onClose={() => setSheet(null)} />}
       {install && !sheet && !menu && <InstallSheet onClose={() => setInstall(false)} />}
       {menu && <QuickMenu extra={<RoomCode getCode={getCode} />} onClose={() => setMenu(false)} onSettings={() => { setMenu(false); onSettings(); }} onLogout={onLogout} onLeave={onLeave} />}
       {viewer && (

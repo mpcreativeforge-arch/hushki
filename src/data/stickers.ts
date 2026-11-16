@@ -1,8 +1,8 @@
 // Samolepky Hushki (verze 7.1). Obrázky patří do public/stickers/<id>.webp (256 × 256 px).
-// Druhá sada (16–30) se v nabídce ukáže, až bude obrázek nahraný; do té doby je skrytá.
+// Další sady (16–45) se v nabídce ukážou, až bude obrázek nahraný; do té doby je skrytá.
 // Pikantní čísla bez obrázku ukazují náhradní emoji s číslem.
 //
-// Prefixy: m/f = původní sada kluk/holka, o/r = Ocenění, s/t = Pokec,
+// Prefixy: m/f = původní sada kluk/holka, u/v = univerzální kluk/holka, o/r = Ocenění, s/t = Pokec,
 // d/e = Domluva, g = Dárky, p = Hushki pikant (číslo = pořadí, pNN → NN, 1–20 jako kostka D20).
 import type { Gender } from '../lib/backend';
 import { isEn } from '../lib/i18n';
@@ -50,6 +50,29 @@ const DARKY_2: [string, string][] = [
   ['Zmrzlina', '🍦'], ['Kafe s sebou', '☕'], ['Lístky do kina', '🎟️'], ['Kniha', '📖'], ['Svíčka', '🕯️'],
   ['Hvězda z nebe', '⭐'], ['Srdce v krabičce', '💝'], ['Polibek', '💋'], ['Výlet', '✈️'], ['Poukaz na masáž', '💆'],
 ];
+// Třetí sada (31–45).
+const OCENENI_3: [string, string][] = [
+  ['Yesterday I liked it', '😉'], ['Last night was amazing', '🌙'], ['Thank you for last night', '💜'], ['Still smiling', '😊'], ['Again?', '🔁'],
+  ['You made my day', '☀️'], ['Best night ever', '🌟'], ["You're hot", '🔥'], ['Crazy about you', '😵‍💫'], ['Lucky me', '🍀'],
+  ['Number one', '🥇'], ["You're the one", '💘'], ['Nailed it', '🎯'], ['Grateful', '🙏'], ['All yours', '💝'],
+];
+const SMALLTALK_3: [string, string][] = [
+  ['?', '❓'], ['!', '❗'], ['?!', '⁉️'], ['Really?', '🤨'], ['No way', '😲'],
+  ['Me too', '🙋'], ['Oops', '🙊'], ['Please', '🥺'], ['Wait', '✋'], ['Yay', '🎉'],
+  ['I know', '😌'], ['Good luck', '🍀'], ['Feel better', '🩹'], ['Too hot', '🥵'], ['Hello?', '📢'],
+];
+const DOMLUVA_3: [string, string][] = [
+  ['When?', '📅'], ['Where?', '📍'], ['What time?', '🕗'], ['Shopping?', '🛍️'], ['Wine?', '🍷'],
+  ['Bath?', '🛁'], ['Trip?', '🧳'], ['Gym?', '🏋️'], ["I'll cook", '🍳'], ['Pizza?', '🍕'],
+  ['Stay in?', '🛋️'], ['Going out?', '🌃'], ['Get ready', '💄'], ["I'm home", '🏠'], ['Wait for me', '⏳'],
+];
+const DARKY_3: [string, string][] = [
+  ['Tulipány', '🌷'], ['Slunečnice', '🌻'], ['Lilie', '🤍'], ['Pivoňky', '🌸'], ['Kopretiny', '🌼'],
+  ['Levandule', '💜'], ['Orchidej', '🪻'], ['Pomněnky', '💙'], ['Sakura', '🌸'], ['Luční kytice', '💐'],
+  ['Růže pod zvonem', '🌹'], ['Věneček', '🌺'], ['Box růží', '🌹'], ['Sukulent', '🪴'], ['Velká kytice', '💐'],
+];
+/** Univerzální ikony bez textu (pro vlastní pikantní vzkazy i běžné posílání). */
+const UNI: [string, string][] = [['Šeptání', '🤫'], ['Vzdušný polibek', '😘'], ['Pod peřinou', '🛏️'], ['Zlatý klíček', '🗝️'], ['Žhavý pohled', '🔥']];
 const KLUK: [string, string][] = [
   ['Psst', '🤫'], ['Zamilovaný', '😍'], ['Pusa', '😘'], ['Růže', '🌹'], ['Srdce', '❤️'],
   ['Úšklebek', '😏'], ['Kousnutí do rtu', '😈'], ['Horko', '🥵'], ['Plamen', '🔥'], ['Dopis', '💌'],
@@ -70,35 +93,22 @@ const PIKANT: [string, string][] = [
   ['Bez slov', '🤐'], ['Dárek', '🎁'], ['Masáž', '💆'], ['Tři přání', '🪔'], ['Kostky', '🎲'],
   ['Hádanka', '🎭'], ['Rande doma', '🍷'], ['Tvoje košile', '👔'], ['Čekám', '🛏️'], ['Krajka', '🖤'],
   ['Polibky', '💋'], ['Pomalý tanec', '💃'], ['Snídaně do postele', '🥐'], ['Pod hvězdami', '🌌'], ['Jackpot', '👑'],
+  ['Šlehačka a jahody', '🍓'], ['Šampaňské', '🍾'], ['Pírko', '🪶'], ['Led', '🧊'], ['Nerušit', '🚪'],
+  ['Zámek a klíč', '🔐'], ['Sprcha', '🚿'], ['Čokoláda', '🍫'], ['Podpatky', '👠'], ['Rtěnka na zrcadle', '💄'],
+  ['Naše písnička', '🎶'], ['Celá noc', '🌙'], ['Maska', '🎭'], ['Hotel', '🏨'], ['Třešně', '🍒'],
 ];
 
 const kluk = series('m', KLUK);
 const holka = series('f', HOLKA);
-const both = (prefix: string, a: [string, string][], b: [string, string][]) => [...series(prefix, a), ...series(prefix, b, 16)];
+const both = (prefix: string, a: [string, string][], b: [string, string][], c: [string, string][]) => [...series(prefix, a), ...series(prefix, b, 16), ...series(prefix, c, 31)];
 const all = [
-  ...both('o', OCENENI, OCENENI_2), ...both('r', OCENENI, OCENENI_2), ...both('s', SMALLTALK, SMALLTALK_2), ...both('t', SMALLTALK, SMALLTALK_2),
-  ...both('d', DOMLUVA, DOMLUVA_2), ...both('e', DOMLUVA, DOMLUVA_2), ...kluk, ...holka, ...both('g', DARKY, DARKY_2), ...series('p', PIKANT),
+  ...both('o', OCENENI, OCENENI_2, OCENENI_3), ...both('r', OCENENI, OCENENI_2, OCENENI_3), ...both('s', SMALLTALK, SMALLTALK_2, SMALLTALK_3), ...both('t', SMALLTALK, SMALLTALK_2, SMALLTALK_3),
+  ...both('d', DOMLUVA, DOMLUVA_2, DOMLUVA_3), ...both('e', DOMLUVA, DOMLUVA_2, DOMLUVA_3), ...kluk, ...holka, ...both('g', DARKY, DARKY_2, DARKY_3), ...series('p', PIKANT),
+  ...series('u', UNI), ...series('v', UNI),
 ];
 export const STICKERS = new Map(all.map((x) => [x.id, x] as const));
 const pick = (ids: string[]) => ids.map((id) => STICKERS.get(id)!);
-const range = (prefix: string, n = 30) => Array.from({ length: n }, (_, i) => prefix + String(i + 1).padStart(2, '0'));
-
-/** Univerzální ikony s textem (vlastní sloty). Dvě na pohlaví. */
-export const SLOT_ICONS: Record<'muz' | 'zena', [string, string]> = { muz: ['m01', 'm10'], zena: ['f01', 'f10'] };
-
-/** Kolik vlastních textů má uživatel zdarma. Další se budou dokupovat. */
-export const FREE_SLOTS = 2;
-
-/** Systémové texty u univerzálních ikon. Vlastní text se mezi nimi neliší. */
-const SLOT_TEXTS: [string[], string[]] = [
-  ['Mám tajemství. Řeknu ti ho večer.', 'Celý den na tebe myslím.', 'Dnes večer mám pro tebe překvapení.', 'Mám ti něco pošeptat do ouška.'],
-  ['Pojď ke mně, až budeš mít chvilku.', 'Mám na tebe chuť.', 'Nemůžu se dočkat večera.', 'Dneska tě nepustím.'],
-];
-const SLOT_TEXTS_EN: [string[], string[]] = [
-  ['I have a secret. I’ll tell you tonight.', 'I’ve been thinking about you all day.', 'I have a surprise for you tonight.', 'I want to whisper something in your ear.'],
-  ['Come to me when you have a moment.', 'I’m in the mood for you.', 'I can’t wait for tonight.', 'I’m not letting you go today.'],
-];
-export const slotTexts = (i: number): string[] => (isEn() ? SLOT_TEXTS_EN : SLOT_TEXTS)[i] ?? [];
+const range = (prefix: string, n = 45) => Array.from({ length: n }, (_, i) => prefix + String(i + 1).padStart(2, '0'));
 
 /** Názvy záložek (pořadí podle používanosti). */
 const TAB_TITLES: Record<TabId, [string, string]> = {
@@ -111,9 +121,10 @@ export const sexOf = (g: Gender): 'muz' | 'zena' => (g === 'zena' ? 'zena' : 'mu
 /** Záložky podle pohlaví, seřazené od nejpoužívanějších. Kdo pohlaví neuvedl, dostane mužskou sadu. */
 export function tabsFor(gender: Gender): StickerTab[] {
   const f = sexOf(gender) === 'zena';
-  const old = (f ? holka : kluk).filter((x) => !SLOT_ICONS[f ? 'zena' : 'muz'].includes(x.id));
+  const old = f ? holka : kluk;
+  const pokec = range(f ? 't' : 's');
   return [
-    { id: 'pokec', title: 'Pokec', stickers: pick(range(f ? 't' : 's')) },
+    { id: 'pokec', title: 'Pokec', stickers: [...pick(pokec.slice(30, 33)), ...pick(range(f ? 'v' : 'u', 5)), ...pick([...pokec.slice(0, 30), ...pokec.slice(33)])] },
     { id: 'domluva', title: 'Domluva', stickers: pick(range(f ? 'e' : 'd')) },
     { id: 'oceneni', title: 'Ocenění', stickers: [...pick(range(f ? 'r' : 'o')), ...old] },
     { id: 'darky', title: 'Dárky', stickers: pick(range('g')) },
@@ -125,11 +136,10 @@ export function tabsFor(gender: Gender): StickerTab[] {
 export const pikantNumber = (id: string) => (/^p\d+$/.test(id) ? Number(id.slice(1)) : null);
 export const pikantId = (n: number) => 'p' + String(n).padStart(2, '0');
 export const PIKANT_COUNT = PIKANT.length;
+/** Kostka zůstává D20 (1–20); vyšší čísla se posílají z nabídky. */
+export const DICE_MAX = 20;
+/** Univerzální ikony bez textu podle pohlaví (u = kluk, v = holka). */
+export const UNI_IDS = [...range('u', 5), ...range('v', 5)];
 
-/** Index slotu (0/1), pokud je samolepka univerzální ikona. */
-export const slotIndex = (id: string) => {
-  for (const g of ['muz', 'zena'] as const) { const i = SLOT_ICONS[g].indexOf(id); if (i >= 0) return i; }
-  return -1;
-};
 
 export const stickerSrc = (id: string) => `${import.meta.env.BASE_URL}stickers/${id}.webp`;

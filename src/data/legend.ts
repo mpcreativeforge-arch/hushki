@@ -25,6 +25,21 @@ export const LEGEND: LegendItem[] = [
   { n: 18, title: 'Snídaně do postele', body: 'Zítra ráno nikam nevstávej. Snídani ti přinesu do postele a dezert budu já.' },
   { n: 19, title: 'Pod hvězdami', body: 'Vezmi deku a teplou mikinu. Dnes večer jdeme ven pod hvězdy, jen my dva a nikde nikdo.' },
   { n: 20, title: 'Jackpot', body: 'Padla dvacítka! Dnes večer ti splním jedno přání, ať je jakékoli. Stačí mi ho pošeptat.' },
+  { n: 21, title: 'Šlehačka a jahody', body: 'Mám doma jahody a šlehačku. Dnes večer je budeme ochutnávat spolu, pomalu a bez spěchu.' },
+  { n: 22, title: 'Šampaňské', body: 'Dnes večer otevřu šampaňské jen pro nás dva. Připijeme si na nás a uvidíme, kam nás večer zavede.' },
+  { n: 23, title: 'Pírko', body: 'Mám pírko a spoustu trpělivosti. Zavřeš oči a necháš mě hádat, kde jsi nejvíc lechtivý.' },
+  { n: 24, title: 'Led', body: 'Dnes bude horko, tak si připravím kostky ledu. Ochladím tě tam, kde to budeš nejvíc potřebovat.' },
+  { n: 25, title: 'Nerušit', body: 'Dnes večer vypínáme telefony a zamykáme dveře. Celý večer patří jen nám dvěma.' },
+  { n: 26, title: 'Zámek a klíč', body: 'Schovám pro tebe malý klíček. Až ho najdeš, odemkneš mi jedno tajné přání.' },
+  { n: 27, title: 'Sprcha', body: 'Večer si dáme společnou sprchu. Teplá voda, vůně a žádný spěch.' },
+  { n: 28, title: 'Čokoláda', body: 'Mám rozpuštěnou čokoládu a chuť na sladké. Dnes večer budeš můj dezert.' },
+  { n: 29, title: 'Podpatky', body: 'Dnes večer se pro tebe obleču tak, jak to máš nejradši. Ty jen sedni a dívej se.' },
+  { n: 30, title: 'Rtěnka na zrcadle', body: 'Nechám ti vzkaz rtěnkou na zrcadle. Najdi ho a udělej přesně to, co v něm stojí.' },
+  { n: 31, title: 'Naše písnička', body: 'Pustím naši písničku a ztlumím světla. Pak už se uvidí, co bude dál.' },
+  { n: 32, title: 'Celá noc', body: 'Dnes nikam nespěcháme. Máme celou noc a nehodlám z ní promarnit ani minutu.' },
+  { n: 33, title: 'Maska', body: 'Dnes večer si nasadíme masky a budeme si hrát na cizince, kteří se právě potkali.' },
+  { n: 34, title: 'Hotel', body: 'Sbal si kartáček a něco hezkého na sebe. Jedna noc v hotelu, jen ty a já.' },
+  { n: 35, title: 'Třešně', body: 'Mám misku třešní a jeden úkol: kdo udělá uzel ze stopky jazykem, vybírá, co bude dál.' },
 ];
 
 const LEGEND_EN: LegendItem[] = [
@@ -48,6 +63,21 @@ const LEGEND_EN: LegendItem[] = [
   { n: 18, title: 'Breakfast in bed', body: 'Don’t get up tomorrow morning. I’ll bring you breakfast in bed, and I’ll be dessert.' },
   { n: 19, title: 'Under the stars', body: 'Grab a blanket and a warm hoodie. Tonight we’re going out under the stars, just the two of us and nobody else.' },
   { n: 20, title: 'Jackpot', body: 'You rolled a twenty! Tonight I’ll grant you one wish, whatever it is. Just whisper it to me.' },
+  { n: 21, title: 'Whipped cream & strawberries', body: 'I have strawberries and whipped cream at home. Tonight we’ll taste them together, slowly and without hurry.' },
+  { n: 22, title: 'Champagne', body: 'Tonight I’m opening champagne just for the two of us. A toast to us, and we’ll see where the night takes us.' },
+  { n: 23, title: 'Feather', body: 'I have a feather and plenty of patience. Close your eyes and let me find where you’re most ticklish.' },
+  { n: 24, title: 'Ice', body: 'It’s going to get hot tonight, so I’m getting some ice ready. I’ll cool you down exactly where you need it.' },
+  { n: 25, title: 'Do not disturb', body: 'Tonight the phones go off and the door gets locked. The whole evening belongs to just the two of us.' },
+  { n: 26, title: 'Lock & key', body: 'I’ll hide a little key for you. When you find it, it unlocks one of my secret wishes.' },
+  { n: 27, title: 'Shower', body: 'Tonight we’re showering together. Warm water, nice scents and no rush.' },
+  { n: 28, title: 'Chocolate', body: 'I have melted chocolate and a sweet tooth. Tonight you’re my dessert.' },
+  { n: 29, title: 'Heels', body: 'Tonight I’ll dress up for you exactly the way you like it best. You just sit back and watch.' },
+  { n: 30, title: 'Lipstick on the mirror', body: 'I’ll leave you a lipstick note on the mirror. Find it and do exactly what it says.' },
+  { n: 31, title: 'Our song', body: 'I’ll put on our song and dim the lights. Then we’ll see what happens next.' },
+  { n: 32, title: 'All night', body: 'No rush tonight. We have the whole night and I don’t plan to waste a minute of it.' },
+  { n: 33, title: 'Mask', body: 'Tonight we put on masks and play strangers who have just met.' },
+  { n: 34, title: 'Hotel', body: 'Pack a toothbrush and something nice to wear. One night in a hotel, just you and me.' },
+  { n: 35, title: 'Cherries', body: 'I have a bowl of cherries and one challenge: whoever ties a stem in a knot with their tongue picks what happens next.' },
 ];
 
 /** Legenda v aktuálním jazyce. */

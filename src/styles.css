@@ -617,3 +617,11 @@ a.settings-item { color: inherit; text-decoration: none; }
 .about-more { flex-direction: column; align-items: flex-start; gap: 4px; }
 .about-more-text { display: flex; flex-direction: column; gap: 2px; line-height: 1.4; }
 .about-more-link { color: var(--coral-soft); font-weight: 600; }
+.legend-chip { display: inline-flex; align-items: center; gap: 4px; }
+.legend-chip .icon-badge { position: static; display: inline-block; }
+.dice-tag { display: inline-block; font-size: 12px; padding: 1px 8px; border-radius: 10px; background: rgba(244, 230, 210, 0.14); margin-bottom: 4px; }
+.demo-invite { background: rgba(244, 230, 210, 0.1); border-radius: 16px 16px 16px 4px; padding: 10px 14px; font-size: 14px; }
+.demo-notif { display: flex; gap: 10px; align-items: center; background: rgba(244, 230, 210, 0.92); color: #222; border-radius: 16px; padding: 10px 12px; font-size: 14px; }
+.demo-notif > div { flex: 1; }
+.demo-notif img { border-radius: 8px; }
+.demo-notif .muted { color: #666; }
