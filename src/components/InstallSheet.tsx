@@ -23,7 +23,9 @@ export function InstallSheet({ onClose }: { onClose: () => void }) {
         <button className="btn primary" onClick={install}>{t('Přidat na plochu', 'Add to home screen')}</button>
       ) : p === 'ios' ? (
         <ol className="install-steps">
-          <li>{t('Dole v Safari ťukni na ikonu Sdílet', 'In Safari, tap the Share icon at the bottom')} <span aria-hidden>⬆︎</span></li>
+          {/CriOS/.test(navigator.userAgent)
+            ? <li>{t('V Chromu ťukni v adresním řádku na ikonu Sdílet', 'In Chrome, tap the Share icon in the address bar')} <span aria-hidden>⬆︎</span></li>
+            : <li>{t('Dole v Safari ťukni na ikonu Sdílet', 'In Safari, tap the Share icon at the bottom')} <span aria-hidden>⬆︎</span></li>}
           <li>{t('Sjeď níž a vyber „Přidat na plochu“', 'Scroll down and choose “Add to Home Screen”')}</li>
           <li>{t('Potvrď „Přidat“ vpravo nahoře', 'Confirm with “Add” in the top right')}</li>
         </ol>
