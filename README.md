@@ -99,7 +99,7 @@ Pak v `feature_flags` nastavit `gentleman` na `true`.
 
 **GitHub Pages (testovací adresa):** Settings → Pages → Source: *GitHub Actions*. Každý push do `main` nasadí aplikaci na `https://<uživatel>.github.io/hushki/`. Bez proměnných běží demo. Pro ostrý backend přidat v Settings → Secrets and variables → Actions → **Variables**: `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`, `VITE_VAPID_PUBLIC_KEY` (všechny jsou veřejné hodnoty).
 
-**hushki.cz na Webglobe:** workflow `deploy-webglobe.yml` po každém pushi do `main` sestaví ostrou verzi (`BASE_PATH=/`) a nahraje `dist` přes FTP. V Settings → Secrets and variables → Actions přidat **Secrets** `FTP_SERVER`, `FTP_USERNAME`, `FTP_PASSWORD` a případně **Variable** `FTP_DIR` (složka webu, např. `www/`). Bez `FTP_SERVER` se krok přeskočí. Přesměrování na HTTPS a obsluhu adres aplikace řeší `public/.htaccess`; v administraci Webglobe zapnout certifikát Let's Encrypt.
+**hushki.cz na Webglobe:** sestavit ostrou verzi (`BASE_PATH=/` a proměnné `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`, `VITE_VAPID_PUBLIC_KEY` v `.env.local`, pak `npm run build`) a obsah složky `dist` (včetně skrytého `.htaccess`) nahrát přes FTP do složky webu. Přesměrování na HTTPS a obsluhu adres aplikace řeší `public/.htaccess`; v administraci Webglobe zapnout certifikát Let's Encrypt.
 
 **Vlastní doména přes GitHub Pages:** nastavit proměnnou `BASE_PATH` na `/`, doménu v Settings → Pages a DNS u registrátora: pro `hushki.cz` záznamy A `185.199.108.153`, `185.199.109.153`, `185.199.110.153`, `185.199.111.153` a pro `www` záznam CNAME `<uživatel>.github.io`. Pak v Settings → Pages zaškrtnout Enforce HTTPS. Nebo nasadit složku `dist` na libovolný statický hosting (Netlify, Cloudflare Pages, Vercel).
 
