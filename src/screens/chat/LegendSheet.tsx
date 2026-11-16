@@ -74,13 +74,13 @@ export function LegendSheet({ start, locks, unlocked, onPin, meFemale, partnerFe
     <Sheet onClose={onClose}>
       <div className="row between" style={{ marginBottom: 6 }}>
         <h2 style={{ margin: 0 }}>{t('Legenda', 'Legend')}</h2>
-        <button className="chip" onClick={() => onDice(focus ?? undefined)}>🎲 {t('Kostka D20', 'D20 dice')}</button>
+        <button className="chip" onClick={() => onDice(focus ?? undefined)}>🎲 {t('Kostka', 'Dice')}</button>
       </div>
       {howto && (
         <div className="notice howto">
           <b>{t('Jak to funguje', 'How it works')}</b>
           <ol className="small">
-            <li>{t('Partner pošle pikantní samolepku s číslem 1–20.', 'Your partner sends a spicy sticker with a number from 1 to 20.')}</li>
+            <li>{t('Partner pošle pikantní samolepku s číslem 1–35.', 'Your partner sends a spicy sticker with a number from 1 to 35.')}</li>
             <li>{t('Tady najdeš, co číslo znamená. Konec popisu je zamčený.', 'Here you find what the number means. The end of the description is locked.')}</li>
             <li>{t('Heslo ti partner prozradí, až bude chtít. Platí pro celou místnost.', 'Your partner tells you the password when they want to. It works for the whole room.')}</li>
             <li>{t('Tužkou ✎ si můžete každé číslo přepsat po svém a dát mu vlastní ikonu.', 'With the pencil ✎ you can rewrite any number your own way and give it your own icon.')}</li>

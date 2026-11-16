@@ -26,10 +26,10 @@ const SECTIONS = (): { icon: string; title: string; body: string }[] => [
     ),
   },
   {
-    icon: '🎲', title: t('Kostka D20', 'D20 dice'),
+    icon: '🎲', title: t('Kostka', 'Dice'),
     body: t(
-      'Nevíte, co dnes večer? V záložce Hushki pikant ťukni na Kostku a pak na kostku samotnou. Padne číslo 1 až 20 a můžeš ho rovnou poslat. Partner u vzkazu uvidí, že padlo na kostce. Čísla 21 až 35 vybereš přímo v záložce.',
-      'Can’t decide about tonight? In the Hushki spicy tab tap Dice, then tap the dice itself. It lands on 1 to 20 and you can send that number straight away. Your partner sees it came from the dice. Numbers 21 to 35 are picked straight from the tab.',
+      'Nevíte, co dnes večer? V záložce Hushki pikant ťukni na Kostku a pak na kostku samotnou. Padne číslo 1 až 35 a můžeš ho rovnou poslat. Partner u vzkazu uvidí, že padlo na kostce.',
+      'Can’t decide about tonight? In the Hushki spicy tab tap Dice, then tap the dice itself. It lands on 1 to 35 and you can send that number straight away. Your partner sees it came from the dice.',
     ),
   },
   {

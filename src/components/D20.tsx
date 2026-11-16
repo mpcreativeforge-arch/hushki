@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { diceRollSound, haptic } from '../lib/feedback';
 import { t } from '../lib/i18n';
 
-// Dvacetistěnná kostka (D20) v samostatném okně. Ťuknutím se roztočí a padne číslo 1–20.
+// Dvacetistěnná kostka (D20) v samostatném okně. Ťuknutím se roztočí a padne pikantní číslo.
 
 const HEX = [[50, 3], [91, 26.5], [91, 73.5], [50, 97], [9, 73.5], [9, 26.5]] as const;
 const IN = [[50, 27], [72, 65], [28, 65]] as const;
@@ -79,7 +79,7 @@ export function DiceOverlay({ max = 20, prev, onResult, onClose, actionLabel }: 
   };
 
   return (
-    <div className="dice-overlay" role="dialog" aria-modal="true" aria-label={t('Kostka D20', 'D20 dice')}>
+    <div className="dice-overlay" role="dialog" aria-modal="true" aria-label={t('Kostka', 'Dice')}>
       <button className="dice-close icon-btn" aria-label={t('Zavřít', 'Close')} onClick={onClose}>✕</button>
       <p className="dice-title">{state === 'done' ? t('Padlo číslo', 'You rolled') : t('Hushki kostka', 'Hushki dice')}</p>
       <button className={'d20 ' + state} onClick={roll} aria-label={t('Hodit kostkou', 'Roll the dice')} disabled={state === 'rolling'}>
