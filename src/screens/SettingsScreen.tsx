@@ -47,10 +47,12 @@ export function SettingsScreen({ user, flags, onBack, onProfile, onChangePin, on
   };
 
   const push = async () => {
-    const r = await enablePush().catch(() => 'denied');
+    setPushMsg(t('Zapínám…', 'Turning on…'));
+    const r = await enablePush().catch(() => 'error' as const);
     setPushMsg(r === 'ok' ? t('Upozornění jsou zapnutá.', 'Notifications are on.')
       : r === 'unsupported' ? t('Tento prohlížeč upozornění nepodporuje. Na iPhonu si nejdřív přidej Hushki na plochu.', 'This browser does not support notifications. On iPhone, add Hushki to your home screen first.')
-        : t('Upozornění jsou v nastavení telefonu zakázaná.', 'Notifications are blocked in your phone settings.'));
+        : r === 'denied' ? t('Upozornění jsou v nastavení prohlížeče zakázaná. Povol je u stránky hushki.cz.', 'Notifications are blocked in your browser settings. Allow them for hushki.cz.')
+          : t('Prohlížeč upozornění nezapnul. Zkus to v Google Chrome.', 'The browser did not turn notifications on. Try Google Chrome.'));
   };
 
   const download = async () => {
