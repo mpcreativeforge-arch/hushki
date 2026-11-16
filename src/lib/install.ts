@@ -27,10 +27,11 @@ export async function promptInstall(): Promise<boolean> {
 }
 
 const SEEN = 'hushki.install-seen';
-export function markInstallSeen() { try { localStorage.setItem(SEEN, '1'); } catch { /* */ } }
-/** Nabídnout instalaci automaticky? Jen jednou a jen když aplikace neběží z plochy. */
+// „Teď ne“ platí do zavření prohlížeče, při další návštěvě se nabídka ukáže znovu.
+export function markInstallSeen() { try { sessionStorage.setItem(SEEN, '1'); } catch { /* */ } }
+/** Nabídnout instalaci automaticky? Jednou za návštěvu a jen když aplikace neběží z plochy. */
 export function shouldOfferInstall() {
   if (isStandalone()) return false;
-  try { return !localStorage.getItem(SEEN); } catch { return false; }
+  try { return !sessionStorage.getItem(SEEN); } catch { return false; }
 }
 export const platform = (): 'ios' | 'android' | 'desktop' => (isIOS() ? 'ios' : /android/i.test(navigator.userAgent) ? 'android' : 'desktop');

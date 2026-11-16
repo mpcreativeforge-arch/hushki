@@ -1,4 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { InstallSheet } from './components/InstallSheet';
+import { platform, shouldOfferInstall } from './lib/install';
 import { backend, recoveryLink, type Pair, type User } from './lib/backend';
 import { createMaster, decryptText, derivePairKey, encryptText, keyCheck, lockKey, unlockKey, unlockMaster, unwrapRoom, wrapRoom } from './lib/crypto';
 import { clearPhotoCache, encodePayload } from './lib/payload';
@@ -262,6 +264,14 @@ export function App() {
     if (stage.name === 'room' && !pairs.some((p) => p.id === stage.pairId)) setStage({ name: 'home' });
   }, [stage, pairs]);
 
+  // Na mobilu hned nabídnout instalaci na plochu, na počítači zůstává web.
+  const [offerInstall, setOfferInstall] = useState(false);
+  useEffect(() => {
+    if (splash || platform() === 'desktop' || !shouldOfferInstall()) return;
+    const tm = setTimeout(() => setOfferInstall(true), 1200);
+    return () => clearTimeout(tm);
+  }, [splash]);
+
   let screen: React.ReactNode = null;
   switch (stage.name) {
     case 'loading':
@@ -334,6 +344,9 @@ export function App() {
       {splash && <Splash onDone={endSplash} />}
       {!needsConsent && user && !user.name && (stage.name === 'room' || stage.name === 'home') && (
         <ProfileStep user={user} onDone={(name, gender) => setUser({ ...user, name, gender })} />
+      )}
+      {offerInstall && !recovery && !needsConsent && (stage.name === 'auth' || (stage.name === 'home' && !!user?.name)) && (
+        <InstallSheet onClose={() => setOfferInstall(false)} />
       )}
       {needsConsent && <PrivacyConsent updated={user!.privacyVersion != null} onAccept={acceptPrivacy} onDecline={logout} />}
     </>
