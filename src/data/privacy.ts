@@ -66,7 +66,7 @@ const SECTIONS_CS: PrivacySection[] = [
   {
     title: '4. Kdo další k údajům přistupuje',
     body: [
-      'Supabase Inc.: databáze, přihlášení a úložiště (servery v EU, [region doplnit]). Ukládá i šifrovaná data vzkazů, která nedokáže přečíst.',
+      'Supabase Inc.: databáze, přihlášení a úložiště (servery v EU, Irsko). Ukládá i šifrovaná data vzkazů, která nedokáže přečíst.',
       'Poskytovatel hostingu webové aplikace (Webglobe, s.r.o., Česká republika).',
       'Služby push upozornění Apple, Google nebo Mozilla: doručují jen obecné upozornění bez obsahu.',
       'Při předání mimo EU používáme standardní smluvní doložky schválené Evropskou komisí.',
@@ -133,7 +133,7 @@ const SECTIONS_EN: PrivacySection[] = [
   {
     title: '4. Who else has access',
     body: [
-      'Supabase Inc.: database, sign-in and storage (servers in the EU, [region to be added]). It also stores encrypted message data it cannot read.',
+      'Supabase Inc.: database, sign-in and storage (servers in the EU, Ireland). It also stores encrypted message data it cannot read.',
       'The web hosting provider (Webglobe, s.r.o., Czech Republic).',
       'Apple, Google or Mozilla push services: they deliver only a generic notification without content.',
       'For transfers outside the EU we use the European Commission’s standard contractual clauses.',
