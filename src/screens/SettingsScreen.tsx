@@ -1,8 +1,8 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { backend, type Gender, type User } from '../lib/backend';
 import { GenderPicker } from '../components/GenderPicker';
 import features from '../data/features.json';
-import { enablePush, pushSupported } from '../lib/push';
+import { enablePush, pushEnabled, pushSupported } from '../lib/push';
 import { feedback, getPrefs, setPrefs } from '../lib/feedback';
 import { PrivacySheetScreen } from '../components/Privacy';
 import { HelpSheet } from '../components/Help';
@@ -24,6 +24,8 @@ export function SettingsScreen({ user, flags, onBack, onProfile, onChangePin, on
   const [gender, setGender] = useState<Gender>(user.gender);
   const [saved, setSaved] = useState(false);
   const [pushMsg, setPushMsg] = useState('');
+  const [pushOn, setPushOn] = useState(false);
+  useEffect(() => { if (backend.mode !== 'demo') pushEnabled().then(setPushOn).catch(() => undefined); }, []);
   const [fx, setFx] = useState(getPrefs());
   const [privacy, setPrivacy] = useState(false);
   const [help, setHelp] = useState(false);
@@ -49,9 +51,10 @@ export function SettingsScreen({ user, flags, onBack, onProfile, onChangePin, on
   const push = async () => {
     setPushMsg(t('Zapínám…', 'Turning on…'));
     const r = await enablePush().catch(() => 'error' as const);
+    setPushOn(r === 'ok');
     setPushMsg(r === 'ok' ? t('Upozornění jsou zapnutá.', 'Notifications are on.')
       : r === 'unsupported' ? t('Tento prohlížeč upozornění nepodporuje. Na iPhonu si nejdřív přidej Hushki na plochu.', 'This browser does not support notifications. On iPhone, add Hushki to your home screen first.')
-        : r === 'denied' ? t('Upozornění jsou v nastavení prohlížeče zakázaná. Povol je u stránky hushki.cz.', 'Notifications are blocked in your browser settings. Allow them for hushki.cz.')
+        : r === 'denied' ? t('Prohlížeč upozornění zablokoval. Klepni na ikonku vlevo od adresy hushki.cz (nebo ⋮ → ⓘ) → Oprávnění → Oznámení → Povolit a zkus to znovu.', 'Your browser blocked notifications. Tap the icon left of the hushki.cz address (or ⋮ → ⓘ) → Permissions → Notifications → Allow, then try again.')
           : t('Prohlížeč upozornění nezapnul. Zkus to v Google Chrome.', 'The browser did not turn notifications on. Try Google Chrome.'));
   };
 
@@ -93,7 +96,9 @@ export function SettingsScreen({ user, flags, onBack, onProfile, onChangePin, on
         <h2>{t('Aplikace', 'App')}</h2>
         <div className="settings-item"><span>{t('Jazyk', 'Language')}</span><LangSwitch /></div>
         {backend.mode !== 'demo' && pushSupported() && (
-          <div className="settings-item"><span>{t('Tichá upozornění', 'Silent notifications')}</span><button className="btn small" onClick={push}>{t('Zapnout', 'Turn on')}</button></div>
+          <div className="settings-item"><span>{t('Tichá upozornění', 'Silent notifications')}</span>{pushOn
+            ? <button className="chip on" onClick={push}>{t('Zapnuto', 'On')}</button>
+            : <button className="btn small" onClick={push}>{t('Zapnout', 'Turn on')}</button>}</div>
         )}
         {pushMsg && <p className="small muted" style={{ marginTop: 8 }}>{pushMsg}</p>}
         <div className="settings-item"><span>{t('Zvuky v chatu', 'Chat sounds')}</span>
