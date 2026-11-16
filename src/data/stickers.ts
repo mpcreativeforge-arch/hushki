@@ -136,8 +136,8 @@ export function tabsFor(gender: Gender): StickerTab[] {
 export const pikantNumber = (id: string) => (/^p\d+$/.test(id) ? Number(id.slice(1)) : null);
 export const pikantId = (n: number) => 'p' + String(n).padStart(2, '0');
 export const PIKANT_COUNT = PIKANT.length;
-/** Kostka zůstává D20 (1–20); vyšší čísla se posílají z nabídky. */
-export const DICE_MAX = 20;
+/** Kostka hází všechna pikantní čísla. */
+export const DICE_MAX = PIKANT.length;
 /** Univerzální ikony bez textu podle pohlaví (u = kluk, v = holka). */
 export const UNI_IDS = [...range('u', 5), ...range('v', 5)];
 

@@ -16,7 +16,7 @@ export function Intro({ onDone }: { onDone: () => void }) {
       body: t('Žádné psaní ani fotky. Vyberete samolepku a druhý hned ví, co máte na mysli.', 'No typing and no photos. Pick a sticker and your partner knows exactly what you mean.') },
     { art: <div className="intro-art"><Envelope size={96} className="wobble" /></div>,
       title: t('Zalepená obálka a pikantní čísla', 'Sealed envelopes and spicy numbers'),
-      body: t('Vzkaz přijde zalepený. Pikantní čísla 1–20 mají v Legendě tajný význam, který odemkne až vaše heslo.', 'Every message arrives sealed. Spicy numbers 1–20 have a secret meaning in the Legend that only your password unlocks.') },
+      body: t('Vzkaz přijde zalepený. Pikantní čísla 1–35 mají v Legendě tajný význam, který odemkne až vaše heslo.', 'Every message arrives sealed. Spicy numbers 1–35 have a secret meaning in the Legend that only your password unlocks.') },
     { art: <div className="intro-art intro-lock" aria-hidden>🔒</div>,
       title: t('Šifrované a za 48 hodin pryč', 'Encrypted and gone in 48 hours'),
       body: t('Vzkazy šifrujeme přímo v telefonu, nepřečteme je ani my. 48 hodin po posledním vzkazu samy zmizí.', 'Messages are encrypted on your phone, not even we can read them. They disappear 48 hours after the last one.') },
