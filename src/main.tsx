@@ -1,6 +1,7 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { App } from './App';
+import { ErrorBoundary } from './components/ErrorBoundary';
 import { registerSW } from './lib/push';
 import './lib/install';
 import { precacheStickers } from './lib/precache';
@@ -14,4 +15,4 @@ registerSW();
 precacheStickers();
 primeAudio();
 installGlobalHaptics();
-createRoot(document.getElementById('root')!).render(<StrictMode><App /></StrictMode>);
+createRoot(document.getElementById('root')!).render(<StrictMode><ErrorBoundary><App /></ErrorBoundary></StrictMode>);

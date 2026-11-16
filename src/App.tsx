@@ -250,7 +250,7 @@ export function App() {
     if (id) clearVault(id);
   };
 
-  const needsConsent = !!user && stage.name !== 'auth' && stage.name !== 'loading' && user.privacyVersion !== PRIVACY_VERSION;
+  const needsConsent = !!user && !recovery && stage.name !== 'auth' && stage.name !== 'loading' && user.privacyVersion !== PRIVACY_VERSION;
   const acceptPrivacy = async () => {
     await backend.acceptPrivacy(PRIVACY_VERSION);
     setUser((u) => (u ? { ...u, privacyVersion: PRIVACY_VERSION } : u));
