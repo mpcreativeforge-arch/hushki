@@ -10,6 +10,8 @@ import { AboutSheet } from '../components/About';
 import { LangSwitch } from '../components/LangSwitch';
 import { INFO_EMAIL, SUPPORT_EMAIL } from '../data/privacy';
 import { exportMyData } from '../lib/export';
+import { isPremium } from '../lib/premium';
+import { PremiumSheet } from '../components/PremiumSheet';
 import { isEn, t } from '../lib/i18n';
 import { setStickerSex, useStickerSex } from '../lib/style';
 
@@ -17,9 +19,10 @@ interface Props {
   user: User; flags: Record<string, boolean>;
   onBack: () => void; onProfile: (name: string, gender: Gender) => void;
   onChangePin: () => void; onLogout: () => void; onDeleteAccount: () => Promise<void>;
+  onPremiumChange?: () => void;
 }
 
-export function SettingsScreen({ user, flags, onBack, onProfile, onChangePin, onLogout, onDeleteAccount }: Props) {
+export function SettingsScreen({ user, flags, onBack, onProfile, onChangePin, onLogout, onDeleteAccount, onPremiumChange }: Props) {
   const [name, setName] = useState(user.name);
   const [gender, setGender] = useState<Gender>(user.gender);
   const [saved, setSaved] = useState(false);
@@ -32,6 +35,17 @@ export function SettingsScreen({ user, flags, onBack, onProfile, onChangePin, on
   const [about, setAbout] = useState(false);
   const [exporting, setExporting] = useState(false);
   const [exportMsg, setExportMsg] = useState('');
+  const [premiumOffer, setPremiumOffer] = useState(false);
+  const [portalBusy, setPortalBusy] = useState(false);
+  const [premiumMsg, setPremiumMsg] = useState('');
+  const premium = isPremium(user);
+  const openPortal = async () => {
+    setPortalBusy(true); setPremiumMsg('');
+    try {
+      const url = await backend.premiumPortal();
+      if (url) location.href = url; else { onPremiumChange?.(); setPortalBusy(false); }
+    } catch { setPremiumMsg(t('Správu předplatného se nepodařilo otevřít. Zkus to prosím za chvíli.', 'Could not open subscription management. Please try again shortly.')); setPortalBusy(false); }
+  };
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [deleteErr, setDeleteErr] = useState('');
@@ -101,6 +115,22 @@ export function SettingsScreen({ user, flags, onBack, onProfile, onChangePin, on
       </section>
 
       <section className="settings-group">
+        <h2>Hushki Premium 👑</h2>
+        {premium ? (
+          <div className="settings-item">
+            <span>{t('Aktivní do', 'Active until')} {new Date(user.premiumUntil!).toLocaleDateString(isEn() ? 'en-GB' : 'cs-CZ')}</span>
+            <button className="btn small" disabled={portalBusy} onClick={openPortal}>{portalBusy ? <span className="spinner" /> : t('Spravovat', 'Manage')}</button>
+          </div>
+        ) : (
+          <div className="settings-item">
+            <span>{t('Prémiové samolepky a pikant 21–35', 'Premium stickers and spicy 21–35')}</span>
+            <button className="btn small primary" onClick={() => setPremiumOffer(true)}>{t('Získat', 'Get it')}</button>
+          </div>
+        )}
+        {premiumMsg && <p className="small muted" style={{ marginTop: 8 }}>{premiumMsg}</p>}
+      </section>
+
+      <section className="settings-group">
         <h2>{t('Aplikace', 'App')}</h2>
         <div className="settings-item"><span>{t('Jazyk', 'Language')}</span><LangSwitch /></div>
         {backend.mode !== 'demo' && pushSupported() && (
@@ -167,6 +197,7 @@ export function SettingsScreen({ user, flags, onBack, onProfile, onChangePin, on
         )}
       </div>
       {privacy && <PrivacySheetScreen onBack={() => setPrivacy(false)} />}
+      {premiumOffer && <PremiumSheet onClose={() => setPremiumOffer(false)} onDemoDone={onPremiumChange} />}
       {help && <HelpSheet onClose={() => setHelp(false)} />}
       {about && <AboutSheet onClose={() => setAbout(false)} />}
     </div>

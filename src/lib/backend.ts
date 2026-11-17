@@ -6,7 +6,7 @@ import { b64, unb64 } from './crypto';
 import { clearVault } from './keystore';
 
 export type Gender = 'muz' | 'zena' | 'neuvedeno';
-export interface User { id: string; email: string; name: string; gender: Gender; privacyVersion?: number | null }
+export interface User { id: string; email: string; name: string; gender: Gender; privacyVersion?: number | null; premiumUntil?: string | null }
 export interface Pair { id: string; user_a: string; user_b: string | null; key_check: string; partner_name: string; partner_gender: Gender; expires_at?: string | null }
 export interface Message {
   id: string; pair_id: string; sender_id: string;
@@ -44,6 +44,10 @@ export interface Backend {
   acceptPrivacy(version: number): Promise<void>;
   /** Smaže účet a všechna data (GDPR). */
   deleteAccount(): Promise<void>;
+  /** Premium: adresa platební stránky Stripe (null v demu, kde se Premium zapne hned). */
+  premiumCheckout(plan: 'month' | 'year'): Promise<string | null>;
+  /** Premium: adresa stránky Stripe pro správu a zrušení předplatného. */
+  premiumPortal(): Promise<string | null>;
   updateProfile(name: string, gender: Gender): Promise<void>;
   getPairs(): Promise<Pair[]>;
   createPair(inviteHash: string, keyCheck: string): Promise<Pair>;
@@ -124,8 +128,11 @@ function supabaseBackend(url: string, anonKey: string): Backend {
       const { data } = await sb.auth.getSession();
       const u = data.session?.user;
       if (!u) return null;
-      const { data: prof } = await sb.from('profiles').select('display_name, gender, privacy_version').eq('id', u.id).maybeSingle();
-      return { id: u.id, email: u.email ?? '', name: prof?.display_name ?? '', gender: (prof?.gender as Gender) ?? 'neuvedeno', privacyVersion: prof?.privacy_version ?? null };
+      const [{ data: prof }, { data: sub }] = await Promise.all([
+        sb.from('profiles').select('display_name, gender, privacy_version').eq('id', u.id).maybeSingle(),
+        sb.from('subscriptions').select('premium_until').eq('user_id', u.id).maybeSingle(),
+      ]);
+      return { id: u.id, email: u.email ?? '', name: prof?.display_name ?? '', gender: (prof?.gender as Gender) ?? 'neuvedeno', privacyVersion: prof?.privacy_version ?? null, premiumUntil: sub?.premium_until ?? null };
     },
     onAuthChange(cb) {
       const { data } = sb.auth.onAuthStateChange((event) => {
@@ -156,8 +163,24 @@ function supabaseBackend(url: string, anonKey: string): Backend {
       fail(error);
     },
     async deleteAccount() {
+      // běžící předplatné nejdřív ukončit, jinak by Stripe strhával dál
+      const { data: sub } = await sb.from('subscriptions').select('stripe_subscription_id, status').eq('user_id', await uid()).maybeSingle();
+      if (sub?.stripe_subscription_id && sub.status !== 'canceled') {
+        const { error } = await sb.functions.invoke('premium', { body: { action: 'cancel' } });
+        if (error) throw new BackendError('server', 'premium_cancel');
+      }
       fail((await sb.rpc('delete_my_account')).error);
       await sb.auth.signOut();
+    },
+    async premiumCheckout(plan) {
+      const { data, error } = await sb.functions.invoke('premium', { body: { action: 'checkout', plan } });
+      if (error || !data?.url) throw new BackendError('server', 'premium');
+      return data.url as string;
+    },
+    async premiumPortal() {
+      const { data, error } = await sb.functions.invoke('premium', { body: { action: 'portal' } });
+      if (error || !data?.url) throw new BackendError('server', 'premium');
+      return data.url as string;
     },
     async updateProfile(name, gender) {
       const { error } = await sb.from('profiles').update({ display_name: name, gender }).eq('id', await uid());
@@ -341,6 +364,18 @@ function demoBackend(): Backend {
     async deleteAccount() {
       wipeDemo();
       authListeners.forEach((l) => l());
+    },
+    async premiumCheckout() {
+      await wait();
+      const s = load();
+      if (s.user) save({ ...s, user: { ...s.user, premiumUntil: new Date(Date.now() + 30 * 864e5).toISOString() } });
+      return null;
+    },
+    async premiumPortal() {
+      await wait();
+      const s = load();
+      if (s.user) save({ ...s, user: { ...s.user, premiumUntil: null } });
+      return null;
     },
     async updateProfile(name, gender) { const s = load(); if (s.user) save({ ...s, user: { ...s.user, name, gender } }); },
     async acceptPrivacy(version) { const s = load(); if (s.user) save({ ...s, user: { ...s.user, privacyVersion: version } }); },

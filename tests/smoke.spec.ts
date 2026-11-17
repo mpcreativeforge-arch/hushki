@@ -45,8 +45,14 @@ test('registrace, místnost, samolepka, pikant, Legenda a angličtina', async ({
   await p.locator('.picker-grid .sticker-btn').nth(1).click();
   await expect(p.locator('.msg.mine').last()).toBeVisible();
 
-  // otazník jako první samolepka Pokecu, dlaždice „+ text“ už není
+  // otazník je prémiový: bez Premium otevře nabídku, v demu se Premium zapne hned
   await expect(p.getByRole('button', { name: 'Samolepka s textem' })).toHaveCount(0);
+  await p.getByRole('button', { name: '? (Premium)', exact: true }).click();
+  await expect(p.getByRole('heading', { name: /Hushki Premium/ })).toBeVisible();
+  await p.getByRole('button', { name: /ročně/ }).click();
+  await expect(p.getByRole('heading', { name: /Hushki Premium/ })).toHaveCount(0);
+  // s Premium je otazník první samolepkou Pokecu
+  await expect(p.locator('.picker-grid .sticker-btn').first()).toHaveAttribute('aria-label', '?');
   await p.getByRole('button', { name: '?', exact: true }).click();
   await expect(p.locator('.msg.mine')).toHaveCount(2);
   // stav jen u posledního vlastního vzkazu, naposledy použité jako první záložka

@@ -5,4 +5,11 @@ project_id = "hushki"
 verify_jwt = true
 
 [functions.notify]
-verify_jwt = true
+verify_jwt = false
+
+# Premium: uživatele ověřuje kód funkce, webhook ověřuje podpis Stripe
+[functions.premium]
+verify_jwt = false
+
+[functions.stripe-webhook]
+verify_jwt = false

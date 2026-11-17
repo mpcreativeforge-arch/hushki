@@ -67,6 +67,7 @@ const SECTIONS_CS: PrivacySection[] = [
     title: '4. Kdo další k údajům přistupuje',
     body: [
       'Supabase Inc.: databáze, přihlášení a úložiště (servery v EU, Irsko). Ukládá i šifrovaná data vzkazů, která nedokáže přečíst.',
+      'Stripe Payments Europe, Ltd. (Irsko): platby za Hushki Premium. Údaje o kartě zadáváš přímo Stripe, my je nevidíme; od Stripe dostáváme jen e-mail, stav a dobu předplatného.',
       'Poskytovatel hostingu webové aplikace (Webglobe, s.r.o., Česká republika).',
       'Služby push upozornění Apple, Google nebo Mozilla: doručují jen obecné upozornění bez obsahu.',
       'Při předání mimo EU používáme standardní smluvní doložky schválené Evropskou komisí.',
@@ -134,6 +135,7 @@ const SECTIONS_EN: PrivacySection[] = [
     title: '4. Who else has access',
     body: [
       'Supabase Inc.: database, sign-in and storage (servers in the EU, Ireland). It also stores encrypted message data it cannot read.',
+      'Stripe Payments Europe, Ltd. (Ireland): payments for Hushki Premium. You enter card details directly with Stripe and we never see them; Stripe only tells us your e-mail and the status and term of your subscription.',
       'The web hosting provider (Webglobe, s.r.o., Czech Republic).',
       'Apple, Google or Mozilla push services: they deliver only a generic notification without content.',
       'For transfers outside the EU we use the European Commission’s standard contractual clauses.',

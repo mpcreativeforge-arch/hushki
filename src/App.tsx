@@ -16,7 +16,8 @@ import { PrivacyConsent } from './components/Privacy';
 import { PRIVACY_VERSION } from './data/privacy';
 import { Splash } from './components/Splash';
 import { ProfileStep } from './components/ProfileStep';
-import { Toaster } from './components/Toast';
+import { Toaster, toast } from './components/Toast';
+import { isPremium } from './lib/premium';
 import { t, useLang } from './lib/i18n';
 import { clearInvite, takeInvite } from './lib/invite';
 
@@ -55,6 +56,24 @@ export function App() {
     if (list) setPairs(list);
     return list ?? [];
   }, []);
+
+  const refreshUser = useCallback(async () => { const u = await backend.getUser(); if (u) setUser(u); return u; }, []);
+
+  // Návrat z platební stránky Stripe: Premium odemkne webhook, takže chvíli zkoušet znovu načíst účet.
+  useEffect(() => {
+    const q = new URLSearchParams(location.search).get('premium');
+    if (!q) return;
+    history.replaceState(null, '', location.pathname + location.hash);
+    if (q !== 'ok') return;
+    toast(t('Děkujeme! Premium se odemyká…', 'Thank you! Unlocking Premium…'));
+    let n = 0;
+    const tick = async () => {
+      const u = await refreshUser();
+      if (isPremium(u)) toast(t('Premium je aktivní 👑', 'Premium is active 👑'));
+      else if (++n < 10) setTimeout(tick, 3000);
+    };
+    setTimeout(tick, 1500);
+  }, [refreshUser]);
 
   // Rozhodne, kam uživatele poslat po načtení / přihlášení.
   const route = useCallback(async () => {
@@ -315,7 +334,7 @@ export function App() {
           user={user!} pair={room} pairKey={keys[room.id]} flags={flags}
           onBack={() => setStage({ name: 'home' })}
           onSettings={() => setStage({ name: 'settings' })}
-          onLock={lockNow} onLogout={logout} onLeave={() => leave(room.id)} getCode={() => roomCode(room.id)}
+          onLock={lockNow} onLogout={logout} onLeave={() => leave(room.id)} getCode={() => roomCode(room.id)} onPremiumChange={refreshUser}
         />
       ) : <div className="app"><div className="grow" style={{ display: 'grid', placeItems: 'center' }}><span className="spinner" /></div></div>;
       break;
@@ -326,7 +345,7 @@ export function App() {
           onBack={() => setStage({ name: 'home' })}
           onProfile={(name, gender) => setUser({ ...user!, name, gender })}
           onChangePin={() => setStage({ name: 'setpin' })}
-          onLogout={logout} onDeleteAccount={deleteAccount}
+          onLogout={logout} onDeleteAccount={deleteAccount} onPremiumChange={refreshUser}
         />
       );
       break;
