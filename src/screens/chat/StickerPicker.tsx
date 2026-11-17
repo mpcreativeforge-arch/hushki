@@ -42,7 +42,7 @@ export function StickerPicker({ user, recent, disabled, onPick, onDice, onLegend
           </button>
         ))}
       </div>
-      <div className="picker-grid">
+      <div className="picker-scroll"><div className="picker-grid">
         {cur === 'pikant' ? (
           <>
             <button className="sticker-btn dice-btn" aria-label={t('Hod kostkou', 'Roll the dice')} disabled={disabled} onClick={onDice}>
@@ -61,7 +61,7 @@ export function StickerPicker({ user, recent, disabled, onPick, onDice, onLegend
             </button>
           );
         })}
-      </div>
+      </div></div>
     </div>
   );
 }
