@@ -7,7 +7,7 @@ const pin = async (p: Page, digits: string) => {
 test('registrace, místnost, samolepka, pikant, Legenda a angličtina', async ({ page: p }) => {
   const errors: string[] = [];
   p.on('pageerror', (e) => errors.push(e.message));
-  await p.addInitScript(() => localStorage.setItem('hushki.install-seen', '1'));
+  await p.addInitScript(() => sessionStorage.setItem('hushki.install-seen', '1'));
   await p.goto('/');
   await p.locator('.splash').click(); // úvod jde přeskočit ťuknutím
   await expect(p.locator('.splash')).toHaveCount(0);
@@ -109,7 +109,7 @@ test('registrace, místnost, samolepka, pikant, Legenda a angličtina', async ({
 });
 
 test('pozvánka odkazem vyplní kód a nabídne připojení', async ({ page: p }) => {
-  await p.addInitScript(() => localStorage.setItem('hushki.install-seen', '1'));
+  await p.addInitScript(() => sessionStorage.setItem('hushki.install-seen', '1'));
   await p.goto('/#join=abcd-efgh-jkmn-pqrs');
   await p.locator('.splash').click();
   await expect(p.getByText(/Partner tě zve do Hushki/)).toBeVisible();

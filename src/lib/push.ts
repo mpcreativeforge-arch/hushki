@@ -28,19 +28,36 @@ function urlB64ToBytes(s: string) {
   return unb64((s + pad).replace(/-/g, '+').replace(/_/g, '/'));
 }
 
-export async function enablePush(): Promise<'ok' | 'denied' | 'unsupported'> {
+// Některé prohlížeče (např. vestavěné v telefonech) na žádost o povolení nikdy neodpoví.
+const timeout = <T,>(p: Promise<T>, ms = 15000) =>
+  Promise.race([p, new Promise<never>((_, rej) => setTimeout(() => rej(new Error('timeout')), ms))]);
+
+export async function enablePush(): Promise<'ok' | 'denied' | 'unsupported' | 'error'> {
   if (!pushSupported()) return 'unsupported';
-  const perm = await Notification.requestPermission();
-  if (perm !== 'granted') return 'denied';
-  const reg = await navigator.serviceWorker.ready;
-  const sub = (await reg.pushManager.getSubscription()) ??
-    (await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: urlB64ToBytes(VAPID!) }));
-  await backend.savePushSubscription(sub.toJSON());
-  return 'ok';
+  try {
+    const perm = await timeout(Notification.requestPermission());
+    if (perm !== 'granted') return 'denied';
+    const reg = await timeout(navigator.serviceWorker.ready);
+    const sub = (await reg.pushManager.getSubscription()) ??
+      (await timeout(reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: urlB64ToBytes(VAPID!) })));
+    await backend.savePushSubscription(sub.toJSON());
+    return 'ok';
+  } catch (e) {
+    console.warn('push', e);
+    return 'error';
+  }
 }
 
 export async function pushEnabled(): Promise<boolean> {
   if (!pushSupported() || Notification.permission !== 'granted') return false;
   const reg = await navigator.serviceWorker.getRegistration();
   return !!(await reg?.pushManager.getSubscription());
+}
+
+export async function disablePush() {
+  const reg = await navigator.serviceWorker.getRegistration();
+  const sub = await reg?.pushManager.getSubscription();
+  if (!sub) return;
+  await backend.removePushSubscription(sub.endpoint);
+  await sub.unsubscribe();
 }

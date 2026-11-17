@@ -36,6 +36,10 @@ export interface Backend {
   signUp(email: string, password: string, name: string, gender: Gender): Promise<{ needsConfirm: boolean }>;
   signIn(email: string, password: string): Promise<void>;
   signOut(): Promise<void>;
+  /** Pošle e-mail s odkazem na nastavení nového hesla. */
+  resetPassword(email: string): Promise<void>;
+  /** Nastaví nové heslo přihlášenému uživateli (po odkazu z e-mailu). */
+  updatePassword(password: string): Promise<void>;
   /** Uloží souhlas se zásadami ochrany soukromí. */
   acceptPrivacy(version: number): Promise<void>;
   /** Smaže účet a všechna data (GDPR). */
@@ -63,6 +67,7 @@ export interface Backend {
   uploadPhoto(pairId: string, data: Uint8Array): Promise<string>;
   downloadPhoto(path: string): Promise<Uint8Array>;
   savePushSubscription(sub: PushSubscriptionJSON): Promise<void>;
+  removePushSubscription(endpoint: string): Promise<void>;
   notifyPartner(messageId: string): Promise<void>;
   /** Vlastní nápady uživatele, zašifrované. Vidí je jen on sám. */
   getIdeas(): Promise<{ ciphertext: string; iv: string } | null>;
@@ -138,6 +143,14 @@ function supabaseBackend(url: string, anonKey: string): Backend {
       if (error) throw new BackendError('auth', error.message);
     },
     async signOut() { await sb.auth.signOut(); },
+    async resetPassword(email) {
+      const { error } = await sb.auth.resetPasswordForEmail(email, { redirectTo: location.origin + import.meta.env.BASE_URL });
+      if (error) throw new BackendError('auth', error.message);
+    },
+    async updatePassword(password) {
+      const { error } = await sb.auth.updateUser({ password });
+      if (error) throw new BackendError('auth', error.message);
+    },
     async acceptPrivacy(version) {
       const { error } = await sb.from('profiles').update({ privacy_version: version, privacy_accepted_at: new Date().toISOString() }).eq('id', await uid());
       fail(error);
@@ -202,7 +215,8 @@ function supabaseBackend(url: string, anonKey: string): Backend {
     async markRead(id) { fail((await sb.rpc('mark_read', { p_message: id })).error); },
     async deleteMessage(id) { fail((await sb.from('messages').delete().eq('id', id)).error); },
     subscribe(pairId, cb) {
-      const ch = sb.channel('pair-' + pairId)
+      // Jedinečný název: odhlášení starého kanálu je asynchronní a stejný název by vrátil ještě přihlášený kanál.
+      const ch = sb.channel(`pair-${pairId}-${crypto.randomUUID()}`)
         .on('postgres_changes', { event: '*', schema: 'public', table: 'messages', filter: `pair_id=eq.${pairId}` }, cb)
         .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'pairs', filter: `id=eq.${pairId}` }, cb)
         .subscribe();
@@ -230,6 +244,10 @@ function supabaseBackend(url: string, anonKey: string): Backend {
       const { error } = await sb.from('push_subscriptions').upsert({
         user_id: await uid(), endpoint: sub.endpoint, p256dh: sub.keys?.p256dh, auth: sub.keys?.auth,
       }, { onConflict: 'endpoint' });
+      fail(error);
+    },
+    async removePushSubscription(endpoint) {
+      const { error } = await sb.from('push_subscriptions').delete().eq('endpoint', endpoint);
       fail(error);
     },
     async notifyPartner(message_id) {
@@ -312,6 +330,8 @@ function demoBackend(): Backend {
       save({ ...s, user: s.user ?? s.account ?? { id: 'demo-me', email, name: email.split('@')[0], gender: 'neuvedeno' }, account: null });
       authListeners.forEach((l) => l());
     },
+    async resetPassword() { await wait(); },
+    async updatePassword() { await wait(); },
     async signOut() {
       // Jako u skutečného serveru: odhlášení nic nemaže, místnosti počkají na další přihlášení.
       const s = load();
@@ -427,11 +447,15 @@ function demoBackend(): Backend {
       try { localStorage.setItem(DEMO_IDEAS, JSON.stringify({ ciphertext, iv })); } catch { throw new BackendError('storage'); }
     },
     async savePushSubscription() { /* demo */ },
+    async removePushSubscription() { /* demo */ },
     async notifyPartner() { /* demo */ },
   };
 }
 
 const url = import.meta.env.VITE_SUPABASE_URL as string | undefined;
 const key = import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined;
+
+/** Stránka otevřená z e-mailu pro obnovu hesla (zjistit dřív, než Supabase adresu vyčistí). */
+export const recoveryLink = typeof location !== 'undefined' && /type=recovery/.test(location.hash);
 
 export const backend: Backend = url && key ? supabaseBackend(url, key) : demoBackend();

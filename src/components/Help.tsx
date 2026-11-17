@@ -81,7 +81,7 @@ export function HelpSheet({ onClose }: { onClose: () => void }) {
       <p className="small muted" style={{ margin: '0 0 6px' }}>{t('Takhle vypadá pozvánka, kterou partner dostane:', 'This is the invite your partner receives:')}</p>
       <div className="demo-invite">{t('Pojď se mnou do Hushki, jen pro nás dva. 🤫 Ťukni na odkaz:', 'Join me on Hushki, just for the two of us. 🤫 Tap the link:')} <u>hushki.cz/#join=…</u></div>
       <p className="small muted" style={{ margin: '12px 0 6px' }}>{t('A takhle upozornění na nový vzkaz (obsah nikdy neprozradí):', 'And this is a new message notification (it never reveals the content):')}</p>
-      <div className="demo-notif"><img src={`${import.meta.env.BASE_URL}icons/icon-192.png`} alt="" width={36} height={36} /><div><b>Hushki</b><span className="small muted" style={{ float: 'right' }}>{t('teď', 'now')}</span><br />{t('Máš nový vzkaz 🤫', 'You have a new message 🤫')}</div></div>
+      <div className="demo-notif"><img src={`${import.meta.env.BASE_URL}app-icons/icon-192.png`} alt="" width={36} height={36} /><div><b>Hushki</b><span className="small muted" style={{ float: 'right' }}>{t('teď', 'now')}</span><br />{t('Máš nový vzkaz 🤫', 'You have a new message 🤫')}</div></div>
       <p className="small muted" style={{ marginTop: 14 }}>
         {t('Něco nefunguje? Napiš nám na ', 'Something not working? Write to ')}
         <a href={`mailto:${SUPPORT_EMAIL}`}>{SUPPORT_EMAIL}</a>.

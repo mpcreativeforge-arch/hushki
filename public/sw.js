@@ -1,5 +1,5 @@
 // Hushki service worker: offline shell + diskrétní push upozornění.
-const CACHE = 'hushki-v2';
+const CACHE = 'hushki-v3';
 const SCOPE = self.registration.scope;
 
 self.addEventListener('install', (e) => {
@@ -18,8 +18,8 @@ self.addEventListener('fetch', (e) => {
   if (req.method !== 'GET') return;
   const url = new URL(req.url);
   if (url.origin !== location.origin) return; // Supabase apod. nikdy necachovat
-  if (req.mode === 'navigate') {
-    e.respondWith(fetch(req).catch(() => caches.match(SCOPE)));
+  if (req.mode === 'navigate' || url.pathname.endsWith('.webmanifest')) {
+    e.respondWith(fetch(req).catch(() => caches.match(req.mode === 'navigate' ? SCOPE : req)));
     return;
   }
   e.respondWith(
@@ -36,8 +36,8 @@ self.addEventListener('push', (e) => {
   e.waitUntil(self.registration.showNotification(data.title, {
     body: data.body,
     tag: data.tag,
-    icon: SCOPE + 'icons/icon-192.png',
-    badge: SCOPE + 'icons/icon-192.png',
+    icon: SCOPE + 'app-icons/icon-192.png',
+    badge: SCOPE + 'app-icons/icon-192.png',
   }));
 });
 
