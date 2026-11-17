@@ -359,6 +359,7 @@ export function App() {
     <>
       {backend.mode === 'demo' && <div className="demo-banner">{t('Demo režim: data zůstávají jen v tomto prohlížeči', 'Demo mode: data stays in this browser only')}</div>}
       {screen}
+      <div className="rotate-note" aria-hidden><span>📱</span>{t('Otoč zařízení na výšku', 'Please rotate your device to portrait')}</div>
       <Toaster />
       {splash && <Splash onDone={endSplash} />}
       {!needsConsent && user && !user.name && (stage.name === 'room' || stage.name === 'home') && (
