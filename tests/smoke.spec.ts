@@ -83,7 +83,12 @@ test('registrace, místnost, samolepka, pikant, Legenda a angličtina', async ({
   // pikant: kostka a odeslání čísla
   await p.getByRole('tab', { name: /pikant/ }).click();
   await p.getByRole('button', { name: 'Hod kostkou' }).click();
+  // tajné přání: vybrané číslo „padne“ na kostce
+  await p.getByRole('button', { name: /Tajné přání/ }).click();
+  await p.getByRole('group').getByRole('button', { name: '7', exact: true }).click();
+  await p.screenshot({ path: 'test-results/kostka-prani.png' });
   await p.locator('button.d20').click();
+  await expect(p.locator('.dice-result')).toHaveText('7');
   await p.getByRole('button', { name: 'Poslat toto číslo' }).click();
   await pin(p, '5678');
   await expect(p.locator('.msg.mine .num-badge').last()).toBeVisible();

@@ -387,7 +387,7 @@ export function ChatScreen({ user, pair, pairKey, flags, onBack, onSettings, onL
       {sheet?.k === 'pikant' && <PikantSheet n={sheet.n} dice={sheet.dice} busy={busy} roomPin={roomPin} meFemale={meFemale} onSend={(pin) => sendPikant(sheet.n, pin, sheet.dice)} onReroll={() => setSheet({ k: 'dice', for: 'send', prev: sheet.n })} onClose={() => setSheet(null)} />}
       {sheet?.k === 'dice' && (
         <DiceOverlay
-          max={sheet.for === 'send' ? diceMax : DICE_MAX} prev={sheet.prev}
+          max={sheet.for === 'send' ? diceMax : DICE_MAX} prev={sheet.prev} secret={sheet.for === 'send'}
           actionLabel={sheet.for === 'send' ? t('Poslat toto číslo', 'Send this number') : t('Ukázat v Legendě', 'Show in the Legend')}
           onResult={(n) => setSheet(sheet.for === 'send' ? { k: 'pikant', n, dice: true } : { k: 'legend', n })}
           onClose={() => setSheet(sheet.for === 'legend' ? { k: 'legend', n: sheet.prev } : null)}
