@@ -161,7 +161,8 @@ export const buildIcons = (sex: 'muz' | 'zena') => pick(range(sex === 'zena' ? '
 /** Samolepky, které se bez obrázku nemají schovat, ale ukázat jako emoji s textem. */
 export const keepFallback = (id: string) => /^[whk]\d+$/.test(id);
 /** Odesílatel v chatu a v seznamu místností: jen HE / SHE. */
-export const heShe = (g: Gender) => (sexOf(g) === 'zena' ? 'SHE' : 'HE');
+/** Česky On / Ona, anglicky HE / SHE. */
+export const heShe = (g: Gender) => (sexOf(g) === 'zena' ? (isEn() ? 'SHE' : 'Ona') : (isEn() ? 'HE' : 'On'));
 
 /** Univerzální ikony bez textu podle pohlaví (u = kluk, v = holka). */
 export const UNI_IDS = [...range('u', 5), ...range('v', 5)];

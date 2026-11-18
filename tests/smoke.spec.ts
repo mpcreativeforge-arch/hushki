@@ -35,7 +35,7 @@ test('registrace, místnost, samolepka, pikant, Legenda a angličtina', async ({
 
   // identita: jen HE / SHE (bez jména)
   await expect(p.getByLabel(/Jak ti má/)).toHaveCount(0);
-  await p.getByRole('radio', { name: 'HE', exact: true }).click();
+  await p.getByRole('radio', { name: 'On', exact: true }).click();
   await p.getByRole('button', { name: 'Potvrdit' }).click();
   await expect(p.locator('.profile-step')).toHaveCount(0);
 
@@ -47,7 +47,7 @@ test('registrace, místnost, samolepka, pikant, Legenda a angličtina', async ({
   await p.locator('.picker-grid .sticker-btn').nth(1).click();
   await expect(p.locator('.msg.mine').last()).toBeVisible();
   // štítek odesílatele nad vzkazem
-  await expect(p.locator('.msg.mine .who-tag').last()).toHaveText('HE');
+  await expect(p.locator('.msg.mine .who-tag').last()).toHaveText('On');
 
   // otazník se psem (s31) je prémiový: bez Premium otevře nabídku, v demu se Premium zapne hned
   await expect(p.getByRole('button', { name: 'Samolepka s textem' })).toHaveCount(0);
