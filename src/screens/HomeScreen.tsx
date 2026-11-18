@@ -16,6 +16,13 @@ interface Props {
   onOpen: (p: Pair) => void; onAdd: () => void; onSettings: () => void; onLock: () => void; onLogout: () => void;
 }
 
+/** Neutrální pozdravy, při každém otevření aplikace náhodně jeden. */
+const GREETINGS: [string, string][] = [
+  ['Vítej zpět.', 'Welcome back.'], ['Vítej.', 'Welcome.'], ['Tvůj tajný koutek.', 'Your secret corner.'],
+  ['Psst… jsi tu.', 'Psst… you’re here.'], ['Rádi tě vidíme.', 'Good to see you.'],
+];
+const greetIndex = Math.floor(Math.random() * GREETINGS.length);
+
 interface Stat { unread: number; last: string | null }
 
 /** Místnost se jmenuje podle partnera: HE / SHE (víc místností se stejným štítkem dostane pořadí). */
@@ -70,7 +77,7 @@ export function HomeScreen({ user, pairs, keys, onOpen, onAdd, onSettings, onLoc
         </div>
       </div>
 
-      <h1>{t('Ahoj', 'Hi')}, {heShe(user.gender)}.</h1>
+      <h1>{t(...GREETINGS[greetIndex])}</h1>
       <p className="muted">{pairs.length ? t('Tvoje místnosti. Každá má svůj vlastní klíč.', 'Your rooms. Each has its own key.') : t('Zatím nemáš žádnou místnost.', 'You have no rooms yet.')}</p>
 
       <div className="rooms">
