@@ -1,10 +1,10 @@
 import type { Gender } from '../lib/backend';
 import { t } from '../lib/i18n';
 
-/** Identita je jen HE (on) nebo SHE (ona). */
+/** Identita je jen On / Ona (anglicky HE / SHE). */
 const OPTIONS = (): { id: Gender; label: string; sub: string }[] => [
-  { id: 'muz', label: 'HE', sub: t('on', 'him') },
-  { id: 'zena', label: 'SHE', sub: t('ona', 'her') },
+  { id: 'muz', label: t('On', 'HE'), sub: t('muž', 'him') },
+  { id: 'zena', label: t('Ona', 'SHE'), sub: t('žena', 'her') },
 ];
 
 export function GenderPicker({ value, onChange }: { value: Gender | null; onChange: (g: Gender) => void }) {
