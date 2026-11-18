@@ -70,7 +70,7 @@ export function HomeScreen({ user, pairs, keys, onOpen, onAdd, onSettings, onLoc
         </div>
       </div>
 
-      <h1>{t('Ahoj.', 'Hi.')}</h1>
+      <h1>{t('Vítej.', 'Welcome.')}</h1>
       <p className="muted">{pairs.length ? t('Tvoje místnosti. Každá má svůj vlastní klíč.', 'Your rooms. Each has its own key.') : t('Zatím nemáš žádnou místnost.', 'You have no rooms yet.')}</p>
 
       <div className="rooms">
