@@ -630,8 +630,8 @@ a.settings-item { color: inherit; text-decoration: none; }
 /* Premium */
 .premium-preview { display: flex; justify-content: center; gap: 6px; }
 .sticker-btn.locked { position: relative; }
-.sticker-btn.locked .sticker, .sticker-btn.locked .sticker-fallback { opacity: .45; }
-.sticker-btn.locked::after { content: '👑'; position: absolute; right: 4px; bottom: 2px; font-size: 14px; }
+.sticker-btn.locked .sticker, .sticker-btn.locked .sticker-fallback { opacity: .45; filter: grayscale(.6); }
+.sticker-btn.locked::after { content: '👑'; position: absolute; right: 5px; top: 3px; font-size: 15px; }
 
 /* Tajné přání na kostce */
 .dice-wish { background: none; border: 0; color: var(--cream); opacity: .55; font: inherit; font-size: 13px; margin-top: 10px; cursor: pointer; }
