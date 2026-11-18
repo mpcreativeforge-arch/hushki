@@ -28,8 +28,8 @@ export function PremiumSheet({ onClose, onDemoDone }: { onClose: () => void; onD
         </div>
         <h2 style={{ margin: '10px 0 4px' }}>Hushki Premium 👑</h2>
         <p className="small muted" style={{ marginTop: 0 }}>
-          {t('Prémiové samolepky v každé záložce, pikantní čísla 21–35 a kostka se všemi čísly. Nové samolepky průběžně přibývají.',
-            'Premium stickers in every tab, spicy numbers 21–35 and the dice with every number. New stickers keep coming.')}
+          {t('Prémiové samolepky v každé záložce, pikantní čísla 21–35 a kostka se všemi čísly. Jedno předplatné platí pro vás oba ve vašich místnostech. Nové samolepky průběžně přibývají.',
+            'Premium stickers in every tab, spicy numbers 21–35 and the dice with every number. One subscription covers both of you in your rooms. New stickers keep coming.')}
         </p>
       </div>
       <button className="btn primary" style={{ width: '100%' }} disabled={!!busy} onClick={() => buy('year')}>

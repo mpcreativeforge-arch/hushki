@@ -78,7 +78,8 @@ export function ChatScreen({ user, pair, pairKey, flags, onBack, onSettings, onL
   const [menu, setMenu] = useState(false);
   const [install, setInstall] = useState(false);
   const [premiumOffer, setPremiumOffer] = useState(false);
-  const premium = isPremium(user);
+  // Premium platí pro celou místnost: stačí, když ho má jeden z dvojice
+  const premium = isPremium(user) || isPremium({ premiumUntil: pair.premium_until });
   const diceMax = premium ? DICE_MAX : FREE_DICE_MAX;
   const [recent, setRecent] = useState<string[]>(() => loadRecent(user.id));
   const [opened, setOpened] = useState<Set<string>>(() => new Set());
