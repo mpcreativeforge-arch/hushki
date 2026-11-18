@@ -2,7 +2,7 @@ import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { backend, type Message, type Pair, type User } from '../lib/backend';
 import { decodePayload, encodePayload, makeLock, previewOf, type LockRef, type Payload } from '../lib/payload';
 import { enablePush, pushEnabled, pushSupported } from '../lib/push';
-import { DICE_MAX, pikantId, pikantNumber, sexOf, tabsFor } from '../data/stickers';
+import { DICE_MAX, heShe, pikantId, pikantNumber, sexOf, tabsFor } from '../data/stickers';
 import { Envelope } from '../components/Envelope';
 import { feedback, haptic } from '../lib/feedback';
 import { QuickMenu } from '../components/QuickMenu';
@@ -25,7 +25,8 @@ import { loadRecent, pushRecent } from '../lib/recent';
 import { StickerPicker } from './chat/StickerPicker';
 import { PikantSheet } from './chat/PikantSheet';
 import { LegendSheet } from './chat/LegendSheet';
-import { remaining, SystemNote, InviteAgain, RoomCode } from './chat/RoomBits';
+import { remaining, SystemNote, SparkNote, InviteAgain, RoomCode } from './chat/RoomBits';
+import { lastActivity, sparkLevel, SparkIcon } from '../lib/spark';
 import type { Decoded } from './chat/Bubble';
 
 interface Props {
@@ -86,7 +87,9 @@ export function ChatScreen({ user, pair, pairKey, flags, onBack, onSettings, onL
   useLang();
   const online = useOnline();
 
-  const partner = pair.partner_name || (pair.partner_gender === 'zena' ? t('Partnerka', 'Partner') : pair.partner_gender === 'muz' ? 'Partner' : t('Partner/ka', 'Partner'));
+  // identita je jen HE / SHE, žádná jména
+  const partner = heShe(pair.partner_gender);
+  const me = heShe(user.gender);
   const waiting = !pair.user_b;
   const canReply = flags.replies !== false;
   const meFemale = sexOf(user.gender) === 'zena';
@@ -296,6 +299,11 @@ export function ChatScreen({ user, pair, pairKey, flags, onBack, onSettings, onL
   }
   const gap = (i: number) => !items || i === 0 || new Date(items[i].created_at).getTime() - new Date(items[i - 1].created_at).getTime() > 15 * 60_000;
   const last = items?.length ? items[items.length - 1].created_at : null;
+  // Jiskra: chladne podle poslední zprávy (ne systémové), po 72 h ukáže připomínku
+  const sparkOn = user.spark !== false && !waiting;
+  const lastReal = items ? [...items].reverse().find((m) => !m.meta?.sys)?.created_at : null;
+  const spark = sparkOn && items ? sparkLevel(lastActivity(pair.last_activity_at, lastReal)) : null;
+  const sparkSent = !!items?.some((m) => m.meta?.sys === 'spark');
   const status = waiting ? t('Čekáme na připojení partnera', 'Waiting for your partner to join')
     : unread ? `${unread} ${plural(unread, 'nový vzkaz', 'nové vzkazy', 'nových vzkazů', 'new message', 'new messages')}`
       : last ? t('Zprávy zmizí za ', 'Messages disappear in ') + remaining(new Date(last).getTime() + TTL) : t('Šifrováno, uvidíte jen vy dva', 'Encrypted, only the two of you can see it');
@@ -309,7 +317,7 @@ export function ChatScreen({ user, pair, pairKey, flags, onBack, onSettings, onL
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M15 5l-7 7 7 7" /></svg>
           </button>
           <div style={{ minWidth: 0 }}>
-            <div className="room-title">{waiting ? t('Nová místnost', 'New room') : partner}</div>
+            <div className="room-title">{waiting ? t('Nová místnost', 'New room') : partner} {spark && <SparkIcon level={spark} />}</div>
             <div className="small muted">{status}</div>
           </div>
         </div>
@@ -343,11 +351,12 @@ export function ChatScreen({ user, pair, pairKey, flags, onBack, onSettings, onL
           rows.map((r) => r.k === 'g' ? (
             <GroupEnvelope key={'g' + r.ids[0]} count={r.ids.length} partner={partner} at={r.at} showTime={gap(r.i)} onOpen={() => openGroup(r.ids)} />
           ) : r.m.meta?.sys ? (
+            r.m.meta.sys === 'spark' && !sparkOn ? null :
             <SystemNote key={r.m.id} m={r.m} mine={r.m.sender_id === user.id} me={user} pair={pair} partner={partner} />
           ) : (
             <Bubble
               key={r.m.id} m={opened.has(r.m.id) && !r.m.read_at ? { ...r.m, read_at: new Date().toISOString() } : r.m}
-              live={liveRef.current.has(r.m.id) || opened.has(r.m.id)} mine={r.m.sender_id === user.id} partner={partner} pairKey={pairKey}
+              live={liveRef.current.has(r.m.id) || opened.has(r.m.id)} mine={r.m.sender_id === user.id} partner={partner} who={r.m.sender_id === user.id ? me : partner} pairKey={pairKey}
               showTime={gap(r.i)} showStatus={r.m.id === lastMine}
               selected={selected === r.m.id}
               onSelect={() => setSelected(r.m.id)}
@@ -358,6 +367,7 @@ export function ChatScreen({ user, pair, pairKey, flags, onBack, onSettings, onL
             />
           ))
         )}
+        {spark === 'cold' && !sparkSent && <SparkNote me={user} />}
         {swipeHint && canReply && hasTheirs && (
           <div className="notice row between small swipe-hint">
             <span>{t('Tip: přetáhni vzkaz doprava a odpovíš na něj. Podržením svého vzkazu ho smažeš.', 'Tip: swipe a message to the right to reply. Press and hold your own message to delete it.')}</span>

@@ -648,3 +648,19 @@ a.settings-item { color: inherit; text-decoration: none; }
   }
   .rotate-note span { font-size: 54px; transform: rotate(-90deg); }
 }
+
+/* HE / SHE: volba identity, štítek odesílatele, Jiskra */
+.he-she { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.he-she-btn { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 18px 8px; border-radius: var(--r-hand); border: 1.5px solid rgba(244, 230, 210, 0.25); background: rgba(244, 230, 210, 0.05); color: var(--cream); cursor: pointer; font: inherit; }
+.he-she-btn b { font-size: 28px; letter-spacing: .08em; }
+.he-she-btn.on { background: var(--cream); color: var(--wine-900); border-color: var(--cream); }
+.he-she-btn.on .muted { color: var(--wine-700); }
+.he-she-tag { letter-spacing: .08em; color: var(--coral-soft); }
+.who-tag { font-size: 10px; font-weight: 700; letter-spacing: .12em; color: var(--muted); opacity: .8; margin: 0 6px 2px; line-height: 1.2; }
+.sticker-word { display: flex !important; flex-direction: column; align-items: center; justify-content: center; gap: 4px; text-align: center; }
+.sticker-word b { color: var(--cream); line-height: 1.1; max-width: 100%; overflow-wrap: anywhere; letter-spacing: .03em; }
+.spark { display: inline-block; font-size: .9em; transition: filter .3s, opacity .3s; }
+.spark-warm { filter: saturate(.75); }
+.spark-cool { filter: saturate(.3) brightness(.9); opacity: .75; }
+.spark-cold { filter: grayscale(1); opacity: .6; }
+.spark-note { color: var(--coral-soft); }

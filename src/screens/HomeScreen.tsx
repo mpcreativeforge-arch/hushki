@@ -7,6 +7,9 @@ import { feedback } from '../lib/feedback';
 import { when } from './format';
 import { LockButton } from '../components/LockButton';
 import { plural, t } from '../lib/i18n';
+import { heShe } from '../data/stickers';
+import { setBadge } from '../lib/badge';
+import { lastActivity, sparkLevel, SparkIcon } from '../lib/spark';
 
 interface Props {
   user: User; pairs: Pair[]; keys: Record<string, CryptoKey>;
@@ -15,7 +18,11 @@ interface Props {
 
 interface Stat { unread: number; last: string | null }
 
-const nameOf = (p: Pair) => p.partner_name || (p.partner_gender === 'zena' ? t('Partnerka', 'Partner') : p.partner_gender === 'muz' ? 'Partner' : t('Partner/ka', 'Partner'));
+/** Místnost se jmenuje podle partnera: HE / SHE (víc místností se stejným štítkem dostane pořadí). */
+const nameOf = (p: Pair, pairs: Pair[]) => {
+  const same = pairs.filter((x) => x.user_b && heShe(x.partner_gender) === heShe(p.partner_gender));
+  return heShe(p.partner_gender) + (same.length > 1 ? ' · ' + (same.indexOf(p) + 1) : '');
+};
 
 export function HomeScreen({ user, pairs, keys, onOpen, onAdd, onSettings, onLock, onLogout }: Props) {
   const [stats, setStats] = useState<Record<string, Stat>>({});
@@ -30,12 +37,13 @@ export function HomeScreen({ user, pairs, keys, onOpen, onAdd, onSettings, onLoc
       const out: Record<string, Stat> = {};
       for (const id of ids.split(',')) {
         const list = await backend.listMessages(id).catch(() => []);
-        out[id] = { unread: list.filter((m) => m.sender_id !== user.id && !m.read_at).length, last: list[0]?.created_at ?? null };
+        out[id] = { unread: list.filter((m) => m.sender_id !== user.id && !m.read_at).length, last: list.find((m) => !m.meta?.sys)?.created_at ?? null };
       }
       if (!alive) return;
       const total = Object.values(out).reduce((a, s) => a + s.unread, 0);
       if (totalRef.current !== null && total > totalRef.current) feedback('receive');
       totalRef.current = total;
+      setBadge(total);
       setStats(out);
     };
     load();
@@ -62,7 +70,7 @@ export function HomeScreen({ user, pairs, keys, onOpen, onAdd, onSettings, onLoc
         </div>
       </div>
 
-      <h1>{t('Ahoj', 'Hi')}, {user.name}.</h1>
+      <h1>{t('Ahoj', 'Hi')}, {heShe(user.gender)}.</h1>
       <p className="muted">{pairs.length ? t('Tvoje místnosti. Každá má svůj vlastní klíč.', 'Your rooms. Each has its own key.') : t('Zatím nemáš žádnou místnost.', 'You have no rooms yet.')}</p>
 
       <div className="rooms">
@@ -70,6 +78,7 @@ export function HomeScreen({ user, pairs, keys, onOpen, onAdd, onSettings, onLoc
           const st = stats[p.id];
           const locked = !keys[p.id];
           const unread = st?.unread ?? 0;
+          const spark = user.spark !== false && p.user_b ? sparkLevel(lastActivity(p.last_activity_at, st?.last)) : null;
           const sub = !p.user_b ? t('Čeká na připojení s kódem', 'Waiting for someone to join with the code')
             : locked ? t('Zamčeno na tomto zařízení, klepni a zadej kód', 'Locked on this device, tap and enter the code')
             : unread ? (unread === 1 ? t('Nový vzkaz', 'New message') : `${unread} ${plural(unread, '', 'nové vzkazy', 'nových vzkazů', '', 'new messages')}`)
@@ -78,7 +87,7 @@ export function HomeScreen({ user, pairs, keys, onOpen, onAdd, onSettings, onLoc
             <button key={p.id} className={'room' + (unread ? ' unread' : '')} onClick={() => onOpen(p)}>
               <Envelope size={46} open={!unread} sparks={!!unread} />
               <div className="room-body">
-                <div className="room-name">{p.user_b ? nameOf(p) : t('Nová místnost', 'New room')}{locked ? ' 🔒' : ''}</div>
+                <div className="room-name">{p.user_b ? nameOf(p, pairs) : t('Nová místnost', 'New room')}{locked ? ' 🔒' : ''} {spark && <SparkIcon level={spark} />}</div>
                 <div className="room-sub">{sub}</div>
               </div>
               {unread > 0 && <span className="room-badge">{unread}</span>}

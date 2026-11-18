@@ -13,3 +13,7 @@ verify_jwt = false
 
 [functions.stripe-webhook]
 verify_jwt = false
+
+# Jiskra: volá ji plánovač s hlavičkou x-cron-secret
+[functions.spark]
+verify_jwt = false

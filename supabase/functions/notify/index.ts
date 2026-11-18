@@ -32,8 +32,12 @@ Deno.serve(async (req) => {
   if (!partner) return json({ sent: 0 });
 
   const { data: subs } = await db.from('push_subscriptions').select('*').eq('user_id', partner);
+  // Počet nepřečtených ve všech partnerových místnostech = číslo na ikoně aplikace (iOS 16.4+, Android).
+  const { data: rooms } = await db.from('pairs').select('id').or(`user_a.eq.${partner},user_b.eq.${partner}`);
+  const { count } = await db.from('messages').select('id', { count: 'exact', head: true })
+    .in('pair_id', (rooms ?? []).map((r) => r.id)).neq('sender_id', partner).is('read_at', null);
   // Záměrně žádný obsah ani jméno – jen neutrální upozornění.
-  const payload = JSON.stringify({ title: 'Hushki', body: 'Máš nový vzkaz 🤫', tag: 'hushki-new' });
+  const payload = JSON.stringify({ title: 'Hushki', body: 'Máš nový vzkaz 🤫', tag: 'hushki-new', badge: count ?? 1 });
 
   let sent = 0;
   for (const s of subs ?? []) {
