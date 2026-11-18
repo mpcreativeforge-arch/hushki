@@ -11,8 +11,8 @@ import { useRoomLegend } from '../../lib/roomLegend';
 
 export type Decoded = Message & { p: Payload | null; failed?: boolean };
 
-export function Bubble({ m, live, mine, partner, pairKey, showTime, showStatus, selected, onSelect, onOpen, onReply, onDelete, onPhoto }: {
-  m: Decoded; live: boolean; mine: boolean; partner: string; pairKey: CryptoKey; showTime: boolean; showStatus: boolean; selected: boolean;
+export function Bubble({ m, live, mine, partner, who, pairKey, showTime, showStatus, selected, onSelect, onOpen, onReply, onDelete, onPhoto }: {
+  m: Decoded; live: boolean; mine: boolean; partner: string; /** štítek odesílatele: HE / SHE */ who: string; pairKey: CryptoKey; showTime: boolean; showStatus: boolean; selected: boolean;
   onSelect: () => void; onOpen: () => void; onReply?: () => void; onDelete?: () => Promise<void>; onPhoto: (url: string) => void;
 }) {
   const sealed = !mine && !m.read_at;
@@ -86,6 +86,7 @@ export function Bubble({ m, live, mine, partner, pairKey, showTime, showStatus, 
         onContextMenu={(e) => e.preventDefault()}
         onClick={(e) => e.stopPropagation()}
       >
+        <div className="who-tag" aria-label={t('Poslal/a: ', 'Sent by: ') + who}>{who}</div>
         {onReply && <span className={'swipe-cue' + (dx >= SWIPE ? ' ready' : '')} style={{ opacity: Math.min(1, dx / SWIPE) }} aria-hidden>↩</span>}
         {p?.reply && <div className="quote">↩ {p.reply.preview}</div>}
         {m.failed || !p ? (
@@ -176,7 +177,11 @@ export function StickerImg({ id, size, onMissing, plain }: { id: string; size: n
     );
   }
   const st = STICKERS.get(id);
-  const img = broken || !st
+  // samostatné nálepky s textem (IDEA, Secret wish…) bez obrázku: emoji a pod ním text
+  const word = (broken || !st) && /^w\d+$/.test(id) && st && st.label.length > 1;
+  const img = word
+    ? <span className="sticker-fallback sticker-word" style={{ width: size, height: size }}><span style={{ fontSize: size * 0.42 }}>{st.fallback}</span><b style={{ fontSize: Math.max(9, size * 0.11) }}>{st.label.toUpperCase()}</b></span>
+    : broken || !st
     ? <span className="sticker-fallback" style={{ fontSize: size * 0.62, width: size, height: size }}>{st?.fallback ?? '✨'}</span>
     : <img className="sticker" src={stickerSrc(id)} width={size} height={size} alt={n ? `${t('Číslo', 'Number')} ${n}` : st.label} draggable={false} onError={() => { setBroken(true); onMissing?.(); }} />;
   if (!n) return img;

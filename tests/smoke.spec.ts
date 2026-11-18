@@ -33,27 +33,31 @@ test('registrace, místnost, samolepka, pikant, Legenda a angličtina', async ({
   await pin(p, '1234');
   await pin(p, '1234');
 
-  // jméno a pohlaví až po spárování
-  await p.getByLabel(/Jak ti má/).fill('Test');
-  await p.getByRole('radio', { name: 'Muž' }).click();
-  await p.getByRole('button', { name: 'Hotovo' }).click();
+  // identita: jen HE / SHE (bez jména)
+  await expect(p.getByLabel(/Jak ti má/)).toHaveCount(0);
+  await p.getByRole('radio', { name: 'HE', exact: true }).click();
+  await p.getByRole('button', { name: 'Potvrdit' }).click();
   await expect(p.locator('.profile-step')).toHaveCount(0);
 
   // chat: demo partner se připojí a pošle uvítání
   await expect(p.locator('.picker-tabs')).toBeVisible();
   await expect(p.getByRole('tab').first()).toHaveText('Pokec');
+  // samostatné nálepky na začátku Pokecu: IDEA, ?, !, Secret wish, Curious (zdarma)
+  await expect(p.locator('.picker-grid .sticker-btn').first()).toHaveAttribute('aria-label', 'IDEA');
   await p.locator('.picker-grid .sticker-btn').nth(1).click();
   await expect(p.locator('.msg.mine').last()).toBeVisible();
+  // štítek odesílatele nad vzkazem
+  await expect(p.locator('.msg.mine .who-tag').last()).toHaveText('HE');
 
-  // otazník je prémiový: bez Premium otevře nabídku, v demu se Premium zapne hned
+  // otazník se psem (s31) je prémiový: bez Premium otevře nabídku, v demu se Premium zapne hned
   await expect(p.getByRole('button', { name: 'Samolepka s textem' })).toHaveCount(0);
   await p.getByRole('button', { name: '? (Premium)', exact: true }).click();
   await expect(p.getByRole('heading', { name: /Hushki Premium/ })).toBeVisible();
   await p.getByRole('button', { name: /ročně/ }).click();
   await expect(p.getByRole('heading', { name: /Hushki Premium/ })).toHaveCount(0);
-  // s Premium je otazník první samolepkou Pokecu
-  await expect(p.locator('.picker-grid .sticker-btn').first()).toHaveAttribute('aria-label', '?');
-  await p.getByRole('button', { name: '?', exact: true }).click();
+  // s Premium korunky zmizí
+  await expect(p.locator('.picker-grid .sticker-btn.locked')).toHaveCount(0);
+  await p.locator('.picker-grid .sticker-btn').nth(2).click();
   await expect(p.locator('.msg.mine')).toHaveCount(2);
   // stav jen u posledního vlastního vzkazu, naposledy použité jako první záložka
   await expect(p.locator('.msg-status')).toHaveCount(1);
@@ -106,6 +110,11 @@ test('registrace, místnost, samolepka, pikant, Legenda a angličtina', async ({
   const num = (await editBtn.getAttribute('aria-label'))!.replace(/\D+/g, '');
   await editBtn.click();
   await p.getByLabel('Název').fill('Naše tajemství');
+  // ikony pro vlastní přání: HE vidí jen svou sadu
+  await p.getByRole('tab', { name: /Samolepka/ }).click();
+  await expect(p.getByRole('button', { name: 'High Heels' })).toBeVisible();
+  await expect(p.getByRole('button', { name: 'Suit & Tie' })).toHaveCount(0);
+  await p.getByRole('tab', { name: /Emoji/ }).click();
   await p.getByRole('button', { name: '🍓' }).click();
   await p.getByRole('button', { name: 'Uložit pro oba' }).click();
   await expect(p.getByText(`${num}. Naše tajemství`)).toBeVisible();

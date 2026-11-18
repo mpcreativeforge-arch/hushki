@@ -4,6 +4,19 @@ Soukromé vzkazy pro páry. Webová aplikace (PWA), kterou si uživatel připne 
 
 Jeden z partnerů napíše vzkaz, druhému přijde jen diskrétní upozornění („Máš nový vzkaz 🤫“) a obsah otevře až za svým PINem. Vzkazy jsou šifrované přímo v telefonu, server vidí jen zašifrovaná data.
 
+## Finální update (podle Petra)
+
+- **Identita jen HE / SHE**: při prvním spuštění se vybírá jen HE (on) nebo SHE (ona), bez jména. Volba je trvalá, řídí sadu ikon i rozhraní. Nad každým vzkazem je štítek odesílatele HE / SHE.
+- **Samostatné nálepky pro oba** na začátku Pokecu (zdarma): IDEA, ?, !, Do you have a secret wish?, I do have a secret wish, Curious (`w01`–`w06`). Bez obrázku se ukáže emoji s textem.
+- **Ikony pro vlastní přání** v úpravě Legendy: 15 pro HE (`h01`–`h15`) a 15 pro SHE (`k01`–`k15`), každý vidí jen svou sadu.
+- **Jiskra**: ikona 🔥 u místnosti chladne podle poslední zprávy, po 72 h přijde zpráva „Kde seš? Dlouho jsi nic nenapsal/a.“ (v chatu i push). Vypínač v Nastavení. Server: `0011_spark.sql` + funkce `spark`.
+- **Číslo na ikoně aplikace** (Badging API): Android Chrome i iPhone/iPad od iOS 16.4 (aplikace na ploše se zapnutými upozorněními).
+
+### Nasazení Jiskry
+1. SQL Editor: spustit `supabase/migrations/0011_spark.sql`.
+2. `supabase secrets set CRON_SECRET=<náhodný řetězec>` a `supabase functions deploy spark` (znovu nasadit i `notify`).
+3. Integrations → Cron → nová úloha každou hodinu (`0 * * * *`), typ Supabase Edge Function `spark`, metoda POST, hlavička `x-cron-secret: <stejný řetězec>`.
+
 ## Verze 7.1
 
 - Záložky seřazené podle používanosti: Pokec, Domluva, Ocenění, Dárky, Hushki pikant. Každá záložka má místo pro 30 samolepek (16–30 se ukážou, až bude v `public/stickers/` jejich obrázek).

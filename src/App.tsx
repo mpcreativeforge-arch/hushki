@@ -18,6 +18,7 @@ import { Splash } from './components/Splash';
 import { ProfileStep } from './components/ProfileStep';
 import { Toaster, toast } from './components/Toast';
 import { isPremium } from './lib/premium';
+import { setBadge } from './lib/badge';
 import { t, useLang } from './lib/i18n';
 import { clearInvite, takeInvite } from './lib/invite';
 
@@ -104,6 +105,21 @@ export function App() {
   }, [route]);
 
   const lockNow = useCallback(() => { clearSession(); setMaster(null); setKeys({}); clearPhotoCache(); setStage({ name: 'locked' }); }, []);
+
+  // Číslo na ikoně aplikace: počet nepřečtených ve všech místnostech (po přečtení v chatu i při návratu do aplikace)
+  useEffect(() => {
+    if (!user || !pairs.length) return;
+    const sync = async () => {
+      if (document.hidden) return;
+      let n = 0;
+      for (const p of pairs) n += (await backend.listMessages(p.id).catch(() => [])).filter((m) => m.sender_id !== user.id && !m.read_at && !m.meta?.sys).length;
+      setBadge(n);
+    };
+    sync();
+    const tm = setInterval(sync, 60_000);
+    document.addEventListener('visibilitychange', sync);
+    return () => { clearInterval(tm); document.removeEventListener('visibilitychange', sync); };
+  }, [user?.id, pairs, stage.name]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // relace: uložit po odemčení, prodlužovat a pamatovat si otevřenou místnost
   useEffect(() => {
@@ -343,7 +359,7 @@ export function App() {
         <SettingsScreen
           user={user!} flags={flags}
           onBack={() => setStage({ name: 'home' })}
-          onProfile={(name, gender) => setUser({ ...user!, name, gender })}
+          onUser={setUser}
           onChangePin={() => setStage({ name: 'setpin' })}
           onLogout={logout} onDeleteAccount={deleteAccount} onPremiumChange={refreshUser}
         />
@@ -362,10 +378,10 @@ export function App() {
       <div className="rotate-note" aria-hidden><span>📱</span>{t('Otoč zařízení na výšku', 'Please rotate your device to portrait')}</div>
       <Toaster />
       {splash && <Splash onDone={endSplash} />}
-      {!needsConsent && user && !user.name && (stage.name === 'room' || stage.name === 'home') && (
-        <ProfileStep user={user} onDone={(name, gender) => setUser({ ...user, name, gender })} />
+      {!needsConsent && user && user.gender !== 'muz' && user.gender !== 'zena' && (stage.name === 'room' || stage.name === 'home') && (
+        <ProfileStep onDone={(name, gender) => setUser({ ...user, name, gender })} />
       )}
-      {offerInstall && !recovery && !needsConsent && (stage.name === 'auth' || (stage.name === 'home' && !!user?.name)) && (
+      {offerInstall && !recovery && !needsConsent && (stage.name === 'auth' || (stage.name === 'home' && (user?.gender === 'muz' || user?.gender === 'zena'))) && (
         <InstallSheet onClose={() => setOfferInstall(false)} />
       )}
       {needsConsent && <PrivacyConsent updated={user!.privacyVersion != null} onAccept={acceptPrivacy} onDecline={logout} />}

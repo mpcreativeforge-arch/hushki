@@ -1,5 +1,5 @@
 // Hushki service worker: offline shell + diskrétní push upozornění.
-const CACHE = 'hushki-v3';
+const CACHE = 'hushki-v4';
 const SCOPE = self.registration.scope;
 
 self.addEventListener('install', (e) => {
@@ -33,12 +33,17 @@ self.addEventListener('fetch', (e) => {
 self.addEventListener('push', (e) => {
   let data = { title: 'Hushki', body: /^(cs|sk)/i.test(self.navigator.language || '') ? 'Máš nový vzkaz' : 'You have a new message', tag: 'hushki-new' };
   try { data = { ...data, ...e.data.json() }; } catch {}
-  e.waitUntil(self.registration.showNotification(data.title, {
+  // Číslo na ikoně aplikace (iOS 16.4+ na ploše, Android Chrome). Server posílá počet nepřečtených.
+  const nav = self.navigator;
+  const badge = typeof data.badge === 'number' && nav.setAppBadge
+    ? (data.badge > 0 ? nav.setAppBadge(data.badge) : nav.clearAppBadge()).catch(() => {})
+    : Promise.resolve();
+  e.waitUntil(Promise.all([badge, self.registration.showNotification(data.title, {
     body: data.body,
     tag: data.tag,
     icon: SCOPE + 'app-icons/icon-192.png',
     badge: SCOPE + 'app-icons/icon-192.png',
-  }));
+  })]));
 });
 
 self.addEventListener('notificationclick', (e) => {

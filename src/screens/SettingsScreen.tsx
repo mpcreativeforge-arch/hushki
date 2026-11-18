@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
-import { backend, type Gender, type User } from '../lib/backend';
-import { GenderPicker } from '../components/GenderPicker';
+import { backend, type User } from '../lib/backend';
+import { heShe } from '../data/stickers';
 import features from '../data/features.json';
 import { disablePush, enablePush, pushEnabled, pushSupported } from '../lib/push';
 import { feedback, getPrefs, setPrefs } from '../lib/feedback';
@@ -13,19 +13,16 @@ import { exportMyData } from '../lib/export';
 import { isPremium } from '../lib/premium';
 import { PremiumSheet } from '../components/PremiumSheet';
 import { isEn, t } from '../lib/i18n';
-import { setStickerSex, useStickerSex } from '../lib/style';
 
 interface Props {
   user: User; flags: Record<string, boolean>;
-  onBack: () => void; onProfile: (name: string, gender: Gender) => void;
+  onBack: () => void; onUser: (u: User) => void;
   onChangePin: () => void; onLogout: () => void; onDeleteAccount: () => Promise<void>;
   onPremiumChange?: () => void;
 }
 
-export function SettingsScreen({ user, flags, onBack, onProfile, onChangePin, onLogout, onDeleteAccount, onPremiumChange }: Props) {
-  const [name, setName] = useState(user.name);
-  const [gender, setGender] = useState<Gender>(user.gender);
-  const [saved, setSaved] = useState(false);
+export function SettingsScreen({ user, flags, onBack, onUser, onChangePin, onLogout, onDeleteAccount, onPremiumChange }: Props) {
+  const [sparkMsg, setSparkMsg] = useState('');
   const [pushMsg, setPushMsg] = useState('');
   const [pushOn, setPushOn] = useState(false);
   useEffect(() => { if (backend.mode !== 'demo') pushEnabled().then(setPushOn).catch(() => undefined); }, []);
@@ -55,11 +52,11 @@ export function SettingsScreen({ user, flags, onBack, onProfile, onChangePin, on
   };
   const toggle = (k: 'sound' | 'haptics') => { const next = { ...fx, [k]: !fx[k] }; setFx(next); setPrefs(next); if (next[k]) feedback('receive'); };
 
-  const saveName = async () => {
-    await backend.updateProfile(name.trim(), gender);
-    onProfile(name.trim(), gender);
-    setSaved(true);
-    setTimeout(() => setSaved(false), 1500);
+  const spark = user.spark !== false;
+  const toggleSpark = async () => {
+    setSparkMsg('');
+    try { await backend.setSpark(!spark); onUser({ ...user, spark: !spark }); }
+    catch { setSparkMsg(t('Změna se nepovedla. Zkontroluj připojení.', 'Could not save. Check your connection.')); }
   };
 
   const push = async () => {
@@ -88,7 +85,6 @@ export function SettingsScreen({ user, flags, onBack, onProfile, onChangePin, on
   };
 
   const upcoming = features.filter((f) => !flags[f.key]);
-  const style = useStickerSex(user.id, user.gender);
 
   return (
     <div className="app">
@@ -99,19 +95,11 @@ export function SettingsScreen({ user, flags, onBack, onProfile, onChangePin, on
 
       <section className="settings-group">
         <h2>{t('Profil', 'Profile')}</h2>
-        <div className="stack">
-          <label className="field"><span>{t('Tvoje jméno pro partnera/partnerku', 'Your name for your partner')}</span>
-            <input className="input" value={name} maxLength={40} onChange={(e) => setName(e.target.value)} />
-          </label>
-          <GenderPicker value={gender} onChange={setGender} />
-          <button className="btn small" onClick={saveName} disabled={!name.trim() || (name === user.name && gender === user.gender)}>{saved ? t('Uloženo', 'Saved') : t('Uložit', 'Save')}</button>
+        <div className="settings-item"><span>{t('Jsem', 'I am')}<br /><span className="small muted">{t('Volba je trvalá', 'This choice is permanent')}</span></span><b className="he-she-tag">{heShe(user.gender)}</b></div>
+        <div className="settings-item"><span>✨ {t('Jiskra', 'Spark')}<br /><span className="small muted">{t('Připomínka po 3 dnech bez zprávy', 'A nudge after 3 days without a message')}</span></span>
+          <button className={'chip' + (spark ? ' on' : '')} onClick={toggleSpark}>{spark ? t('Zapnuto', 'On') : t('Vypnuto', 'Off')}</button>
         </div>
-        <div className="settings-item"><span>{t('Styl samolepek', 'Sticker style')}</span>
-          <div className="chips" role="radiogroup" aria-label={t('Styl samolepek', 'Sticker style')}>
-            <button role="radio" aria-checked={style === 'muz'} className={'chip' + (style === 'muz' ? ' on' : '')} onClick={() => setStickerSex(user.id, 'muz')}>{t('Kluk', 'Guy')}</button>
-            <button role="radio" aria-checked={style === 'zena'} className={'chip' + (style === 'zena' ? ' on' : '')} onClick={() => setStickerSex(user.id, 'zena')}>{t('Holka', 'Girl')}</button>
-          </div>
-        </div>
+        {sparkMsg && <p className="small muted" style={{ marginTop: 8 }}>{sparkMsg}</p>}
       </section>
 
       <section className="settings-group">

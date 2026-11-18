@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { pikantId, tabTitle, tabsFor } from '../../data/stickers';
+import { buildIcons, keepFallback, pikantId, tabTitle, tabsFor } from '../../data/stickers';
 import { type LegendItem } from '../../data/legend';
 import { BODY_MAX, TITLE_MAX, firstGrapheme, type LegendEdit } from '../../lib/roomLegend';
 import { Sheet } from '../../components/Sheet';
@@ -23,7 +23,11 @@ export function LegendEditor({ item, base, edit, sex, onSave, onClose }: {
   const [error, setError] = useState('');
   // druhá sada samolepek zatím nemá obrázky, takové se v nabídce nezobrazí
   const [missing, setMissing] = useState<Set<string>>(() => new Set());
-  const tabs = useMemo(() => tabsFor(sex).filter((x) => x.id !== 'pikant'), [sex]);
+  // nahoře ikony pro vlastní přání: každý vidí jen svou sadu (HE / SHE), partner ji nezná
+  const tabs = useMemo(() => [
+    { id: 'build', title: t('Ikony pro vlastní přání', 'Icons for your own wish'), stickers: buildIcons(sex) },
+    ...tabsFor(sex).filter((x) => x.id !== 'pikant').map((x) => ({ ...x, title: tabTitle(x.id) })),
+  ], [sex]);
 
   const save = async (reset?: boolean) => {
     setBusy(true); setError('');
@@ -84,11 +88,11 @@ export function LegendEditor({ item, base, edit, sex, onSave, onClose }: {
         <div className="legend-stickers">
           {tabs.map((tab) => (
             <div key={tab.id}>
-              <div className="small muted" style={{ margin: '8px 0 4px' }}>{tabTitle(tab.id)}</div>
+              <div className="small muted" style={{ margin: '8px 0 4px' }}>{tab.title}</div>
               <div className="sticker-mini-grid">
                 {tab.stickers.filter((st) => !missing.has(st.id)).map((st) => (
                   <button key={st.id} className={'sticker-btn' + (icon.sticker === st.id && !icon.emoji ? ' on' : '')} aria-label={st.label} onClick={() => setIcon({ sticker: st.id })}>
-                    <StickerImg id={st.id} size={48} plain onMissing={() => setMissing((m) => new Set(m).add(st.id))} />
+                    <StickerImg id={st.id} size={48} plain onMissing={keepFallback(st.id) ? undefined : () => setMissing((m) => new Set(m).add(st.id))} />
                   </button>
                 ))}
               </div>

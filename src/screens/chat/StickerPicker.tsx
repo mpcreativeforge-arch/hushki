@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { type User } from '../../lib/backend';
-import { STICKERS, pikantNumber, tabTitle, tabsFor, type TabId } from '../../data/stickers';
+import { STICKERS, keepFallback, pikantNumber, tabTitle, tabsFor, type TabId } from '../../data/stickers';
 import { useStickerSex } from '../../lib/style';
 import { t } from '../../lib/i18n';
 import { isPremiumSticker } from '../../lib/premium';
@@ -57,7 +57,7 @@ export function StickerPicker({ user, recent, disabled, onPick, onDice, onLegend
           const locked = !premium && isPremiumSticker(id);
           return (
             <button key={id} className={'sticker-btn' + (locked ? ' locked' : '')} aria-label={(STICKERS.get(id)?.label ?? id) + (locked ? ' (Premium)' : '')} disabled={disabled} onClick={() => (locked ? onPremium?.() : onPick(id))}>
-              <StickerImg id={id} size={64} onMissing={pikantNumber(id) ? undefined : () => hide(id)} />
+              <StickerImg id={id} size={64} onMissing={pikantNumber(id) || keepFallback(id) ? undefined : () => hide(id)} />
             </button>
           );
         })}

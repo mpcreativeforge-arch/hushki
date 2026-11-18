@@ -3,6 +3,7 @@ import { type Pair, type User } from '../../lib/backend';
 import { when } from '../format';
 import { isEn, t } from '../../lib/i18n';
 import { shareInvite } from '../../lib/invite';
+import { sparkText } from '../../lib/spark';
 
 
 import type { Decoded } from './Bubble';
@@ -20,6 +21,7 @@ export function remaining(at: number) {
 const verb = (g: string, base: string) => (g === 'zena' ? base + 'a' : g === 'muz' ? base : base + '/a');
 
 export function SystemNote({ m, mine, me, pair, partner }: { m: Decoded; mine: boolean; me: User; pair: Pair; partner: string }) {
+  if (m.meta.sys === 'spark') return <SparkNote me={me} at={m.created_at} />;
   const seconds = m.meta.seconds as number | null;
   const g = mine ? me.gender : pair.partner_gender;
   const who = mine ? '' : partner + ' ';
@@ -30,6 +32,11 @@ export function SystemNote({ m, mine, me, pair, partner }: { m: Decoded; mine: b
   if (isEn()) text = seconds === null ? `${mine ? 'You' : partner} turned off automatic room deletion.` : `${mine ? 'You' : partner} set the room to delete in ${seconds % 86400 === 0 ? `${seconds / 86400} days` : `${Math.round(seconds / 3600)} h`}.`;
   text = text.charAt(0).toUpperCase() + text.slice(1);
   return <div className="sys-note">⏳ {text} <span className="sys-time">{when(m.created_at)}</span></div>;
+}
+
+/** Zpráva od Jiskry po 72 h bez zprávy. */
+export function SparkNote({ me, at }: { me: User; at?: string }) {
+  return <div className="sys-note spark-note">✨ <b>{t('Jiskra', 'Spark')}:</b> {sparkText(me.gender)}{at && <span className="sys-time"> {when(at)}</span>}</div>;
 }
 
 /** Pozvánka znovu (prázdná místnost čekající na partnera). */
