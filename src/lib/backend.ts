@@ -11,7 +11,9 @@ export interface User { id: string; email: string; name: string; gender: Gender;
   spark?: boolean }
 export interface Pair { id: string; user_a: string; user_b: string | null; key_check: string; partner_name: string; partner_gender: Gender; expires_at?: string | null;
   /** poslední zpráva v místnosti (Jiskra), zůstává i po smazání zpráv */
-  last_activity_at?: string | null }
+  last_activity_at?: string | null;
+  /** Premium místnosti: platí, když ho má kterýkoli z dvojice */
+  premium_until?: string | null }
 export interface Message {
   id: string; pair_id: string; sender_id: string;
   ciphertext: string; iv: string; meta: Record<string, unknown>;
@@ -125,7 +127,9 @@ function supabaseBackend(url: string, anonKey: string): Backend {
       partner_name = data?.display_name ?? '';
       partner_gender = (data?.gender as Gender) ?? 'neuvedeno';
     }
-    return { ...p, partner_name, partner_gender };
+    // Premium pro celou místnost (bez migrace 0012 prostě null)
+    const { data: until } = await sb.rpc('room_premium_until', { p_pair: p.id });
+    return { ...p, partner_name, partner_gender, premium_until: (until as string | null) ?? null };
   };
 
   return {

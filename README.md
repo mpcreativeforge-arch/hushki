@@ -12,6 +12,8 @@ Jeden z partnerů napíše vzkaz, druhému přijde jen diskrétní upozornění 
 - **Jiskra**: ikona 🔥 u místnosti chladne podle poslední zprávy, po 72 h přijde zpráva „Kde seš? Dlouho jsi nic nenapsal/a.“ (v chatu i push). Vypínač v Nastavení. Server: `0011_spark.sql` + funkce `spark`.
 - **Číslo na ikoně aplikace** (Badging API): Android Chrome i iPhone/iPad od iOS 16.4 (aplikace na ploše se zapnutými upozorněními).
 
+- **Premium pro celou místnost**: když předplatné má jeden z dvojice, odemkne se oběma (`0012_room_premium.sql`).
+
 ### Nasazení Jiskry
 1. SQL Editor: spustit `supabase/migrations/0011_spark.sql`.
 2. `supabase secrets set CRON_SECRET=<náhodný řetězec>` a `supabase functions deploy spark` (znovu nasadit i `notify`).
