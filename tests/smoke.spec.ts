@@ -45,8 +45,14 @@ test('registrace, místnost, samolepka, pikant, Legenda a angličtina', async ({
   await p.locator('.picker-grid .sticker-btn').nth(1).click();
   await expect(p.locator('.msg.mine').last()).toBeVisible();
 
-  // otazník jako první samolepka Pokecu, dlaždice „+ text“ už není
+  // otazník je prémiový: bez Premium otevře nabídku, v demu se Premium zapne hned
   await expect(p.getByRole('button', { name: 'Samolepka s textem' })).toHaveCount(0);
+  await p.getByRole('button', { name: '? (Premium)', exact: true }).click();
+  await expect(p.getByRole('heading', { name: /Hushki Premium/ })).toBeVisible();
+  await p.getByRole('button', { name: /ročně/ }).click();
+  await expect(p.getByRole('heading', { name: /Hushki Premium/ })).toHaveCount(0);
+  // s Premium je otazník první samolepkou Pokecu
+  await expect(p.locator('.picker-grid .sticker-btn').first()).toHaveAttribute('aria-label', '?');
   await p.getByRole('button', { name: '?', exact: true }).click();
   await expect(p.locator('.msg.mine')).toHaveCount(2);
   // stav jen u posledního vlastního vzkazu, naposledy použité jako první záložka
@@ -77,7 +83,12 @@ test('registrace, místnost, samolepka, pikant, Legenda a angličtina', async ({
   // pikant: kostka a odeslání čísla
   await p.getByRole('tab', { name: /pikant/ }).click();
   await p.getByRole('button', { name: 'Hod kostkou' }).click();
+  // tajné přání: vybrané číslo „padne“ na kostce
+  await p.getByRole('button', { name: /Tajné přání/ }).click();
+  await p.getByRole('group').getByRole('button', { name: '7', exact: true }).click();
+  await p.screenshot({ path: 'test-results/kostka-prani.png' });
   await p.locator('button.d20').click();
+  await expect(p.locator('.dice-result')).toHaveText('7');
   await p.getByRole('button', { name: 'Poslat toto číslo' }).click();
   await pin(p, '5678');
   await expect(p.locator('.msg.mine .num-badge').last()).toBeVisible();

@@ -17,6 +17,8 @@ import { plural, t, useLang } from '../lib/i18n';
 import { useOnline } from '../lib/online';
 import { shouldOfferInstall } from '../lib/install';
 import { InstallSheet } from '../components/InstallSheet';
+import { PremiumSheet } from '../components/PremiumSheet';
+import { FREE_DICE_MAX, isPremium } from '../lib/premium';
 
 import { Bubble, GroupEnvelope } from './chat/Bubble';
 import { loadRecent, pushRecent } from '../lib/recent';
@@ -30,13 +32,15 @@ interface Props {
   user: User; pair: Pair; pairKey: CryptoKey; flags: Record<string, boolean>;
   onBack: () => void; onSettings: () => void; onLock: () => void; onLogout: () => void; onLeave: () => void;
   getCode: () => Promise<string | null>;
+  /** po zakoupení Premium načíst účet znovu */
+  onPremiumChange?: () => void;
 }
 
 
 /** Zprávy zmizí 48 hodin po poslední zprávě v místnosti. */
 const TTL = 48 * 3600_000;
 
-export function ChatScreen({ user, pair, pairKey, flags, onBack, onSettings, onLock, onLogout, onLeave, getCode }: Props) {
+export function ChatScreen({ user, pair, pairKey, flags, onBack, onSettings, onLock, onLogout, onLeave, getCode, onPremiumChange }: Props) {
   const [items, setItems] = useState<Decoded[] | null>(null);
   const [replyTo, setReplyTo] = useState<Decoded | null>(null);
   const [selected, setSelected] = useState<string | null>(null);
@@ -72,6 +76,9 @@ export function ChatScreen({ user, pair, pairKey, flags, onBack, onSettings, onL
   const liveRef = useRef(new Set<string>());
   const [menu, setMenu] = useState(false);
   const [install, setInstall] = useState(false);
+  const [premiumOffer, setPremiumOffer] = useState(false);
+  const premium = isPremium(user);
+  const diceMax = premium ? DICE_MAX : FREE_DICE_MAX;
   const [recent, setRecent] = useState<string[]>(() => loadRecent(user.id));
   const [opened, setOpened] = useState<Set<string>>(() => new Set());
   const [swipeHint, setSwipeHint] = useState(() => { try { return !localStorage.getItem('hushki.hint.swipe'); } catch { return false; } });
@@ -367,7 +374,7 @@ export function ChatScreen({ user, pair, pairKey, flags, onBack, onSettings, onL
             <button className="icon-btn" aria-label={t('Zrušit odpověď', 'Cancel reply')} onClick={() => setReplyTo(null)}>✕</button>
           </div>
         )}
-        <StickerPicker user={user} recent={recent} disabled={waiting || busy || !online} onPick={pickSticker} onDice={() => setSheet({ k: 'dice', for: 'send' })} onLegend={() => setSheet({ k: 'legend' })} lockedCount={lockedCount} />
+        <StickerPicker user={user} recent={recent} disabled={waiting || busy || !online} onPick={pickSticker} onDice={() => setSheet({ k: 'dice', for: 'send' })} onLegend={() => setSheet({ k: 'legend' })} lockedCount={lockedCount} premium={premium} onPremium={() => setPremiumOffer(true)} />
       </footer>
 
       {sheet?.k === 'legend' && (
@@ -380,12 +387,13 @@ export function ChatScreen({ user, pair, pairKey, flags, onBack, onSettings, onL
       {sheet?.k === 'pikant' && <PikantSheet n={sheet.n} dice={sheet.dice} busy={busy} roomPin={roomPin} meFemale={meFemale} onSend={(pin) => sendPikant(sheet.n, pin, sheet.dice)} onReroll={() => setSheet({ k: 'dice', for: 'send', prev: sheet.n })} onClose={() => setSheet(null)} />}
       {sheet?.k === 'dice' && (
         <DiceOverlay
-          max={DICE_MAX} prev={sheet.prev}
+          max={sheet.for === 'send' ? diceMax : DICE_MAX} prev={sheet.prev} secret={sheet.for === 'send'}
           actionLabel={sheet.for === 'send' ? t('Poslat toto číslo', 'Send this number') : t('Ukázat v Legendě', 'Show in the Legend')}
           onResult={(n) => setSheet(sheet.for === 'send' ? { k: 'pikant', n, dice: true } : { k: 'legend', n })}
           onClose={() => setSheet(sheet.for === 'legend' ? { k: 'legend', n: sheet.prev } : null)}
         />
       )}
+      {premiumOffer && <PremiumSheet onClose={() => setPremiumOffer(false)} onDemoDone={onPremiumChange} />}
       {install && !sheet && !menu && <InstallSheet onClose={() => setInstall(false)} />}
       {menu && <QuickMenu extra={<RoomCode getCode={getCode} />} onClose={() => setMenu(false)} onSettings={() => { setMenu(false); onSettings(); }} onLogout={onLogout} onLeave={onLeave} />}
       {viewer && (

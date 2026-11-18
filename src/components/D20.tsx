@@ -46,9 +46,13 @@ export function D20Svg({ value, size = 200 }: { value: number | string; size?: n
  * Okno s kostkou. Po ťuknutí se kostka roztočí a vrátí výsledek.
  * onResult se zavolá tlačítkem „Použít číslo“.
  */
-export function DiceOverlay({ max = 20, prev, onResult, onClose, actionLabel }: {
+export function DiceOverlay({ max = 20, prev, onResult, onClose, actionLabel, secret }: {
   max?: number; prev?: number; onResult: (n: number) => void; onClose: () => void; actionLabel: string;
+  /** Tajné přání: dovolí předem vybrat číslo, které „padne“. Partner pozná jen „Padlo na kostce“. */
+  secret?: boolean;
 }) {
+  const [wish, setWish] = useState<number | null>(null);
+  const [picking, setPicking] = useState(false);
   const [face, setFace] = useState<number | string>('?');
   const [state, setState] = useState<'idle' | 'rolling' | 'done'>('idle');
   const timer = useRef<number | undefined>(undefined);
@@ -60,6 +64,7 @@ export function DiceOverlay({ max = 20, prev, onResult, onClose, actionLabel }: 
     if (state === 'rolling') return;
     let n = 1 + Math.floor(Math.random() * max);
     if (prev && n === prev) n = (n % max) + 1;
+    if (wish) { n = wish; setWish(null); }
     result.current = n;
     setState('rolling');
     haptic('tap');
@@ -87,11 +92,24 @@ export function DiceOverlay({ max = 20, prev, onResult, onClose, actionLabel }: 
         <D20Svg value={face} size={210} />
       </button>
       <p className="dice-hint" aria-live="polite">
-        {state === 'idle' && t('Ťukni na kostku a hoď', 'Tap the dice to roll')}
+        {state === 'idle' && (wish ? t(`🤫 Padne ${wish}. Ťukni na kostku`, `🤫 It will land on ${wish}. Tap the dice`) : t('Ťukni na kostku a hoď', 'Tap the dice to roll'))}
         {state === 'rolling' && t('Kostka se točí…', 'Rolling…')}
         {state === 'done' && <b className="dice-result">{result.current}</b>}
       </p>
-      {state === 'done' && (
+      {secret && state !== 'rolling' && !picking && (
+        <button className="dice-wish" onClick={() => setPicking(true)}>🤫 {t('Tajné přání', 'Secret wish')}</button>
+      )}
+      {picking && (
+        <div className="dice-wish-pick" role="group" aria-label={t('Vyber číslo, které padne', 'Pick the number that will land')}>
+          <p className="small">{t('Vyber číslo. Kostka ho „hodí“ a partner uvidí jen, že padlo na kostce.', 'Pick a number. The dice will “roll” it and your partner only sees it was rolled.')}</p>
+          <div className="dice-wish-grid">
+            {Array.from({ length: max }, (_, i) => i + 1).map((n) => (
+              <button key={n} className="chip" onClick={() => { setWish(n); setPicking(false); setState('idle'); setFace('?'); }}>{n}</button>
+            ))}
+          </div>
+        </div>
+      )}
+      {state === 'done' && !picking && (
         <div className="dice-actions">
           <button className="btn primary" onClick={() => onResult(result.current)}>{actionLabel}</button>
           <button className="btn ghost" onClick={roll}>🎲 {t('Hodit znovu', 'Roll again')}</button>

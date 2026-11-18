@@ -3,13 +3,16 @@ import { type User } from '../../lib/backend';
 import { STICKERS, pikantNumber, tabTitle, tabsFor, type TabId } from '../../data/stickers';
 import { useStickerSex } from '../../lib/style';
 import { t } from '../../lib/i18n';
+import { isPremiumSticker } from '../../lib/premium';
 
 import { StickerImg } from './Bubble';
 
 type Tab = TabId | 'recent';
 
-export function StickerPicker({ user, recent, disabled, onPick, onDice, onLegend, lockedCount = 0 }: {
+export function StickerPicker({ user, recent, disabled, onPick, onDice, onLegend, lockedCount = 0, premium = true, onPremium }: {
   user: User; recent: string[]; disabled: boolean; onPick: (id: string) => void; onDice: () => void; onLegend: () => void; lockedCount?: number;
+  /** bez Premium jsou prémiové samolepky vidět s korunkou a klepnutí otevře nabídku */
+  premium?: boolean; onPremium?: () => void;
 }) {
   const sex = useStickerSex(user.id, user.gender);
   const tabs = useMemo(() => tabsFor(sex === 'zena' ? 'zena' : 'muz'), [sex]);
@@ -21,7 +24,9 @@ export function StickerPicker({ user, recent, disabled, onPick, onDice, onLegend
   const cur: Tab = tab === 'recent' && !recentList.length ? 'pokec' : (tab === 'recent' || tabs.some((x) => x.id === tab) ? tab : 'pokec');
   const curTab = tabs.find((x) => x.id === cur);
   const choose = (id: Tab) => { setTab(id); try { sessionStorage.setItem('hushki.tab', id); } catch { /* */ } };
-  const list = cur === 'recent' ? recentList : (curTab?.stickers.map((s) => s.id) ?? []).filter((id) => !missing.has(id));
+  const all = cur === 'recent' ? recentList : (curTab?.stickers.map((s) => s.id) ?? []).filter((id) => !missing.has(id));
+  // bez Premium nejdřív volné samolepky, prémiové s korunkou až na konci
+  const list = premium ? all : [...all.filter((id) => !isPremiumSticker(id)), ...all.filter(isPremiumSticker)];
   return (
     <div className={disabled ? 'picker-off' : ''}>
       <div className="picker-tabs" role="tablist">
@@ -37,7 +42,7 @@ export function StickerPicker({ user, recent, disabled, onPick, onDice, onLegend
           </button>
         ))}
       </div>
-      <div className="picker-grid">
+      <div className="picker-scroll"><div className="picker-grid">
         {cur === 'pikant' ? (
           <>
             <button className="sticker-btn dice-btn" aria-label={t('Hod kostkou', 'Roll the dice')} disabled={disabled} onClick={onDice}>
@@ -48,12 +53,15 @@ export function StickerPicker({ user, recent, disabled, onPick, onDice, onLegend
             </button>
           </>
         ) : null}
-        {list.map((id) => (
-          <button key={id} className="sticker-btn" aria-label={STICKERS.get(id)?.label ?? id} disabled={disabled} onClick={() => onPick(id)}>
-            <StickerImg id={id} size={64} onMissing={pikantNumber(id) ? undefined : () => hide(id)} />
-          </button>
-        ))}
-      </div>
+        {list.map((id) => {
+          const locked = !premium && isPremiumSticker(id);
+          return (
+            <button key={id} className={'sticker-btn' + (locked ? ' locked' : '')} aria-label={(STICKERS.get(id)?.label ?? id) + (locked ? ' (Premium)' : '')} disabled={disabled} onClick={() => (locked ? onPremium?.() : onPick(id))}>
+              <StickerImg id={id} size={64} onMissing={pikantNumber(id) ? undefined : () => hide(id)} />
+            </button>
+          );
+        })}
+      </div></div>
     </div>
   );
 }

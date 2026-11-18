@@ -397,11 +397,10 @@ p { margin: 0 0 14px; }
 .picker-tabs { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; margin: 0 -12px 8px; padding: 0 12px; }
 .picker-tabs::-webkit-scrollbar { display: none; }
 .picker-tabs .chip { flex: none; white-space: nowrap; font-size: 14px; padding: 6px 13px; }
-.picker-grid {
-  display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px;
-  max-height: 212px; overflow-y: auto; overscroll-behavior: contain; scrollbar-width: none;
-}
-.picker-grid::-webkit-scrollbar { display: none; }
+/* Safari do 16 smačkne řádky mřížky s max-height, proto se posouvá obal, ne mřížka */
+.picker-scroll { max-height: 236px; overflow-y: auto; overscroll-behavior: contain; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
+.picker-scroll::-webkit-scrollbar { display: none; }
+.picker-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); grid-auto-rows: max-content; gap: 6px; }
 .picker-off .picker-grid { opacity: 0.45; }
 .sticker-btn { position: relative; }
 .sticker-btn:disabled { cursor: default; }
@@ -514,7 +513,7 @@ a.settings-item { color: inherit; text-decoration: none; }
   .sticker-btn:not(:disabled):hover { transform: translateY(-2px) scale(1.04); border-color: var(--coral); }
   .sticker-btn { transition: transform .15s, border-color .15s; }
   .menu-link:hover, .chip:hover { filter: brightness(1.15); }
-  .picker-grid, .chat-list, .consent-scroll, .sheet { scrollbar-width: thin; scrollbar-color: var(--wine-600) transparent; }
+  .picker-scroll, .chat-list, .consent-scroll, .sheet { scrollbar-width: thin; scrollbar-color: var(--wine-600) transparent; }
 }
 @media (min-width: 760px) {
   body { background-image: radial-gradient(90% 70% at 50% 0%, var(--wine-700), var(--wine-900) 60%, var(--wine-950)); background-attachment: fixed; }
@@ -534,7 +533,8 @@ a.settings-item { color: inherit; text-decoration: none; }
   .msg { max-width: 62%; }
   .composer.picker { padding: 12px 24px 18px; }
   .picker-tabs { margin: 0 0 10px; padding: 0; justify-content: center; }
-  .picker-grid { grid-template-columns: repeat(auto-fill, minmax(84px, 1fr)); max-height: 260px; gap: 8px; }
+  .picker-grid { grid-template-columns: repeat(auto-fill, minmax(104px, 1fr)); gap: 10px; }
+  .picker-scroll { max-height: min(300px, 34dvh); }
   .sheet { max-width: 620px; bottom: 50%; transform: translateY(50%); border-radius: 26px; max-height: 86dvh; animation: fade .2s; }
   .sheet-handle { display: none; }
   .consent-backdrop { place-items: center; }
@@ -543,7 +543,8 @@ a.settings-item { color: inherit; text-decoration: none; }
 }
 @media (min-width: 1200px) {
   .chat { max-width: 980px; }
-  .picker-grid { max-height: 300px; }
+  .picker-scroll { max-height: min(360px, 36dvh); }
+  .picker-grid { grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); }
 }
 
 /* Verze 7.2 ------------------------------------------------------------------ */
@@ -625,3 +626,25 @@ a.settings-item { color: inherit; text-decoration: none; }
 .demo-notif > div { flex: 1; }
 .demo-notif img { border-radius: 8px; }
 .demo-notif .muted { color: #666; }
+
+/* Premium */
+.premium-preview { display: flex; justify-content: center; gap: 6px; }
+.sticker-btn.locked { position: relative; }
+.sticker-btn.locked .sticker, .sticker-btn.locked .sticker-fallback { opacity: .45; filter: grayscale(.6); }
+.sticker-btn.locked::after { content: '👑'; position: absolute; right: 5px; top: 3px; font-size: 15px; }
+
+/* Tajné přání na kostce */
+.dice-wish { background: none; border: 0; color: var(--cream); opacity: .55; font: inherit; font-size: 13px; margin-top: 10px; cursor: pointer; }
+.dice-wish-pick { max-width: 340px; margin: 8px auto 0; text-align: center; }
+.dice-wish-grid { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; max-height: 160px; overflow-y: auto; margin-top: 8px; }
+.dice-wish-grid .chip { min-width: 40px; padding: 6px 0; }
+
+/* Mobily a tablety jen na výšku: na šířku se ukáže výzva k otočení (počítače se myší netýká) */
+.rotate-note { display: none; }
+@media (orientation: landscape) and (hover: none) and (pointer: coarse) {
+  .rotate-note {
+    display: flex; position: fixed; inset: 0; z-index: 9999; flex-direction: column; align-items: center; justify-content: center; gap: 14px;
+    background: var(--wine-950, #120c22); color: var(--cream); font-size: 18px; text-align: center; padding: 24px;
+  }
+  .rotate-note span { font-size: 54px; transform: rotate(-90deg); }
+}
