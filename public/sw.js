@@ -1,5 +1,5 @@
 // Hushki service worker: offline shell + diskrétní push upozornění.
-const CACHE = 'hushki-v4';
+const CACHE = 'hushki-v5';
 const SCOPE = self.registration.scope;
 
 self.addEventListener('install', (e) => {
@@ -19,7 +19,12 @@ self.addEventListener('fetch', (e) => {
   const url = new URL(req.url);
   if (url.origin !== location.origin) return; // Supabase apod. nikdy necachovat
   if (req.mode === 'navigate' || url.pathname.endsWith('.webmanifest')) {
-    e.respondWith(fetch(req).catch(() => caches.match(req.mode === 'navigate' ? SCOPE : req)));
+    // Síť má přednost. Čerstvou stránku uložíme, aby offline záloha nebyla stará verze aplikace.
+    const key = req.mode === 'navigate' ? SCOPE : req;
+    e.respondWith(fetch(req).then((res) => {
+      if (res.ok) { const copy = res.clone(); caches.open(CACHE).then((c) => c.put(key, copy)); }
+      return res;
+    }).catch(() => caches.match(key)));
     return;
   }
   e.respondWith(
