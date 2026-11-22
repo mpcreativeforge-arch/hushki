@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { pikantId } from '../../data/stickers';
-import { legend, legendText } from '../../data/legend';
+import { legend, type Sex } from '../../data/legend';
 import { Sheet } from '../../components/Sheet';
 import { PinPad } from '../../components/PinPad';
 import { t } from '../../lib/i18n';
@@ -12,15 +12,15 @@ import { StickerImg } from './Bubble';
  * Odeslání pikantního čísla. Heslo se volí jednou pro místnost a pak se jen předvyplní;
  * dá se kdykoli změnit (starší čísla zůstanou zamčená svým původním heslem).
  */
-export function PikantSheet({ n, dice, busy, roomPin, meFemale, onSend, onReroll, onClose }: {
-  n: number; dice?: boolean; busy: boolean; roomPin: string | null; meFemale: boolean;
+export function PikantSheet({ n, dice, busy, roomPin, sex, onSend, onReroll, onClose }: {
+  n: number; dice?: boolean; busy: boolean; roomPin: string | null; sex: Sex;
   onSend: (pin: string) => Promise<boolean>; onReroll: () => void; onClose: () => void;
 }) {
   const [change, setChange] = useState(!roomPin);
   const [peek, setPeek] = useState(false);
   const [showPin, setShowPin] = useState(false);
   const edits = useRoomLegend();
-  const base = legend().find((x) => x.n === n);
+  const base = legend(sex).find((x) => x.n === n);
   const item = base && applyEdit(base, edits[n]);
   return (
     <Sheet onClose={onClose}>
@@ -31,7 +31,7 @@ export function PikantSheet({ n, dice, busy, roomPin, meFemale, onSend, onReroll
       </div>
       {item && (
         <div className="peek">
-          {peek ? <p className="small" style={{ margin: 0 }}>{legendText(item, meFemale)}</p>
+          {peek ? <p className="small" style={{ margin: 0 }}>{item.body}</p>
             : <button className="link-btn small" onClick={() => setPeek(true)}>👁 {t('Co partner uvidí po odemčení', 'What your partner sees once unlocked')}</button>}
         </div>
       )}

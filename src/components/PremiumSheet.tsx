@@ -6,7 +6,7 @@ import { PRICE_MONTH, PRICE_YEAR } from '../lib/premium';
 import { StickerImg } from '../screens/chat/Bubble';
 
 /** Nabídka Hushki Premium. Platba proběhne na stránce Stripe, po návratu se Premium odemkne samo. */
-export function PremiumSheet({ onClose, onDemoDone }: { onClose: () => void; onDemoDone?: () => void }) {
+export function PremiumSheet({ lead, onClose, onDemoDone }: { lead?: string; onClose: () => void; onDemoDone?: () => void }) {
   const [busy, setBusy] = useState<'' | 'month' | 'year'>('');
   const [err, setErr] = useState('');
   const buy = async (plan: 'month' | 'year') => {
@@ -27,9 +27,10 @@ export function PremiumSheet({ onClose, onDemoDone }: { onClose: () => void; onD
           {['o31', 's34', 'g31', 'p21'].map((id) => <StickerImg key={id} id={id} size={56} />)}
         </div>
         <h2 style={{ margin: '10px 0 4px' }}>Hushki Premium 👑</h2>
+        {lead && <p style={{ margin: '0 0 6px' }}><b>{lead}</b></p>}
         <p className="small muted" style={{ marginTop: 0 }}>
-          {t('Prémiové samolepky v každé záložce, pikantní čísla 21–35 a kostka se všemi čísly. Jedno předplatné platí pro vás oba ve vašich místnostech. Nové samolepky průběžně přibývají.',
-            'Premium stickers in every tab, spicy numbers 21–35 and the dice with every number. One subscription covers both of you in your rooms. New stickers keep coming.')}
+          {t('Prémiové samolepky v každé záložce, pikantní čísla 21–35, kostka se všemi čísly a úpravy libovolného počtu tajných přání. Jedno předplatné platí pro vás oba ve vašich místnostech. Nové samolepky průběžně přibývají.',
+            'Premium stickers in every tab, spicy numbers 21–35, the dice with every number and editing as many secret wishes as you like. One subscription covers both of you in your rooms. New stickers keep coming.')}
         </p>
       </div>
       <button className="btn primary" style={{ width: '100%' }} disabled={!!busy} onClick={() => buy('year')}>

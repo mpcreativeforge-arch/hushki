@@ -42,6 +42,20 @@ test('registrace, místnost, samolepka, pikant, Legenda a angličtina', async ({
   // chat: demo partner se připojí a pošle uvítání
   await expect(p.locator('.picker-tabs')).toBeVisible();
   await expect(p.getByRole('tab').first()).toHaveText('Pokec');
+  // bez Premium jdou ve vlastní sadě upravit 2 přání, u třetího vyskočí nabídka Premium
+  await p.getByRole('button', { name: 'Legenda' }).first().click();
+  await p.getByRole('tab', { name: 'Moje' }).click();
+  await expect(p.getByText(/Zdarma můžeš upravit 2 přání \(zbývá 2\)/)).toBeVisible();
+  for (const i of [0, 1]) {
+    await p.locator('.legend-edit-btn').nth(i).click();
+    await p.getByLabel('Popis').fill(`Moje vlastní přání ${i + 1}.`);
+    await p.getByRole('button', { name: 'Uložit', exact: true }).click();
+    await expect(p.getByText(`Moje vlastní přání ${i + 1}.`)).toBeVisible();
+  }
+  await p.locator('.legend-edit-btn').nth(2).click();
+  await expect(p.getByText(/upravit kolik přání chceš/)).toBeVisible();
+  await p.getByRole('button', { name: 'Teď ne' }).click();
+
   // samostatné nálepky na začátku Pokecu: IDEA, ?, !, Secret wish, Curious (zdarma)
   await expect(p.locator('.picker-grid .sticker-btn').first()).toHaveAttribute('aria-label', 'IDEA');
   await p.locator('.picker-grid .sticker-btn').nth(1).click();
@@ -102,13 +116,13 @@ test('registrace, místnost, samolepka, pikant, Legenda a angličtina', async ({
   await p.getByRole('button', { name: /^Poslat číslo/ }).click();
   await expect(p.locator('.msg.mine .num-badge')).toHaveCount(sent + 1);
 
-  // Legenda a úprava čísla (název + emoji), ikona se propíše i do samolepky
+  // Legenda: dvě sady. V „Moje“ se upravuje vlastní sada (název + emoji), partner úpravu nevidí.
   await p.getByRole('button', { name: 'Legenda' }).first().click();
   await expect(p.getByRole('heading', { name: 'Legenda' })).toBeVisible();
-  // demo partner občas pošle zamčené číslo, to upravit nejde: vezmi první upravitelné
-  const editBtn = p.locator('.legend-edit-btn').first();
-  const num = (await editBtn.getAttribute('aria-label'))!.replace(/\D+/g, '');
-  await editBtn.click();
+  await p.getByRole('tab', { name: /Přijaté/ }).click();
+  await expect(p.locator('.legend-edit-btn')).toHaveCount(0);
+  await p.getByRole('tab', { name: 'Moje' }).click();
+  await p.locator('.legend-edit-btn').first().click();
   await p.getByLabel('Název').fill('Naše tajemství');
   // ikony pro vlastní přání: HE vidí jen svou sadu
   await p.getByRole('tab', { name: /Samolepka/ }).click();
@@ -116,9 +130,19 @@ test('registrace, místnost, samolepka, pikant, Legenda a angličtina', async ({
   await expect(p.getByRole('button', { name: 'Suit & Tie' })).toHaveCount(0);
   await p.getByRole('tab', { name: /Emoji/ }).click();
   await p.getByRole('button', { name: '🍓' }).click();
-  await p.getByRole('button', { name: 'Uložit pro oba' }).click();
-  await expect(p.getByText(`${num}. Naše tajemství`)).toBeVisible();
+  await p.getByRole('button', { name: 'Uložit', exact: true }).click();
+  await expect(p.getByText('1. Naše tajemství')).toBeVisible();
+  // demo už má Premium zapnuté: přání jde upravit kolik chceš (bez Premium jen 2)
+  await expect(p.getByText(/S Premium upravíš kolik přání chceš/)).toBeVisible();
+  await p.locator('.legend-edit-btn').nth(1).click();
+  await p.getByLabel('Popis').fill('Vlastní přání číslo dvě.');
+  await p.getByRole('button', { name: 'Uložit', exact: true }).click();
+  await expect(p.getByText('Vlastní přání číslo dvě.')).toBeVisible();
   await p.locator('.sheet-backdrop').click({ position: { x: 10, y: 10 } });
+  // odeslané upravené přání nese text i ikonu ve vzkazu, bez štítku „upraveno“
+  await p.locator('.picker-grid .sticker-btn').nth(2).click();
+  await p.getByRole('button', { name: /^Poslat číslo/ }).click();
+  await expect(p.locator('.msg.mine .sticker-fallback').last()).toHaveText('🍓');
 
   // přepnutí do angličtiny
   await p.getByRole('button', { name: 'Menu' }).click();
