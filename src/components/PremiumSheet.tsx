@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Sheet } from './Sheet';
 import { backend } from '../lib/backend';
+import { beginPayment } from '../lib/session';
 import { t } from '../lib/i18n';
 import { PRICE_MONTH, PRICE_YEAR } from '../lib/premium';
 import { StickerImg } from '../screens/chat/Bubble';
@@ -13,7 +14,7 @@ export function PremiumSheet({ lead, onClose, onDemoDone }: { lead?: string; onC
     setBusy(plan); setErr('');
     try {
       const url = await backend.premiumCheckout(plan);
-      if (url) location.href = url;
+      if (url) { beginPayment(); location.href = url; }
       else { onDemoDone?.(); onClose(); }
     } catch {
       setErr(t('Platbu se nepodařilo otevřít. Zkus to prosím za chvíli.', 'Could not open the payment. Please try again shortly.'));

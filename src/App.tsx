@@ -5,7 +5,7 @@ import { backend, recoveryLink, type Pair, type User } from './lib/backend';
 import { createMaster, decryptText, derivePairKey, encryptText, keyCheck, lockKey, unlockKey, unlockMaster, unwrapRoom, wrapRoom } from './lib/crypto';
 import { clearPhotoCache, encodePayload } from './lib/payload';
 import { clearVault, loadVault, pinLength, saveVault, type Vault } from './lib/keystore';
-import { clearSession, loadSession, saveSession, touchSession } from './lib/session';
+import { clearSession, loadSession, paymentPending, saveSession, touchSession } from './lib/session';
 import { AuthScreen, NewPasswordScreen } from './screens/AuthScreen';
 import { PairScreen } from './screens/PairScreen';
 import { SetPinScreen, LockScreen } from './screens/LockScreens';
@@ -137,7 +137,7 @@ export function App() {
   useEffect(() => {
     const onVis = () => {
       if (document.hidden) hiddenAt.current = Date.now();
-      else if (hiddenAt.current && Date.now() - hiddenAt.current > AUTO_LOCK_MS && master) lockNow();
+      else if (hiddenAt.current && Date.now() - hiddenAt.current > AUTO_LOCK_MS && master && !paymentPending()) lockNow();
     };
     document.addEventListener('visibilitychange', onVis);
     return () => document.removeEventListener('visibilitychange', onVis);

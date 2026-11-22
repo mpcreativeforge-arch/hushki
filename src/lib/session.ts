@@ -34,6 +34,12 @@ async function sessionKey(create: boolean): Promise<CryptoKey | null> {
   return k;
 }
 
+// Platba přes Stripe: odchod na platební stránku trvá déle než limit relace a návrat se na mobilu
+// může otevřít v prohlížeči místo v aplikaci (bez sessionStorage). Proto se relace na chvíli
+// uloží i do localStorage a po dobu platby se nezamyká. Zmizí po PAY_MS nebo zamčením.
+const PAY_KEY = 'hushki-pay';
+const PAY_MS = 20 * 60_000;
+
 const read = (): Stored | null => { try { return JSON.parse(sessionStorage.getItem(KEY) ?? 'null'); } catch { return null; } };
 const write = (s: Stored) => { try { sessionStorage.setItem(KEY, JSON.stringify(s)); } catch { /* nic */ } };
 
@@ -57,11 +63,36 @@ if (typeof document !== 'undefined') document.addEventListener('visibilitychange
 
 export function clearSession() {
   try { sessionStorage.removeItem(KEY); } catch { /* nic */ }
+  try { localStorage.removeItem(PAY_KEY); } catch { /* nic */ }
 }
 
-export async function loadSession(userId: string): Promise<{ master: CryptoKey; room?: string } | null> {
+const readPay = (): (Stored & { until: number }) | null => {
+  try {
+    const p = JSON.parse(localStorage.getItem(PAY_KEY) ?? 'null');
+    if (p && typeof p.until === 'number' && p.until > Date.now()) return p;
+    localStorage.removeItem(PAY_KEY);
+  } catch { /* soukromé okno */ }
+  return null;
+};
+
+/** Před přesměrováním na platbu: relace vydrží návrat ze Stripe bez PINu. */
+export function beginPayment() {
   const s = read();
-  if (!s || s.userId !== userId || Date.now() - s.at > (s.hidden ? HIDDEN_MS : SESSION_MS)) { clearSession(); return null; }
+  if (!s) return;
+  const p = { ...s, at: Date.now(), hidden: false, until: Date.now() + PAY_MS };
+  write(p);
+  try { localStorage.setItem(PAY_KEY, JSON.stringify(p)); } catch { /* bez zálohy se jen znovu zadá PIN */ }
+}
+
+/** Probíhá platba (aplikace se při návratu nemá zamknout). */
+export const paymentPending = () => !!readPay();
+
+export async function loadSession(userId: string): Promise<{ master: CryptoKey; room?: string } | null> {
+  const pay = readPay();
+  const paying = pay?.userId === userId;
+  let s = read();
+  if (paying && (!s || s.userId !== userId)) { s = pay; write(pay); }
+  if (!s || s.userId !== userId || (!paying && Date.now() - s.at > (s.hidden ? HIDDEN_MS : SESSION_MS))) { clearSession(); return null; }
   try {
     const k = await sessionKey(false);
     if (!k) return null;
