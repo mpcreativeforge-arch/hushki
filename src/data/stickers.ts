@@ -4,7 +4,7 @@
 //
 // Prefixy: m/f = původní sada kluk/holka, u/v = univerzální kluk/holka, o/r = Ocenění, s/t = Pokec,
 // d/e = Domluva, g = Dárky, p = Hushki pikant (číslo = pořadí, pNN → NN, 1–20 jako kostka D20),
-// w = samostatné nálepky pro oba (IDEA, ?, !, Secret wish, Curious), h/k = ikony pro vlastní přání HE / SHE.
+// w = samostatné nálepky (IDEA, ?, !, Secret wish, Curious), x = jejich holčičí verze (x03 není, ! je společný), h/k = ikony pro vlastní přání HE / SHE.
 import type { Gender } from '../lib/backend';
 import { isEn } from '../lib/i18n';
 
@@ -67,6 +67,9 @@ const DOMLUVA_3: [string, string][] = [
   ['Bath?', '🛁'], ['Trip?', '🧳'], ['Gym?', '🏋️'], ["I'll cook", '🍳'], ['Pizza?', '🍕'],
   ['Stay in?', '🛋️'], ['Going out?', '🌃'], ['Get ready', '💄'], ["I'm home", '🏠'], ['Wait for me', '⏳'],
 ];
+/** Samostatné nálepky na přání Petra (zdarma): 46–47 v Pokeci a Domluvě. */
+const SMALLTALK_4: [string, string][] = [['Měsíčky', '🌙'], ['Not feeling well', '🤒']];
+const DOMLUVA_4: [string, string][] = [['Cinema', '🍿'], ['Wellness', '🧖']];
 const DARKY_3: [string, string][] = [
   ['Tulipány', '🌷'], ['Slunečnice', '🌻'], ['Lilie', '🤍'], ['Pivoňky', '🌸'], ['Kopretiny', '🌼'],
   ['Levandule', '💜'], ['Orchidej', '🪻'], ['Pomněnky', '💙'], ['Sakura', '🌸'], ['Luční kytice', '💐'],
@@ -121,8 +124,9 @@ const holka = series('f', HOLKA);
 const both = (prefix: string, a: [string, string][], b: [string, string][], c: [string, string][]) => [...series(prefix, a), ...series(prefix, b, 16), ...series(prefix, c, 31)];
 const all = [
   ...both('o', OCENENI, OCENENI_2, OCENENI_3), ...both('r', OCENENI, OCENENI_2, OCENENI_3), ...both('s', SMALLTALK, SMALLTALK_2, SMALLTALK_3), ...both('t', SMALLTALK, SMALLTALK_2, SMALLTALK_3),
-  ...both('d', DOMLUVA, DOMLUVA_2, DOMLUVA_3), ...both('e', DOMLUVA, DOMLUVA_2, DOMLUVA_3), ...kluk, ...holka, ...both('g', DARKY, DARKY_2, DARKY_3), ...series('p', PIKANT),
-  ...series('u', UNI), ...series('v', UNI), ...series('w', WORDS), ...series('h', BUILD_HE), ...series('k', BUILD_SHE),
+  ...both('d', DOMLUVA, DOMLUVA_2, DOMLUVA_3), ...both('e', DOMLUVA, DOMLUVA_2, DOMLUVA_3),
+  ...series('s', SMALLTALK_4, 46), ...series('t', SMALLTALK_4, 46), ...series('d', DOMLUVA_4, 46), ...series('e', DOMLUVA_4, 46), ...kluk, ...holka, ...both('g', DARKY, DARKY_2, DARKY_3), ...series('p', PIKANT),
+  ...series('u', UNI), ...series('v', UNI), ...series('w', WORDS), ...series('x', WORDS), ...series('h', BUILD_HE), ...series('k', BUILD_SHE),
 ];
 export const STICKERS = new Map(all.map((x) => [x.id, x] as const));
 const pick = (ids: string[]) => ids.map((id) => STICKERS.get(id)!);
@@ -140,10 +144,12 @@ export const sexOf = (g: Gender): 'muz' | 'zena' => (g === 'zena' ? 'zena' : 'mu
 export function tabsFor(gender: Gender): StickerTab[] {
   const f = sexOf(gender) === 'zena';
   const old = f ? holka : kluk;
-  const pokec = range(f ? 't' : 's');
+  const pokec = range(f ? 't' : 's', 47);
+  // Holka má vlastní verzi nálepek IDEA, ?, Secret wish a Curious (x); vykřičník je společný.
+  const words = range(f ? 'x' : 'w', WORDS.length).map((id) => (id === 'x03' ? 'w03' : id));
   return [
-    { id: 'pokec', title: 'Pokec', stickers: [...pick(range('w', WORDS.length)), ...pick(range(f ? 'v' : 'u', 5)), ...pick(pokec)] },
-    { id: 'domluva', title: 'Domluva', stickers: pick(range(f ? 'e' : 'd')) },
+    { id: 'pokec', title: 'Pokec', stickers: [...pick(words), ...pick(range(f ? 'v' : 'u', 5)), ...pick(pokec)] },
+    { id: 'domluva', title: 'Domluva', stickers: pick(range(f ? 'e' : 'd', 47)) },
     { id: 'oceneni', title: 'Ocenění', stickers: [...pick(range(f ? 'r' : 'o')), ...old] },
     { id: 'darky', title: 'Dárky', stickers: pick(range('g')) },
     { id: 'pikant', title: 'Hushki pikant', stickers: pick(range('p', PIKANT.length)) },
@@ -159,7 +165,7 @@ export const DICE_MAX = PIKANT.length;
 /** Ikony pro vlastní přání: každý vidí jen svou sadu (HE = h, SHE = k). */
 export const buildIcons = (sex: 'muz' | 'zena') => pick(range(sex === 'zena' ? 'k' : 'h', 15));
 /** Samolepky, které se bez obrázku nemají schovat, ale ukázat jako emoji s textem. */
-export const keepFallback = (id: string) => /^[whk]\d+$/.test(id);
+export const keepFallback = (id: string) => /^[wxhk]\d+$/.test(id);
 /** Odesílatel v chatu a v seznamu místností: jen HE / SHE. */
 /** Česky On / Ona, anglicky HE / SHE. */
 export const heShe = (g: Gender) => (sexOf(g) === 'zena' ? (isEn() ? 'SHE' : 'Ona') : (isEn() ? 'HE' : 'On'));
