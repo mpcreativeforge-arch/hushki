@@ -1,6 +1,6 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { backend, type Message, type Pair, type User } from '../lib/backend';
-import { decodePayload, encodePayload, makeLock, previewOf, type LockRef, type Payload } from '../lib/payload';
+import { decodePayload, encodePayload, makeLock, previewOf, type LockRef, type Payload, type Wish } from '../lib/payload';
 import { enablePush, pushEnabled, pushSupported } from '../lib/push';
 import { DICE_MAX, heShe, pikantId, pikantNumber, sexOf, tabsFor } from '../data/stickers';
 import { Envelope } from '../components/Envelope';
@@ -9,7 +9,8 @@ import { QuickMenu } from '../components/QuickMenu';
 import { loadPartnerPin, loadRoomPin, loadUnlocked, savePartnerPin, saveRoomPin, saveUnlocked } from '../lib/slots';
 import { checkLock } from '../lib/payload';
 import { toast } from '../components/Toast';
-import { LegendContext, loadRoomLegend, saveRoomLegend, type LegendEdit, type RoomLegend } from '../lib/roomLegend';
+import { FREE_EDITS, LegendContext, loadRoomLegend, saveRoomLegend, wishOf, type LegendEdit, type RoomLegend } from '../lib/roomLegend';
+import { legend } from '../data/legend';
 import { useStickerSex } from '../lib/style';
 import { LockButton } from '../components/LockButton';
 import { DiceOverlay } from '../components/D20';
@@ -55,21 +56,21 @@ export function ChatScreen({ user, pair, pairKey, flags, onBack, onSettings, onL
   const [roomLegend, setRoomLegend] = useState<RoomLegend>({});
   const sex = useStickerSex(user.id, user.gender);
 
-  // Vlastní Legenda místnosti (šifrovaná), znovu načtená při každé změně v místnosti
+  // Moje sada tajných přání v této místnosti (šifrovaná, vidím ji jen já)
   useEffect(() => {
     let alive = true;
-    const load = () => loadRoomLegend(pairKey, pair.id).then((l) => { if (alive) setRoomLegend(l); });
-    load();
-    const off = backend.subscribe(pair.id, load);
-    return () => { alive = false; off(); };
+    loadRoomLegend(pairKey, pair.id).then((l) => { if (alive) setRoomLegend(l); });
+    return () => { alive = false; };
   }, [pair.id, pairKey]);
 
   const saveEdit = async (n: number, e: LegendEdit | null) => {
+    // bez Premium jen 2 upravená přání (pojistka, nabídku ukáže už Legenda)
+    if (e && !roomLegend[n] && !premium && Object.keys(roomLegend).length >= FREE_EDITS) { setSheet(null); setPremiumOffer('legend'); return; }
     const next = { ...roomLegend };
     if (e) next[n] = e; else delete next[n];
     await saveRoomLegend(pairKey, pair.id, next);
     setRoomLegend(next);
-    toast(e ? t('Číslo ', 'Number ') + n + t(' je upravené pro vás oba.', ' is updated for both of you.') : t('Číslo ', 'Number ') + n + t(' má zase původní text.', ' is back to the original.'));
+    toast(e ? t('Přání ', 'Wish ') + n + t(' je upravené. Vidíš to jen ty.', ' is edited. Only you can see that.') : t('Přání ', 'Wish ') + n + t(' má zase původní text.', ' is back to the original.'));
   };
   const listRef = useRef<HTMLDivElement>(null);
   const cacheRef = useRef(new Map<string, Payload | null>());
@@ -77,7 +78,7 @@ export function ChatScreen({ user, pair, pairKey, flags, onBack, onSettings, onL
   const liveRef = useRef(new Set<string>());
   const [menu, setMenu] = useState(false);
   const [install, setInstall] = useState(false);
-  const [premiumOffer, setPremiumOffer] = useState(false);
+  const [premiumOffer, setPremiumOffer] = useState<boolean | 'legend'>(false);
   // Premium platí pro celou místnost: stačí, když ho má jeden z dvojice
   const premium = isPremium(user) || isPremium({ premiumUntil: pair.premium_until });
   const diceMax = premium ? DICE_MAX : FREE_DICE_MAX;
@@ -93,8 +94,8 @@ export function ChatScreen({ user, pair, pairKey, flags, onBack, onSettings, onL
   const me = heShe(user.gender);
   const waiting = !pair.user_b;
   const canReply = flags.replies !== false;
-  const meFemale = sexOf(user.gender) === 'zena';
   const partnerFemale = pair.partner_gender === 'zena';
+  const mySex = sexOf(user.gender);
 
   // Načtení a rozšifrování vzkazů
   useEffect(() => {
@@ -158,14 +159,17 @@ export function ChatScreen({ user, pair, pairKey, flags, onBack, onSettings, onL
   }, [count]);
 
   // Zámky pikantních čísel, které mi partner poslal
-  const locks = useMemo(() => {
+  // a přání, jak je partner poslal (poslední vzkaz s daným číslem)
+  const [locks, wishes] = useMemo(() => {
     const map = new Map<number, LockRef[]>();
+    const w = new Map<number, Wish>();
     for (const m of items ?? []) {
       const n = m.p?.t === 'sticker' ? pikantNumber(m.p.sticker ?? '') : null;
       if (!n || !m.p?.lock || m.sender_id === user.id) continue;
       map.set(n, [...(map.get(n) ?? []), m.p.lock]);
+      if (m.p.wish?.title && m.p.wish.body) w.set(n, m.p.wish);
     }
-    return map;
+    return [map, w] as const;
   }, [items, user.id]);
 
   const unlock = (n: number | number[]) => {
@@ -225,7 +229,9 @@ export function ChatScreen({ user, pair, pairKey, flags, onBack, onSettings, onL
   };
 
   const sendPikant = async (n: number, pin: string, dice?: boolean) => {
-    const ok = await send({ t: 'sticker', sticker: pikantId(n), lock: await makeLock(pin), ...(dice ? { dice: true } : {}) });
+    const base = legend(mySex).find((x) => x.n === n);
+    const wish = base ? wishOf(base, roomLegend[n]) : undefined;
+    const ok = await send({ t: 'sticker', sticker: pikantId(n), lock: await makeLock(pin), ...(dice ? { dice: true } : {}), ...(wish ? { wish } : {}) });
     if (ok) {
       if (pin !== roomPin) toast(roomPin ? t('Nové heslo místnosti je uložené.', 'New room password saved.') : t('Heslo místnosti je uložené. Příště se vyplní samo.', 'Room password saved. Next time it fills in by itself.'));
       unlock(n); saveRoomPin(pair.id, pin); setRoomPin(pin); setSheet(null);
@@ -239,7 +245,9 @@ export function ChatScreen({ user, pair, pairKey, flags, onBack, onSettings, onL
       const tabs = tabsFor(pair.partner_gender === 'zena' ? 'zena' : 'muz');
       let p: Omit<Payload, 'v'>;
       if (Math.random() < 0.3) {
-        p = { t: 'sticker', sticker: pikantId(1 + Math.floor(Math.random() * DICE_MAX)), lock: await makeLock('1234'), dice: true };
+        const n = 1 + Math.floor(Math.random() * DICE_MAX);
+        const base = legend(partnerFemale ? 'zena' : 'muz').find((x) => x.n === n);
+        p = { t: 'sticker', sticker: pikantId(n), lock: await makeLock('1234'), dice: true, ...(base ? { wish: wishOf(base) } : {}) };
       } else {
         const tab = tabs[Math.floor(Math.random() * 4)];
         p = { t: 'sticker', sticker: tab.stickers[Math.floor(Math.random() * tab.stickers.length)].id };
@@ -390,12 +398,13 @@ export function ChatScreen({ user, pair, pairKey, flags, onBack, onSettings, onL
 
       {sheet?.k === 'legend' && (
         <LegendSheet
-          start={sheet.n} locks={locks} unlocked={unlocked} onPin={unlockWith} sex={sex} onSaveEdit={saveEdit} meFemale={meFemale} partnerFemale={partnerFemale}
+          start={sheet.n} locks={locks} unlocked={unlocked} onPin={unlockWith} sex={sex} wishes={wishes} onSaveEdit={saveEdit} mySex={mySex} partnerSex={partnerFemale ? 'zena' : 'muz'}
+          premium={premium} onPremium={() => { setSheet(null); setPremiumOffer('legend'); }}
           onDice={(prev) => setSheet({ k: 'dice', for: 'legend', prev })}
           onClose={() => setSheet(null)}
         />
       )}
-      {sheet?.k === 'pikant' && <PikantSheet n={sheet.n} dice={sheet.dice} busy={busy} roomPin={roomPin} meFemale={meFemale} onSend={(pin) => sendPikant(sheet.n, pin, sheet.dice)} onReroll={() => setSheet({ k: 'dice', for: 'send', prev: sheet.n })} onClose={() => setSheet(null)} />}
+      {sheet?.k === 'pikant' && <PikantSheet n={sheet.n} dice={sheet.dice} busy={busy} roomPin={roomPin} sex={mySex} onSend={(pin) => sendPikant(sheet.n, pin, sheet.dice)} onReroll={() => setSheet({ k: 'dice', for: 'send', prev: sheet.n })} onClose={() => setSheet(null)} />}
       {sheet?.k === 'dice' && (
         <DiceOverlay
           max={sheet.for === 'send' ? diceMax : DICE_MAX} prev={sheet.prev} secret={sheet.for === 'send'}
@@ -404,7 +413,7 @@ export function ChatScreen({ user, pair, pairKey, flags, onBack, onSettings, onL
           onClose={() => setSheet(sheet.for === 'legend' ? { k: 'legend', n: sheet.prev } : null)}
         />
       )}
-      {premiumOffer && <PremiumSheet onClose={() => setPremiumOffer(false)} onDemoDone={onPremiumChange} />}
+      {premiumOffer && <PremiumSheet lead={premiumOffer === 'legend' ? t('Předplať si a můžeš upravit kolik přání chceš. Splň si tajná přání.', 'Subscribe and edit as many wishes as you like. Make your secret wishes come true.') : undefined} onClose={() => setPremiumOffer(false)} onDemoDone={onPremiumChange} />}
       {install && !sheet && !menu && <InstallSheet onClose={() => setInstall(false)} />}
       {menu && <QuickMenu extra={<RoomCode getCode={getCode} />} onClose={() => setMenu(false)} onSettings={() => { setMenu(false); onSettings(); }} onLogout={onLogout} onLeave={onLeave} />}
       {viewer && (

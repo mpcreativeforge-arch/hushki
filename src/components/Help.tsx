@@ -35,8 +35,8 @@ const SECTIONS = (): { icon: string; title: string; body: string }[] => [
   {
     icon: '📖', title: t('Legenda', 'Legend'),
     body: t(
-      'Knížka 📖 dole vedle hodin otevře Legendu všech pikantních čísel. Číslo u ní ukazuje, kolik čísel od partnera čeká na odemčení. Začátek popisu je vidět vždy, zbytek odemkne heslo od partnera.',
-      'The book 📖 at the bottom next to the clock opens the Legend of all spicy numbers. The count next to it shows how many numbers from your partner are waiting to be unlocked. The start of each description is always visible, the rest unlocks with your partner’s password.',
+      'Knížka 📖 dole vedle hodin otevře Legendu. V „Přijatých“ jsou tajná přání, která ti partner poslal: začátek popisu je vidět vždy, zbytek odemkne heslo od partnera. V „Moje“ je tvoje vlastní sada, kterou partner nevidí. Zdarma si v ní upravíš 2 přání, s Premium kolik chceš, a partner nepozná, co je upravené.',
+      'The book 📖 at the bottom next to the clock opens the Legend. “Received” holds the secret wishes your partner sent you: the start of each description is always visible, the rest unlocks with your partner’s password. “Mine” is your own set, which your partner can’t see. You can edit 2 wishes for free, as many as you like with Premium, and your partner can’t tell what was edited.',
     ),
   },
   {

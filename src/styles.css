@@ -431,6 +431,7 @@ p { margin: 0 0 14px; }
 .num-chip.got { border-color: var(--coral); }
 .num-chip.open { background: rgba(180, 140, 245, 0.22); }
 .num-chip.on { background: var(--cream); color: var(--wine-900); }
+.num-chip:disabled { opacity: 0.35; cursor: default; }
 .legend-item {
   display: flex; gap: 12px; align-items: flex-start; padding: 12px 6px; border-bottom: 1px solid rgba(244, 230, 210, 0.14);
   border-radius: 12px; transition: background .3s;

@@ -94,7 +94,7 @@ export function Bubble({ m, live, mine, partner, who, pairKey, showTime, showSta
         ) : isSticker ? (
           <div className={'sticker-msg' + ((revealed && sealed) || live ? ' pop' : '')}>
             {p.dice && <div className="dice-tag">🎲 {t('Padlo na kostce', 'Rolled on the dice')}</div>}
-            <StickerImg id={p.sticker!} size={128} />
+            <StickerImg id={p.sticker!} size={128} icon={p.wish ?? {}} />
             {p.text && <div className="bubble sticker-caption">{p.text}</div>}
           </div>
         ) : p.t === 'photo' ? (
@@ -155,11 +155,16 @@ export function Photo({ pairKey, photo, onOpen }: { pairKey: CryptoKey; photo: P
 }
 
 /** Samolepka. Pikantní má v rohu číslo, podle kterého se hledá v Legendě. */
-export function StickerImg({ id, size, onMissing, plain }: { id: string; size: number; onMissing?: () => void; plain?: boolean }) {
+export function StickerImg({ id, size, onMissing, plain, icon }: {
+  id: string; size: number; onMissing?: () => void; plain?: boolean;
+  /** Ikona přání ze vzkazu (u bublin); jinak platí moje úpravy. */
+  icon?: { emoji?: string; sticker?: string };
+}) {
   const [broken, setBroken] = useState(false);
   const n = pikantNumber(id);
-  const edit = useRoomLegend()[n ?? 0];
-  // vlastní ikona z Legendy místnosti: emoji nebo jiná samolepka (číslo zůstává)
+  const mine = useRoomLegend()[n ?? 0];
+  const edit = icon ?? mine;
+  // vlastní ikona přání: emoji nebo jiná samolepka (číslo zůstává)
   if (n && !plain && edit?.emoji) {
     return (
       <span className="sticker-num" style={{ width: size, height: size }}>

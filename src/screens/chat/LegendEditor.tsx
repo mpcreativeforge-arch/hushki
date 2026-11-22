@@ -55,7 +55,7 @@ export function LegendEditor({ item, base, edit, sex, onSave, onClose }: {
         </div>
         <div style={{ minWidth: 0 }}>
           <h2 style={{ margin: 0 }}>{t('Upravit číslo', 'Edit number')} {item.n}</h2>
-          <p className="small muted" style={{ margin: '2px 0 0' }}>{t('Úpravy uvidíte oba. Popis zůstane zamčený heslem jako dosud.', 'You will both see the changes. The description stays locked with the password as before.')}</p>
+          <p className="small muted" style={{ margin: '2px 0 0' }}>{t('Úpravu vidíš jen ty. Partnerovi přijde přání stejně jako každé jiné z nabídky, zamčené heslem.', 'Only you see this edit. Your partner gets the wish like any other one from the list, locked with the password.')}</p>
         </div>
       </div>
 
@@ -103,7 +103,7 @@ export function LegendEditor({ item, base, edit, sex, onSave, onClose }: {
 
       {error && <p className="error small">{error}</p>}
       <div className="stack" style={{ marginTop: 14 }}>
-        <button className="btn primary" disabled={busy || !title.trim() || !body.trim()} onClick={() => save()}>{busy ? <span className="spinner" /> : t('Uložit pro oba', 'Save for both of us')}</button>
+        <button className="btn primary" disabled={busy || !title.trim() || !body.trim()} onClick={() => save()}>{busy ? <span className="spinner" /> : t('Uložit', 'Save')}</button>
         <button className="btn ghost small" disabled={busy} onClick={() => save(true)}>{t('Vrátit původní text i ikonu', 'Restore the original text and icon')}</button>
       </div>
     </Sheet>

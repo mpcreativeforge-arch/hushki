@@ -8,6 +8,8 @@ export interface PhotoRef { path: string; iv: string; w: number; h: number; mime
 export interface ReplyRef { id: string; preview: string }
 /** Zámek pikantního čísla v Legendě: sůl a SHA-256 hesla. */
 export interface LockRef { s: string; h: string }
+/** Tajné přání odesílatele (text a ikona z jeho sady). Partner jinou cestou jeho sadu nevidí. */
+export interface Wish { title: string; body: string; emoji?: string; sticker?: string }
 
 export interface Payload {
   v: 1;
@@ -20,6 +22,8 @@ export interface Payload {
   lock?: LockRef;
   /** Číslo vybrala kostka (ukáže se oběma). */
   dice?: boolean;
+  /** U pikantního čísla: přání, jak ho odesílatel má ve své sadě. */
+  wish?: Wish;
 }
 
 export async function encodePayload(key: CryptoKey, p: Omit<Payload, 'v'>) {

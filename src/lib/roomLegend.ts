@@ -1,15 +1,19 @@
-// Vlastní Legenda místnosti. Oba z dvojice mohou upravit název, popis a ikonu kteréhokoli z 20 čísel.
-// Úpravy se šifrují klíčem místnosti, server je nepřečte.
+// Moje sada tajných přání v místnosti. Každý upravuje jen svou sadu (název, popis, ikonu),
+// partner úpravy nevidí: přání dostane až ve vzkazu, stejně jako přání z nabídky.
+// Úpravy se šifrují klíčem místnosti a server je nepřečte; řádek s nimi čte jen jejich autor.
 import { createContext, useContext } from 'react';
 import { backend } from './backend';
 import { decryptText, encryptText } from './crypto';
 import { type LegendItem } from '../data/legend';
+import { type Wish } from './payload';
 
 export interface LegendEdit { title?: string; body?: string; emoji?: string; sticker?: string }
 export type RoomLegend = Record<number, LegendEdit>;
 
 export const TITLE_MAX = 40;
 export const BODY_MAX = 300;
+/** Bez Premium jdou upravit 2 přání. */
+export const FREE_EDITS = 2;
 
 function clean(v: unknown): RoomLegend {
   const out: RoomLegend = {};
@@ -36,10 +40,16 @@ export async function saveRoomLegend(key: CryptoKey, pairId: string, legend: Roo
   await backend.saveRoomLegend(pairId, ciphertext, iv);
 }
 
-/** Položka Legendy po úpravách místnosti. Vlastní popis platí pro oba (nezávisí na pohlaví). */
+/** Moje přání po mých úpravách. */
 export function applyEdit(item: LegendItem, e?: LegendEdit): LegendItem {
   if (!e) return item;
-  return { ...item, title: e.title ?? item.title, body: e.body ?? item.body, body_zena: e.body ? undefined : item.body_zena };
+  return { ...item, title: e.title ?? item.title, body: e.body ?? item.body };
+}
+
+/** Přání do vzkazu. Upravené i neupravené má stejný tvar, partner je nerozliší. */
+export function wishOf(item: LegendItem, e?: LegendEdit): Wish {
+  const x = applyEdit(item, e);
+  return { title: x.title, body: x.body, ...(e?.emoji ? { emoji: e.emoji } : e?.sticker ? { sticker: e.sticker } : {}) };
 }
 
 export const LegendContext = createContext<RoomLegend>({});
