@@ -14,7 +14,7 @@ export function isPremiumSticker(id: string) {
   if (!m) return false;
   const n = Number(m[2]);
   if (m[1] === 'p') return n >= 21;
-  return 'orstdeg'.includes(m[1]) && n >= 31;
+  return 'orstdeg'.includes(m[1]) && n >= 31 && n <= 45;
 }
 
 /** Kostka bez Premium hází jen čísla 1–20. */
