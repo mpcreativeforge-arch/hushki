@@ -11,6 +11,7 @@ import { LangSwitch } from '../components/LangSwitch';
 import { INFO_EMAIL, SUPPORT_EMAIL } from '../data/privacy';
 import { exportMyData } from '../lib/export';
 import { isPremium } from '../lib/premium';
+import { beginPayment } from '../lib/session';
 import { PremiumSheet } from '../components/PremiumSheet';
 import { isEn, t } from '../lib/i18n';
 
@@ -40,7 +41,7 @@ export function SettingsScreen({ user, flags, onBack, onUser, onChangePin, onLog
     setPortalBusy(true); setPremiumMsg('');
     try {
       const url = await backend.premiumPortal();
-      if (url) location.href = url; else { onPremiumChange?.(); setPortalBusy(false); }
+      if (url) { beginPayment(); location.href = url; } else { onPremiumChange?.(); setPortalBusy(false); }
     } catch { setPremiumMsg(t('Správu předplatného se nepodařilo otevřít. Zkus to prosím za chvíli.', 'Could not open subscription management. Please try again shortly.')); setPortalBusy(false); }
   };
   const [confirmDelete, setConfirmDelete] = useState(false);
