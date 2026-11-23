@@ -1,6 +1,6 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { backend, type Message, type Pair, type User } from '../lib/backend';
-import { decodePayload, encodePayload, makeLock, previewOf, type LockRef, type Payload, type Wish } from '../lib/payload';
+import { decodePayload, encodePayload, makeLock, replyRef, type LockRef, type Payload, type Wish } from '../lib/payload';
 import { enablePush, pushEnabled, pushSupported } from '../lib/push';
 import { DICE_MAX, heShe, pikantId, pikantNumber, sexOf, tabsFor } from '../data/stickers';
 import { Envelope } from '../components/Envelope';
@@ -9,7 +9,7 @@ import { QuickMenu } from '../components/QuickMenu';
 import { loadPartnerPin, loadRoomPin, loadUnlocked, savePartnerPin, saveRoomPin, saveUnlocked } from '../lib/slots';
 import { checkLock } from '../lib/payload';
 import { toast } from '../components/Toast';
-import { FREE_EDITS, LegendContext, loadRoomLegend, saveRoomLegend, wishOf, type LegendEdit, type RoomLegend } from '../lib/roomLegend';
+import { FREE_EDITS, LegendContext, SexContext, loadRoomLegend, saveRoomLegend, wishOf, type LegendEdit, type RoomLegend } from '../lib/roomLegend';
 import { legend } from '../data/legend';
 import { useStickerSex } from '../lib/style';
 import { LockButton } from '../components/LockButton';
@@ -21,7 +21,7 @@ import { InstallSheet } from '../components/InstallSheet';
 import { PremiumSheet } from '../components/PremiumSheet';
 import { FREE_DICE_MAX, isPremium } from '../lib/premium';
 
-import { Bubble, GroupEnvelope } from './chat/Bubble';
+import { Bubble, GroupEnvelope, ReplyQuote } from './chat/Bubble';
 import { loadRecent, pushRecent } from '../lib/recent';
 import { StickerPicker } from './chat/StickerPicker';
 import { PikantSheet } from './chat/PikantSheet';
@@ -205,7 +205,7 @@ export function ChatScreen({ user, pair, pairKey, flags, onBack, onSettings, onL
   const send = async (p: Omit<Payload, 'v'>) => {
     setBusy(true); setError('');
     try {
-      if (replyTo?.p) p.reply = { id: replyTo.id, preview: previewOf(replyTo.p) };
+      if (replyTo?.p) p.reply = replyRef(replyTo.id, replyTo.p);
       const { ciphertext, iv } = await encodePayload(pairKey, p);
       const msg = await backend.sendMessage(pair.id, ciphertext, iv);
       backend.notifyPartner(msg.id);
@@ -319,6 +319,7 @@ export function ChatScreen({ user, pair, pairKey, flags, onBack, onSettings, onL
 
   return (
     <LegendContext.Provider value={roomLegend}>
+    <SexContext.Provider value={mySex}>
     <div className="chat">
       <header className="chat-top">
         <div className="row" style={{ gap: 4, minWidth: 0 }}>
@@ -389,7 +390,7 @@ export function ChatScreen({ user, pair, pairKey, flags, onBack, onSettings, onL
         {error && <p className="error small" style={{ margin: '0 0 8px' }}>{error}</p>}
         {replyTo?.p && (
           <div className="reply-bar">
-            <div><b>{t('Odpověď na:', 'Reply to:')}</b> {previewOf(replyTo.p)}</div>
+            <ReplyQuote r={replyRef(replyTo.id, replyTo.p)} label={t('Odpověď na:', 'Reply to:')} />
             <button className="icon-btn" aria-label={t('Zrušit odpověď', 'Cancel reply')} onClick={() => setReplyTo(null)}>✕</button>
           </div>
         )}
@@ -408,8 +409,10 @@ export function ChatScreen({ user, pair, pairKey, flags, onBack, onSettings, onL
       {sheet?.k === 'dice' && (
         <DiceOverlay
           max={sheet.for === 'send' ? diceMax : DICE_MAX} prev={sheet.prev} secret={sheet.for === 'send'}
-          actionLabel={sheet.for === 'send' ? t('Poslat toto číslo', 'Send this number') : t('Ukázat v Legendě', 'Show in the Legend')}
-          onResult={(n) => setSheet(sheet.for === 'send' ? { k: 'pikant', n, dice: true } : { k: 'legend', n })}
+          actionLabel={t('Poslat toto číslo', 'Send this number')}
+          // kostka z Legendy umí padlé číslo taky rovnou poslat (bez Premium jen 1–20)
+          onResult={(n) => { if (n > diceMax) { setSheet(null); setPremiumOffer(true); } else setSheet({ k: 'pikant', n, dice: true }); }}
+          alt={sheet.for === 'legend' ? { label: t('Ukázat v Legendě', 'Show in the Legend'), onClick: (n) => setSheet({ k: 'legend', n }) } : undefined}
           onClose={() => setSheet(sheet.for === 'legend' ? { k: 'legend', n: sheet.prev } : null)}
         />
       )}
@@ -422,6 +425,7 @@ export function ChatScreen({ user, pair, pairKey, flags, onBack, onSettings, onL
         </div>
       )}
     </div>
+    </SexContext.Provider>
     </LegendContext.Provider>
   );
 }

@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { backend } from '../../lib/backend';
 import { type LockRef, type Wish } from '../../lib/payload';
 import { pikantId } from '../../data/stickers';
-import { legend, type Sex } from '../../data/legend';
+import { legend, nativeIcon, type Sex } from '../../data/legend';
 import { feedback } from '../../lib/feedback';
 import { Sheet } from '../../components/Sheet';
 import { PinPad } from '../../components/PinPad';
@@ -47,6 +47,8 @@ export function LegendSheet({ start, locks, wishes, unlocked, onPin, sex, mySex,
   }, [focus, pinFor, tab]);
 
   const mine = legend(mySex);
+  // ikona čísla z partnerovy sady, když starší vzkaz ikonu nenese
+  const partnerIcon = (n: number) => { const st = nativeIcon(partnerSex, n); return st ? { sticker: st } : {}; };
   const partnerBase = legend(partnerSex);
 
   // bez Premium jdou upravit 2 přání; už upravené jde měnit dál
@@ -74,7 +76,7 @@ export function LegendSheet({ start, locks, wishes, unlocked, onPin, sex, mySex,
       <Sheet onClose={onClose}>
         <button className="btn ghost small" onClick={() => setPinFor(null)}>← {t('Zpět do Legendy', 'Back to the Legend')}</button>
         <div className="center" style={{ marginTop: 8 }}>
-          <StickerImg id={pikantId(pinFor)} size={84} icon={wishes.get(pinFor) ?? {}} />
+          <StickerImg id={pikantId(pinFor)} size={84} icon={wishes.get(pinFor) ?? partnerIcon(pinFor)} />
           <h2 style={{ margin: '6px 0 4px' }}>{t('Heslo k číslu', 'Password for number')} {pinFor}</h2>
           <p className="small muted">{t('Heslo ti musí prozradit partner. Platí pro celou místnost, takže odemkne i další čísla.', 'Your partner has to tell you the password. It works for the whole room, so it unlocks other numbers too.')}{backend.mode === 'demo' ? ' (Demo: 1234)' : ''}</p>
         </div>
@@ -133,7 +135,7 @@ export function LegendSheet({ start, locks, wishes, unlocked, onPin, sex, mySex,
             const cut = Math.min(w.body.length, Math.max(18, w.body.indexOf(' ', 22)));
             return (
               <div key={n} ref={(el) => { if (el) refs.current.set(n, el); }} className={'legend-item' + (focus === n ? ' focus' : '')}>
-                <StickerImg id={pikantId(n)} size={56} icon={wishes.get(n) ?? {}} />
+                <StickerImg id={pikantId(n)} size={56} icon={wishes.get(n) ?? partnerIcon(n)} />
                 <div style={{ minWidth: 0, flex: 1 }}>
                   <b>{n}. {w.title}</b>
                   {open ? <p>{w.body}</p> : (

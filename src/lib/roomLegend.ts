@@ -4,14 +4,14 @@
 import { createContext, useContext } from 'react';
 import { backend } from './backend';
 import { decryptText, encryptText } from './crypto';
-import { type LegendItem } from '../data/legend';
+import { type LegendItem, type Sex } from '../data/legend';
 import { type Wish } from './payload';
 
 export interface LegendEdit { title?: string; body?: string; emoji?: string; sticker?: string }
 export type RoomLegend = Record<number, LegendEdit>;
 
 export const TITLE_MAX = 40;
-export const BODY_MAX = 300;
+export const BODY_MAX = 999;
 /** Bez Premium jdou upravit 2 přání. */
 export const FREE_EDITS = 2;
 
@@ -49,11 +49,13 @@ export function applyEdit(item: LegendItem, e?: LegendEdit): LegendItem {
 /** Přání do vzkazu. Upravené i neupravené má stejný tvar, partner je nerozliší. */
 export function wishOf(item: LegendItem, e?: LegendEdit): Wish {
   const x = applyEdit(item, e);
-  return { title: x.title, body: x.body, ...(e?.emoji ? { emoji: e.emoji } : e?.sticker ? { sticker: e.sticker } : {}) };
+  return { title: x.title, body: x.body, ...(e?.emoji ? { emoji: e.emoji } : e?.sticker ? { sticker: e.sticker } : item.icon ? { sticker: item.icon } : {}) };
 }
 
 export const LegendContext = createContext<RoomLegend>({});
 export const useRoomLegend = () => useContext(LegendContext);
+/** Moje pohlaví v místnosti: podle něj se ukazují ikony čísel z mé sady. */
+export const SexContext = createContext<Sex>('muz');
 
 /** První „znak“ (i složené emoji jako 👩‍❤️‍👨). */
 export function firstGrapheme(s: string) {

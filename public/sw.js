@@ -1,5 +1,5 @@
 // Hushki service worker: hláška bez spojení + diskrétní push upozornění.
-const CACHE = 'hushki-v5';
+const CACHE = 'hushki-v6';
 const SCOPE = self.registration.scope;
 
 self.addEventListener('install', (e) => {

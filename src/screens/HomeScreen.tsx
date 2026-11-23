@@ -13,7 +13,7 @@ import { lastActivity, sparkLevel, SparkIcon } from '../lib/spark';
 
 interface Props {
   user: User; pairs: Pair[]; keys: Record<string, CryptoKey>;
-  onOpen: (p: Pair) => void; onAdd: () => void; onSettings: () => void; onLock: () => void; onLogout: () => void;
+  onOpen: (p: Pair) => void; onLeave: (pairId: string) => Promise<void>; onAdd: () => void; onSettings: () => void; onLock: () => void; onLogout: () => void;
 }
 
 /** Neutrální pozdravy, při každém otevření aplikace náhodně jeden. */
@@ -31,9 +31,16 @@ const nameOf = (p: Pair, pairs: Pair[]) => {
   return heShe(p.partner_gender) + (same.length > 1 ? ' · ' + (same.indexOf(p) + 1) : '');
 };
 
-export function HomeScreen({ user, pairs, keys, onOpen, onAdd, onSettings, onLock, onLogout }: Props) {
+export function HomeScreen({ user, pairs, keys, onOpen, onLeave, onAdd, onSettings, onLock, onLogout }: Props) {
   const [stats, setStats] = useState<Record<string, Stat>>({});
   const [menu, setMenu] = useState(false);
+  // místnost, u které se ptáme na smazání
+  const [del, setDel] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState(false);
+  const remove = async (id: string) => {
+    setDeleting(true);
+    try { await onLeave(id); setDel(null); } catch { /* zůstane otevřené potvrzení */ } finally { setDeleting(false); }
+  };
   const totalRef = useRef<number | null>(null);
   const ids = pairs.map((p) => p.id).join(',');
 
@@ -91,7 +98,9 @@ export function HomeScreen({ user, pairs, keys, onOpen, onAdd, onSettings, onLoc
             : unread ? (unread === 1 ? t('Nový vzkaz', 'New message') : `${unread} ${plural(unread, '', 'nové vzkazy', 'nových vzkazů', '', 'new messages')}`)
             : st?.last ? `${t('Naposledy', 'Last')} ${when(st.last)}` : t('Zatím bez vzkazů', 'No messages yet');
           return (
-            <button key={p.id} className={'room' + (unread ? ' unread' : '')} onClick={() => onOpen(p)}>
+            <div key={p.id} className="room-row">
+            <div className="room-line">
+            <button className={'room' + (unread ? ' unread' : '')} onClick={() => onOpen(p)}>
               <Envelope size={46} open={!unread} sparks={!!unread} />
               <div className="room-body">
                 <div className="room-name">{p.user_b ? nameOf(p, pairs) : t('Nová místnost', 'New room')}{locked ? ' 🔒' : ''} {spark && <SparkIcon level={spark} />}</div>
@@ -99,6 +108,18 @@ export function HomeScreen({ user, pairs, keys, onOpen, onAdd, onSettings, onLoc
               </div>
               {unread > 0 && <span className="room-badge">{unread}</span>}
             </button>
+            <button className="icon-btn room-del" aria-label={t('Smazat místnost', 'Delete room')} onClick={() => setDel(del === p.id ? null : p.id)}>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3" /></svg>
+            </button>
+            </div>
+            {del === p.id && (
+              <div className="notice stack room-confirm">
+                <span>{t('Smazat tuto místnost? Zmizí i všechny vzkazy v ní, u vás obou. Vrátit to nejde.', 'Delete this room? All its messages disappear too, for both of you. This cannot be undone.')}</span>
+                <button className="btn" disabled={deleting} onClick={() => remove(p.id)}>{deleting ? <span className="spinner" /> : t('Ano, smazat', 'Yes, delete')}</button>
+                <button className="btn ghost" onClick={() => setDel(null)}>{t('Ne', 'No')}</button>
+              </div>
+            )}
+            </div>
           );
         })}
       </div>

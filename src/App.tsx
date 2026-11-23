@@ -337,6 +337,7 @@ export function App() {
         <HomeScreen
           user={user!} pairs={pairs} keys={keys}
           onOpen={(p) => setStage(keys[p.id] ? { name: 'room', pairId: p.id } : { name: 'pair', mode: 'restore', pair: p })}
+          onLeave={leave}
           onAdd={() => setStage({ name: 'pair', mode: 'add' })}
           onSettings={() => setStage({ name: 'settings' })}
           onLock={lockNow} onLogout={logout}

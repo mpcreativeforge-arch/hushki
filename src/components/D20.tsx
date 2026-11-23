@@ -46,8 +46,10 @@ export function D20Svg({ value, size = 200 }: { value: number | string; size?: n
  * Okno s kostkou. Po ťuknutí se kostka roztočí a vrátí výsledek.
  * onResult se zavolá tlačítkem „Použít číslo“.
  */
-export function DiceOverlay({ max = 20, prev, onResult, onClose, actionLabel, secret }: {
+export function DiceOverlay({ max = 20, prev, onResult, onClose, actionLabel, secret, alt }: {
   max?: number; prev?: number; onResult: (n: number) => void; onClose: () => void; actionLabel: string;
+  /** druhá akce s padlým číslem (např. „Ukázat v Legendě“) */
+  alt?: { label: string; onClick: (n: number) => void };
   /** Tajné přání: dovolí předem vybrat číslo, které „padne“. Partner pozná jen „Padlo na kostce“. */
   secret?: boolean;
 }) {
@@ -112,6 +114,7 @@ export function DiceOverlay({ max = 20, prev, onResult, onClose, actionLabel, se
       {state === 'done' && !picking && (
         <div className="dice-actions">
           <button className="btn primary" onClick={() => onResult(result.current)}>{actionLabel}</button>
+          {alt && <button className="btn ghost" onClick={() => alt.onClick(result.current)}>{alt.label}</button>}
           <button className="btn ghost" onClick={roll}>🎲 {t('Hodit znovu', 'Roll again')}</button>
         </div>
       )}
