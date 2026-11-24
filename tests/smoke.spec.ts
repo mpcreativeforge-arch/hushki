@@ -5,6 +5,7 @@ const pin = async (p: Page, digits: string) => {
 };
 
 test('registrace, místnost, samolepka, pikant, Legenda a angličtina', async ({ page: p }) => {
+  test.setTimeout(120_000);
   const errors: string[] = [];
   p.on('pageerror', (e) => errors.push(e.message));
   await p.addInitScript(() => sessionStorage.setItem('hushki.install-seen', '1'));
@@ -78,7 +79,10 @@ test('registrace, místnost, samolepka, pikant, Legenda a angličtina', async ({
   await expect(p.getByRole('tab', { name: 'Naposledy použité' })).toBeVisible();
 
   // smazání vlastního vzkazu podržením
+  // počkat na odpověď dema, jinak nová zpráva posune seznam během podržení
+  await p.waitForTimeout(5000);
   const mine = await p.locator('.msg.mine').count();
+  await p.locator('.msg.mine .bubble-wrap').last().scrollIntoViewIfNeeded();
   const box = (await p.locator('.msg.mine .bubble-wrap').last().boundingBox())!;
   await p.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
   await p.mouse.down(); await p.waitForTimeout(650); await p.mouse.up();
@@ -143,6 +147,43 @@ test('registrace, místnost, samolepka, pikant, Legenda a angličtina', async ({
   await p.locator('.picker-grid .sticker-btn').nth(2).click();
   await p.getByRole('button', { name: /^Poslat číslo/ }).click();
   await expect(p.locator('.msg.mine .sticker-fallback').last()).toHaveText('🍓');
+
+  // kostka v Legendě umí padlé číslo rovnou poslat
+  const dice = await p.locator('.msg.mine .dice-tag').count();
+  await p.getByRole('button', { name: 'Legenda' }).first().click();
+  await p.locator('.sheet').getByRole('button', { name: /Kostka/ }).click();
+  await p.locator('button.d20').click();
+  await expect(p.getByRole('button', { name: 'Ukázat v Legendě' })).toBeVisible();
+  await p.getByRole('button', { name: 'Poslat toto číslo' }).click();
+  await p.getByRole('button', { name: /^Poslat číslo/ }).click();
+  await expect(p.locator('.msg.mine .dice-tag')).toHaveCount(dice + 1);
+
+  // odpověď na přijatou samolepku ukáže náhled té samolepky
+  // (podržení prstu je v emulaci mobilu nespolehlivé, gesto se ověřuje na PC)
+  if (test.info().project.name !== 'mobil') {
+    // počkat na odpověď dema, jinak nová zpráva posune seznam během podržení
+    await p.waitForTimeout(5000);
+    const theirs = p.locator('.msg.theirs .sticker-msg').last();
+    await theirs.scrollIntoViewIfNeeded();
+    const rb = (await theirs.boundingBox())!;
+    await p.mouse.move(rb.x + rb.width / 2, rb.y + rb.height / 2);
+    await p.mouse.down(); await p.waitForTimeout(650); await p.mouse.up();
+    await p.getByRole('button', { name: /Odpovědět/ }).click();
+    const thumb = '.reply-quote :is(img.sticker, .sticker-fallback)';
+    await expect(p.locator('.reply-bar ' + thumb)).toBeVisible();
+    await p.getByRole('tab', { name: 'Pokec' }).click();
+    await p.locator('.picker-grid .sticker-btn').nth(2).click();
+    await expect(p.locator('.msg.mine').last().locator('.quote ' + thumb)).toBeVisible();
+    await p.screenshot({ path: 'test-results/odpoved-nahled.png' });
+  }
+
+  // místnost jde smazat přímo ze seznamu
+  await p.getByRole('button', { name: 'Zpět na místnosti' }).click();
+  const rooms = await p.locator('.room').count();
+  await p.getByRole('button', { name: 'Smazat místnost' }).first().click();
+  await p.screenshot({ path: 'test-results/smazat-mistnost.png' });
+  await p.getByRole('button', { name: 'Ano, smazat' }).click();
+  await expect(p.locator('.room')).toHaveCount(rooms - 1);
 
   // přepnutí do angličtiny
   await p.getByRole('button', { name: 'Menu' }).click();

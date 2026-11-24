@@ -4,7 +4,7 @@
 //
 // Prefixy: m/f = původní sada kluk/holka, u/v = univerzální kluk/holka, o/r = Ocenění, s/t = Pokec,
 // d/e = Domluva, g = Dárky, p = Hushki pikant (číslo = pořadí, pNN → NN, 1–20 jako kostka D20),
-// w = samostatné nálepky (IDEA, ?, !, Secret wish, Curious), x = jejich holčičí verze (x03 není, ! je společný), h/k = ikony pro vlastní přání HE / SHE.
+// q = ženská sada pikant (ikony čísel v režimu žena), w = samostatné nálepky (IDEA, ?, !, Secret wish, Curious), x = jejich holčičí verze (x03 není, ! je společný), h/k = ikony pro vlastní přání HE / SHE.
 import type { Gender } from '../lib/backend';
 import { isEn } from '../lib/i18n';
 
@@ -102,6 +102,17 @@ const PIKANT: [string, string][] = [
   ['Naše písnička', '🎶'], ['Celá noc', '🌙'], ['Maska', '🎭'], ['Hotel', '🏨'], ['Třešně', '🍒'],
 ];
 
+/** Ženská sada Hushki pikant (q01–q35): vlastní obrázky s psí holkou, v pořadí ženských přání. */
+const PIKANT_ONA: [string, string][] = [
+  ['Večeře u nás', '🍷'], ['Nové prádlo', '🎁'], ['Líné ráno', '☕'], ['Zavázané oči', '🎀'], ['Vana pro dva', '🛁'],
+  ['Překvapení', '🎁'], ['Hod kostkou', '🎲'], ['Ranní košile', '👔'], ['Pusy', '💋'], ['Noční výlet', '🌌'],
+  ['Při svíčkách', '🕯️'], ['Moje pravidla', '📜'], ['Vonný olej', '💆'], ['Tajemství', '🤫'], ['Studené peřiny', '🥶'],
+  ['Tanec pro tebe', '💃'], ['Královna', '👑'], ['Mazlení', '🫶'], ['Psst', '🤐'], ['Džin z lampy', '🪔'],
+  ['Ploužák', '🎶'], ['Třešňová výzva', '🍒'], ['Ledové kostky', '🧊'], ['Sladká tečka', '🍫'], ['Do rána', '🌙'],
+  ['Jahody', '🍓'], ['Jen my', '🔐'], ['Jen podpatky', '👠'], ['Neznámá', '🕶️'], ['Bublinky', '🍾'],
+  ['Klíček', '🗝️'], ['Vzkaz v koupelně', '💄'], ['Útěk', '🧳'], ['Lehký dotek', '🪶'], ['Pootevřené dveře', '🚿'],
+];
+
 /** Samostatné nálepky pro oba (zdarma, na začátku Pokecu). ? a ! jsou bez postavičky psa. */
 const WORDS: [string, string][] = [
   ['IDEA', '💡'], ['?', '❓'], ['!', '❗'], ['Do you have a secret wish?', '🤫'], ['I do have a secret wish', '🔐'], ['Curious', '👀'],
@@ -125,7 +136,7 @@ const both = (prefix: string, a: [string, string][], b: [string, string][], c: [
 const all = [
   ...both('o', OCENENI, OCENENI_2, OCENENI_3), ...both('r', OCENENI, OCENENI_2, OCENENI_3), ...both('s', SMALLTALK, SMALLTALK_2, SMALLTALK_3), ...both('t', SMALLTALK, SMALLTALK_2, SMALLTALK_3),
   ...both('d', DOMLUVA, DOMLUVA_2, DOMLUVA_3), ...both('e', DOMLUVA, DOMLUVA_2, DOMLUVA_3),
-  ...series('s', SMALLTALK_4, 46), ...series('t', SMALLTALK_4, 46), ...series('d', DOMLUVA_4, 46), ...series('e', DOMLUVA_4, 46), ...kluk, ...holka, ...both('g', DARKY, DARKY_2, DARKY_3), ...series('p', PIKANT),
+  ...series('s', SMALLTALK_4, 46), ...series('t', SMALLTALK_4, 46), ...series('d', DOMLUVA_4, 46), ...series('e', DOMLUVA_4, 46), ...kluk, ...holka, ...both('g', DARKY, DARKY_2, DARKY_3), ...series('p', PIKANT), ...series('q', PIKANT_ONA),
   ...series('u', UNI), ...series('v', UNI), ...series('w', WORDS), ...series('x', WORDS), ...series('h', BUILD_HE), ...series('k', BUILD_SHE),
 ];
 export const STICKERS = new Map(all.map((x) => [x.id, x] as const));

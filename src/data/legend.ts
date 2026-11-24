@@ -1,8 +1,10 @@
 // Legenda pikantních čísel (tajná přání). Číslo = pořadí samolepky pNN.
-// Muž a žena mají každý vlastní sadu přání se stejnými obrázky. Partner čte jen čísla, která mu přišla.
+// Muž a žena mají každý vlastní sadu přání. Ženská sada je přeházená: na žádném čísle nemá stejné
+// přání ani stejnou ikonu jako mužská, takže partner podle čísla a obrázku nepozná, co je z nabídky.
+// Partner čte jen čísla, která mu přišla.
 import { isEn } from '../lib/i18n';
 
-export interface LegendItem { n: number; title: string; body: string }
+export interface LegendItem { n: number; title: string; body: string; /** samolepka ikony, když se liší od pNN */ icon?: string }
 export type Sex = 'muz' | 'zena';
 
 const HE_CS: LegendItem[] = [
@@ -102,7 +104,7 @@ const SHE_CS: LegendItem[] = [
   { n: 17, title: 'Tanec pro tebe', body: 'Pustím hudbu a zatancuju ti. Ty sedíš, díváš se a ruce necháš u sebe, dokud neřeknu.' },
   { n: 18, title: 'Líné ráno', body: 'Zítra ráno se nikam nespěchá. Přines kafe do postele a pak už z ní nevylézej.' },
   { n: 19, title: 'Noční výlet', body: 'Vezmi deku a pojedeme někam, kde nejsou lidi, jen hvězdy. Zbytek vymyslíme na místě.' },
-  { n: 20, title: 'Královna', body: 'Padla dvacítka, dnes jsem tvoje královna. Celý večer mi budeš plnit přání a já si jich vymyslím hodně.' },
+  { n: 20, title: 'Královna', body: 'Dnes jsem tvoje královna. Celý večer mi budeš plnit přání a já si jich vymyslím hodně.' },
   { n: 21, title: 'Jahody', body: 'Koupila jsem jahody a šlehačku. Tentokrát je nebudeme jíst z talíře.' },
   { n: 22, title: 'Bublinky', body: 'Vychladila jsem šampaňské. Jedna sklenička pro tebe, jedna pro mě a zbytek se uvidí.' },
   { n: 23, title: 'Lehký dotek', body: 'Mám pírko a chci zjistit, kde jsi nejvíc lechtivý. Zavři oči a nehýbej se.' },
@@ -140,7 +142,7 @@ const SHE_EN: LegendItem[] = [
   { n: 17, title: 'A dance for you', body: 'I’ll put on some music and dance for you. You sit, watch and keep your hands to yourself until I say so.' },
   { n: 18, title: 'Lazy morning', body: 'No rush tomorrow morning. Bring coffee to bed and then don’t get out of it.' },
   { n: 19, title: 'Night trip', body: 'Grab a blanket and let’s drive somewhere with no people, just stars. We’ll figure out the rest there.' },
-  { n: 20, title: 'Queen', body: 'You rolled a twenty, so tonight I’m your queen. You’ll grant my wishes all evening, and I’ll think of plenty.' },
+  { n: 20, title: 'Queen', body: 'Tonight I’m your queen. You’ll grant my wishes all evening, and I’ll think of plenty.' },
   { n: 21, title: 'Strawberries', body: 'I bought strawberries and whipped cream. This time we won’t be eating them off a plate.' },
   { n: 22, title: 'Bubbles', body: 'I’ve chilled the champagne. One glass for you, one for me, and we’ll see about the rest.' },
   { n: 23, title: 'Light touch', body: 'I have a feather and I want to find out where you’re most ticklish. Close your eyes and don’t move.' },
@@ -158,5 +160,18 @@ const SHE_EN: LegendItem[] = [
   { n: 35, title: 'Cherry challenge', body: 'I have a bowl of cherries. If you can tie a stem in a knot with your tongue, you get any reward you choose.' },
 ];
 
+/**
+ * Kam se ženské přání (a jeho obrázek pNN) přesune: 1–20 zůstávají v 1–20, 21–35 v 21–35 (Premium),
+ * ale žádné číslo nezůstane na svém místě, takže se ženská a mužská sada nikde neshodují.
+ */
+const sheNumber = (k: number) => (k <= 20 ? ((k - 1) * 7 + 3) % 20 + 1 : 21 + ((k - 21) * 4 + 5) % 15);
+const shuffled = (list: LegendItem[]) =>
+  list.map((x) => ({ ...x, n: sheNumber(x.n), icon: 'q' + String(sheNumber(x.n)).padStart(2, '0') })).sort((a, b) => a.n - b.n);
+const SHE_CS_N = shuffled(SHE_CS);
+const SHE_EN_N = shuffled(SHE_EN);
+
 /** Sada přání podle pohlaví toho, kdo je posílá, v aktuálním jazyce. */
-export const legend = (sex: Sex) => (sex === 'zena' ? (isEn() ? SHE_EN : SHE_CS) : (isEn() ? HE_EN : HE_CS));
+export const legend = (sex: Sex) => (sex === 'zena' ? (isEn() ? SHE_EN_N : SHE_CS_N) : (isEn() ? HE_EN : HE_CS));
+
+/** Ikona čísla v nabídce dané sady (žena má vlastní obrázky qNN), jinak undefined. */
+export const nativeIcon = (sex: Sex, n: number) => (sex === 'zena' ? SHE_CS_N.find((x) => x.n === n)?.icon : undefined);

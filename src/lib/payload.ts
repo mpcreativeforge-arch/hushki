@@ -5,7 +5,8 @@ import { pikantNumber } from '../data/stickers';
 import { t } from './i18n';
 
 export interface PhotoRef { path: string; iv: string; w: number; h: number; mime: string }
-export interface ReplyRef { id: string; preview: string }
+/** Odpověď: text náhledu, u samolepky i její id a ikona přání, aby šla ukázat malá samolepka. */
+export interface ReplyRef { id: string; preview: string; sticker?: string; icon?: { emoji?: string; sticker?: string } }
 /** Zámek pikantního čísla v Legendě: sůl a SHA-256 hesla. */
 export interface LockRef { s: string; h: string }
 /** Tajné přání odesílatele (text a ikona z jeho sady). Partner jinou cestou jeho sadu nevidí. */
@@ -47,6 +48,16 @@ export function previewOf(p: Payload): string {
     return p.text ? `✨ ${p.text}`.slice(0, 90) : '✨ ' + t('Samolepka', 'Sticker');
   }
   return (p.text ?? '').slice(0, 90);
+}
+
+export function replyRef(id: string, p: Payload): ReplyRef {
+  const r: ReplyRef = { id, preview: previewOf(p) };
+  if (p.t === 'sticker' && p.sticker) {
+    r.sticker = p.sticker;
+    if (p.wish?.emoji) r.icon = { emoji: p.wish.emoji };
+    else if (p.wish?.sticker) r.icon = { sticker: p.wish.sticker };
+  }
+  return r;
 }
 
 const hex = (b: ArrayBuffer) => Array.from(new Uint8Array(b), (x) => x.toString(16).padStart(2, '0')).join('');

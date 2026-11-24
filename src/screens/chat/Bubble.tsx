@@ -1,12 +1,13 @@
-import { useEffect, useRef, useState } from 'react';
+import { useContext, useEffect, useRef, useState } from 'react';
 import { type Message } from '../../lib/backend';
-import { photoUrl, type Payload, type PhotoRef } from '../../lib/payload';
+import { photoUrl, type Payload, type PhotoRef, type ReplyRef } from '../../lib/payload';
 import { STICKERS, pikantNumber, stickerSrc } from '../../data/stickers';
 import { Envelope } from '../../components/Envelope';
 import { haptic } from '../../lib/feedback';
 import { when } from '../format';
 import { plural, t } from '../../lib/i18n';
-import { useRoomLegend } from '../../lib/roomLegend';
+import { SexContext, useRoomLegend } from '../../lib/roomLegend';
+import { nativeIcon } from '../../data/legend';
 
 
 export type Decoded = Message & { p: Payload | null; failed?: boolean };
@@ -88,7 +89,7 @@ export function Bubble({ m, live, mine, partner, who, pairKey, showTime, showSta
       >
         <div className="who-tag" aria-label={t('Poslal/a: ', 'Sent by: ') + who}>{who}</div>
         {onReply && <span className={'swipe-cue' + (dx >= SWIPE ? ' ready' : '')} style={{ opacity: Math.min(1, dx / SWIPE) }} aria-hidden>↩</span>}
-        {p?.reply && <div className="quote">↩ {p.reply.preview}</div>}
+        {p?.reply && <div className="quote"><ReplyQuote r={p.reply} label="↩" /></div>}
         {m.failed || !p ? (
           <div className="bubble"><i>{t('Vzkaz nejde rozšifrovat.', 'This message cannot be decrypted.')}</i></div>
         ) : isSticker ? (
@@ -122,6 +123,18 @@ export function Bubble({ m, live, mine, partner, who, pairKey, showTime, showSta
 }
 
 const SWIPE = 56;
+
+/** Citace vzkazu, na který se odpovídá: u samolepky malý náhled té samolepky. */
+export function ReplyQuote({ r, label }: { r: ReplyRef; label: string }) {
+  const st = r.sticker && STICKERS.has(r.sticker) ? r.sticker : null;
+  return (
+    <span className="reply-quote">
+      <b>{label}</b>
+      {st && <StickerImg id={st} size={40} icon={r.icon ?? {}} />}
+      <span className="reply-text">{st && !pikantNumber(st) ? STICKERS.get(st)!.label : r.preview}</span>
+    </span>
+  );
+}
 
 /** Několik neotevřených vzkazů za sebou = jedna obálka. */
 export function GroupEnvelope({ count, partner, showTime, at, onOpen }: { count: number; partner: string; showTime: boolean; at: string; onOpen: () => void }) {
@@ -163,7 +176,10 @@ export function StickerImg({ id, size, onMissing, plain, icon }: {
   const [broken, setBroken] = useState(false);
   const n = pikantNumber(id);
   const mine = useRoomLegend()[n ?? 0];
-  const edit = icon ?? mine;
+  const sex = useContext(SexContext);
+  // bez ikony ze vzkazu: moje upravená ikona, jinak ikona čísla z mé sady (žena má jiné obrázky než muž)
+  const native = n && !icon ? nativeIcon(sex, n) : undefined;
+  const edit = icon ?? (mine?.emoji || mine?.sticker ? mine : native ? { sticker: native } : mine);
   // vlastní ikona přání: emoji nebo jiná samolepka (číslo zůstává)
   if (n && !plain && edit?.emoji) {
     return (

@@ -51,6 +51,7 @@ export function LegendEditor({ item, base, edit, sex, onSave, onClose }: {
         <div className="legend-edit-preview">
           {icon.emoji ? <span className="sticker-num" style={{ width: 72, height: 72 }}><span className="sticker-fallback" style={{ fontSize: 44, width: 72, height: 72 }}>{icon.emoji}</span><b className="num-badge">{item.n}</b></span>
             : icon.sticker ? <span className="sticker-num" style={{ width: 72, height: 72 }}><StickerImg id={icon.sticker} size={72} plain /><b className="num-badge">{item.n}</b></span>
+              : item.icon ? <span className="sticker-num" style={{ width: 72, height: 72 }}><StickerImg id={item.icon} size={72} plain /><b className="num-badge">{item.n}</b></span>
               : <StickerImg id={pikantId(item.n)} size={72} plain />}
         </div>
         <div style={{ minWidth: 0 }}>
@@ -63,7 +64,7 @@ export function LegendEditor({ item, base, edit, sex, onSave, onClose }: {
         <input className="input" value={title} maxLength={TITLE_MAX} onChange={(e) => setTitle(e.target.value)} />
       </label>
       <label className="field" style={{ marginTop: 10 }}><span>{t('Popis', 'Description')}</span>
-        <textarea className="textarea" style={{ minHeight: 110 }} value={body} maxLength={BODY_MAX} onChange={(e) => setBody(e.target.value)} />
+        <textarea className="textarea" style={{ minHeight: 180 }} value={body} maxLength={BODY_MAX} onChange={(e) => setBody(e.target.value)} />
       </label>
       <div className="small muted" style={{ textAlign: 'right' }}>{body.length} / {BODY_MAX}</div>
 

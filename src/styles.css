@@ -665,3 +665,15 @@ a.settings-item { color: inherit; text-decoration: none; }
 .spark-cool { filter: saturate(.3) brightness(.9); opacity: .75; }
 .spark-cold { filter: grayscale(1); opacity: .6; }
 .spark-note { color: var(--coral-soft); }
+
+/* Citace odpovědi s náhledem samolepky */
+.reply-quote { display: flex; align-items: center; gap: 6px; min-width: 0; }
+.reply-quote .reply-text { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+.reply-quote .sticker, .reply-quote .sticker-num, .reply-quote .sticker-fallback { flex: none; }
+.msg.mine .quote .reply-quote { justify-content: flex-end; }
+.room-line { position: relative; }
+.room-row .room { padding-right: 52px; }
+.room-row .room-del { position: absolute; right: 8px; top: 50%; transform: translateY(-50%); opacity: .7; }
+.room-row .room-del:hover { opacity: 1; }
+.room-row .room-badge { margin-right: 4px; }
+.room-confirm { margin-top: 6px; }
