@@ -79,7 +79,10 @@ test('registrace, místnost, samolepka, pikant, Legenda a angličtina', async ({
   await expect(p.getByRole('tab', { name: 'Naposledy použité' })).toBeVisible();
 
   // smazání vlastního vzkazu podržením
+  // počkat na odpověď dema, jinak nová zpráva posune seznam během podržení
+  await p.waitForTimeout(5000);
   const mine = await p.locator('.msg.mine').count();
+  await p.locator('.msg.mine .bubble-wrap').last().scrollIntoViewIfNeeded();
   const box = (await p.locator('.msg.mine .bubble-wrap').last().boundingBox())!;
   await p.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
   await p.mouse.down(); await p.waitForTimeout(650); await p.mouse.up();
