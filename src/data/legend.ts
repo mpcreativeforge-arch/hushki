@@ -166,12 +166,12 @@ const SHE_EN: LegendItem[] = [
  */
 const sheNumber = (k: number) => (k <= 20 ? ((k - 1) * 7 + 3) % 20 + 1 : 21 + ((k - 21) * 4 + 5) % 15);
 const shuffled = (list: LegendItem[]) =>
-  list.map((x) => ({ ...x, n: sheNumber(x.n), icon: 'p' + String(x.n).padStart(2, '0') })).sort((a, b) => a.n - b.n);
+  list.map((x) => ({ ...x, n: sheNumber(x.n), icon: 'q' + String(sheNumber(x.n)).padStart(2, '0') })).sort((a, b) => a.n - b.n);
 const SHE_CS_N = shuffled(SHE_CS);
 const SHE_EN_N = shuffled(SHE_EN);
 
 /** Sada přání podle pohlaví toho, kdo je posílá, v aktuálním jazyce. */
 export const legend = (sex: Sex) => (sex === 'zena' ? (isEn() ? SHE_EN_N : SHE_CS_N) : (isEn() ? HE_EN : HE_CS));
 
-/** Ikona čísla v nabídce dané sady (u ženy jiný obrázek než pNN), jinak undefined. */
+/** Ikona čísla v nabídce dané sady (žena má vlastní obrázky qNN), jinak undefined. */
 export const nativeIcon = (sex: Sex, n: number) => (sex === 'zena' ? SHE_CS_N.find((x) => x.n === n)?.icon : undefined);

@@ -158,6 +158,8 @@ test('registrace, místnost, samolepka, pikant, Legenda a angličtina', async ({
   // odpověď na přijatou samolepku ukáže náhled té samolepky
   // (podržení prstu je v emulaci mobilu nespolehlivé, gesto se ověřuje na PC)
   if (test.info().project.name !== 'mobil') {
+    // počkat na odpověď dema, jinak nová zpráva posune seznam během podržení
+    await p.waitForTimeout(5000);
     const theirs = p.locator('.msg.theirs .sticker-msg').last();
     await theirs.scrollIntoViewIfNeeded();
     const rb = (await theirs.boundingBox())!;
