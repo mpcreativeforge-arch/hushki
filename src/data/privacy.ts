@@ -19,7 +19,7 @@ export const OPERATOR = {
 export const operatorAddress = () => (isEn() ? OPERATOR.address.en : OPERATOR.address.cs);
 /** Rok pro © v aplikaci. */
 export const COPYRIGHT_YEAR = 2026;
-export const APP_VERSION = '7.2';
+export const APP_VERSION = '7.3';
 
 export interface PrivacySection { title: string; body: string[] }
 
