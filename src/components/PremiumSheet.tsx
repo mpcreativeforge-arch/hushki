@@ -5,6 +5,7 @@ import { beginPayment } from '../lib/session';
 import { t } from '../lib/i18n';
 import { PRICE_MONTH, PRICE_YEAR } from '../lib/premium';
 import { StickerImg } from '../screens/chat/Bubble';
+import { feedback } from '../lib/feedback';
 
 /** Nabídka Hushki Premium. Platba proběhne na stránce Stripe, po návratu se Premium odemkne samo. */
 export function PremiumSheet({ lead, onClose, onDemoDone }: { lead?: string; onClose: () => void; onDemoDone?: () => void }) {
@@ -15,7 +16,7 @@ export function PremiumSheet({ lead, onClose, onDemoDone }: { lead?: string; onC
     try {
       const url = await backend.premiumCheckout(plan);
       if (url) { beginPayment(); location.href = url; }
-      else { onDemoDone?.(); onClose(); }
+      else { feedback('premium'); onDemoDone?.(); onClose(); }
     } catch {
       setErr(t('Platbu se nepodařilo otevřít. Zkus to prosím za chvíli.', 'Could not open the payment. Please try again shortly.'));
       setBusy('');

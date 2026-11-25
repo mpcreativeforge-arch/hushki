@@ -55,7 +55,7 @@ export function HomeScreen({ user, pairs, keys, onOpen, onLeave, onAdd, onSettin
       }
       if (!alive) return;
       const total = Object.values(out).reduce((a, s) => a + s.unread, 0);
-      if (totalRef.current !== null && total > totalRef.current) feedback('receive');
+      if (totalRef.current !== null && total > totalRef.current) feedback('alert');
       totalRef.current = total;
       setBadge(total);
       setStats(out);

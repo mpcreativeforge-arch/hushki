@@ -17,6 +17,7 @@ import { PRIVACY_VERSION } from './data/privacy';
 import { Splash } from './components/Splash';
 import { ProfileStep } from './components/ProfileStep';
 import { Toaster, toast } from './components/Toast';
+import { feedback } from './lib/feedback';
 import { isPremium } from './lib/premium';
 import { setBadge } from './lib/badge';
 import { t, useLang } from './lib/i18n';
@@ -70,7 +71,7 @@ export function App() {
     let n = 0;
     const tick = async () => {
       const u = await refreshUser();
-      if (isPremium(u)) toast(t('Premium je aktivní 👑', 'Premium is active 👑'));
+      if (isPremium(u)) { toast(t('Premium je aktivní 👑', 'Premium is active 👑')); feedback('premium'); }
       else if (++n < 10) setTimeout(tick, 3000);
     };
     setTimeout(tick, 1500);

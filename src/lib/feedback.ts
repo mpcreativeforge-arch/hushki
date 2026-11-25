@@ -1,4 +1,4 @@
-// Zvuky (Web Audio, bez souborů) a haptická odezva.
+// Zvuky (nahrané MP3 v public/sounds, záložně syntéza Web Audio) a haptická odezva.
 // iPhone nepodporuje navigator.vibrate. Safari 18+ ale vibruje při přepnutí <input type="checkbox" switch>,
 // takový skrytý přepínač tu použijeme.
 
@@ -71,10 +71,42 @@ function audio() {
   return ctx;
 }
 
-/** Odemkne zvuk po prvním dotyku (iOS vyžaduje gesto uživatele). */
+/** Odemkne zvuk po prvním dotyku (iOS vyžaduje gesto uživatele) a načte zvukové soubory. */
 export function primeAudio() {
-  const once = () => { audio(); window.removeEventListener('pointerdown', once); };
+  const once = () => { const c = audio(); if (c) loadSamples(c); window.removeEventListener('pointerdown', once); };
   window.addEventListener('pointerdown', once, { passive: true });
+}
+
+// --- Zvukové soubory ------------------------------------------------------------
+
+const SAMPLE_FILES = ['vzkaz-prichozi', 'vzkaz-odeslany', 'obalka-otevreni', 'kostka-hod', 'kostka-cislo', 'odemceni', 'premium', 'stek', 'vyti-kratke'] as const;
+type SampleName = typeof SAMPLE_FILES[number];
+const samples = new Map<SampleName, AudioBuffer>();
+let loading = false;
+
+function loadSamples(c: AudioContext) {
+  if (loading) return;
+  loading = true;
+  for (const name of SAMPLE_FILES) {
+    fetch(`${import.meta.env.BASE_URL}sounds/${name}.mp3`)
+      .then((r) => (r.ok ? r.arrayBuffer() : Promise.reject(new Error(String(r.status)))))
+      .then((b) => new Promise<AudioBuffer>((res, rej) => c.decodeAudioData(b, res, rej)))
+      .then((buf) => { samples.set(name, buf); })
+      .catch(() => undefined); // bez souboru se použije syntéza
+  }
+}
+
+/** Přehraje zvukový soubor. Vrací false, když ještě není načtený. */
+function play(c: AudioContext, name: SampleName, vol = 0.7, at = c.currentTime + 0.01) {
+  const buf = samples.get(name);
+  if (!buf) return false;
+  const src = c.createBufferSource();
+  const g = c.createGain();
+  src.buffer = buf;
+  g.gain.value = vol;
+  src.connect(g).connect(c.destination);
+  src.start(at);
+  return true;
 }
 
 function tone(c: AudioContext, freq: number, start: number, dur: number, vol: number, type: OscillatorType = 'sine', slideTo?: number) {
@@ -91,22 +123,40 @@ function tone(c: AudioContext, freq: number, start: number, dur: number, vol: nu
   o.stop(start + dur + 0.02);
 }
 
-export type SoundKind = 'send' | 'receive' | 'open' | 'sticker';
+export type SoundKind = 'send' | 'receive' | 'open' | 'sticker' | 'alert' | 'unlock' | 'premium' | 'spark';
+
+const SAMPLE_FOR: Record<SoundKind, [SampleName, number]> = {
+  send: ['vzkaz-odeslany', 0.6],
+  sticker: ['vzkaz-odeslany', 0.6],
+  receive: ['vzkaz-prichozi', 0.7],
+  alert: ['stek', 0.55], // nový vzkaz, když je otevřený seznam místností
+  open: ['obalka-otevreni', 0.7],
+  unlock: ['odemceni', 0.7],
+  premium: ['premium', 0.7],
+  spark: ['vyti-kratke', 0.5], // připomínka „Kde seš?“
+};
 
 export function sound(kind: SoundKind) {
   if (!getPrefs().sound) return;
   const c = audio();
   if (!c) return;
+  loadSamples(c);
+  const [name, vol] = SAMPLE_FOR[kind];
+  if (play(c, name, vol)) return;
   const t = c.currentTime + 0.01;
   switch (kind) {
     case 'send': // krátké "fff-pop" nahoru
       tone(c, 520, t, 0.12, 0.12, 'sine', 880);
       break;
     case 'receive': // dva jemné tóny
+    case 'alert':
+    case 'spark':
       tone(c, 784, t, 0.18, 0.1);
       tone(c, 1046, t + 0.11, 0.26, 0.08);
       break;
     case 'open': // rozlepení obálky
+    case 'unlock':
+    case 'premium':
       tone(c, 330, t, 0.22, 0.08, 'triangle', 660);
       tone(c, 990, t + 0.14, 0.2, 0.05);
       break;
@@ -119,7 +169,7 @@ export function sound(kind: SoundKind) {
 
 export function feedback(kind: SoundKind) {
   sound(kind);
-  haptic(kind === 'receive' ? 'receive' : kind === 'send' || kind === 'sticker' ? 'send' : 'tap');
+  haptic(kind === 'receive' || kind === 'alert' || kind === 'spark' ? 'receive' : kind === 'send' || kind === 'sticker' ? 'send' : 'tap');
 }
 
 // --- Kostka ------------------------------------------------------------------
@@ -155,6 +205,12 @@ export function diceRollSound(durMs: number) {
   if (!c) return;
   const start = c.currentTime + 0.02;
   const dur = Math.max(0.2, durMs / 1000);
+  // nahrané chrastění (1 s) a cinknutí při dopadu
+  if (dur >= 1 && samples.has('kostka-hod') && samples.has('kostka-cislo')) {
+    play(c, 'kostka-hod', 0.75, start);
+    play(c, 'kostka-cislo', 0.6, start + dur);
+    return;
+  }
   let t = 0;
   let gap = 0.045;
   while (t < dur - 0.08) {

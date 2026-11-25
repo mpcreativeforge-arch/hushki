@@ -19,6 +19,10 @@ Jeden z partnerů napíše vzkaz, druhému přijde jen diskrétní upozornění 
 2. `supabase secrets set CRON_SECRET=<náhodný řetězec>` a `supabase functions deploy spark` (znovu nasadit i `notify`).
 3. Integrations → Cron → nová úloha každou hodinu (`0 * * * *`), typ Supabase Edge Function `spark`, metoda POST, hlavička `x-cron-secret: <stejný řetězec>`.
 
+## Verze 7.4 (zvuky)
+
+- Nahrané zvuky v `public/sounds/` (MP3): příchozí a odeslaný vzkaz, otevření obálky, hod kostkou a padlé číslo, odemčení heslem, Premium, štěk (nový vzkaz na seznamu místností) a krátké vytí (připomínka „Kde seš?“). Přehrávají se přes Web Audio v `src/lib/feedback.ts`, dokud se soubor nenačte, hraje původní syntéza. Vypínač „Zvuky v chatu“ v Nastavení vypne všechny.
+
 ## Verze 7.1
 
 - Záložky seřazené podle používanosti: Pokec, Domluva, Ocenění, Dárky, Hushki pikant. Každá záložka má místo pro 30 samolepek (16–30 se ukážou, až bude v `public/stickers/` jejich obrázek).
