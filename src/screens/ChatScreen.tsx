@@ -120,7 +120,7 @@ export function ChatScreen({ user, pair, pairKey, flags, onBack, onSettings, onL
       const incoming = out.filter((m) => m.sender_id !== user.id);
       if (seenRef.current) {
         const fresh = incoming.filter((m) => !seenRef.current!.has(m.id));
-        if (fresh.length) feedback('receive');
+        if (fresh.length) feedback(fresh.some((m) => m.meta?.sys === 'spark') ? 'spark' : 'receive');
         if (!document.hidden) {
           for (const m of fresh) {
             if (m.read_at) continue;

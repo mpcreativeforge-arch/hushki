@@ -69,7 +69,7 @@ export function LegendSheet({ start, locks, wishes, unlocked, onPin, sex, mySex,
   if (pinFor) {
     const tryPin = async (pin: string) => {
       if (!(await onPin(pin, pinFor))) return false;
-      feedback('open'); setFocus(pinFor); setPinFor(null);
+      feedback('unlock'); setFocus(pinFor); setPinFor(null);
       return true;
     };
     return (
